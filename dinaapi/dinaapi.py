@@ -72,7 +72,7 @@ class DinaAPI:
             "Authorization": "bearer {}".format(self.token["access_token"]),
         }
 
-    def get_req_dina(self, full_url: str, params: None):
+    def get_req_dina(self, full_url: str, params: dict = None) -> requests.Response:
         """Base method for a GET request to DINA. The full_url should be
         an extension of the base_url."""
         return requests.get(full_url, headers=self.req_header, params=params)

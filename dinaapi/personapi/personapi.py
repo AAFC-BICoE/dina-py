@@ -1,3 +1,4 @@
+import requests
 from ..dinaapi import DinaAPI
 
 
@@ -9,7 +10,7 @@ class PersonAPI(DinaAPI):
         super.__init__(config_path)
         self.base_url += "agent-api/person/"
 
-    def find(self, uuid: str):
+    def find(self, uuid: str) -> requests.Response:
         """Returns the GET response of a person with the given UUID."""
         full_url = self.base_url + uuid
 
