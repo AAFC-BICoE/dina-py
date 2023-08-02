@@ -33,7 +33,6 @@ class PersonAPI(DinaAPI):
         try:
             response_data = self.get_req_dina(full_url)
         except Exception as exc:
-            # Handle the exception here, e.g., log the error or return a custom error message
             logging.error(f"Failed to find person with UUID {uuid}: {exc}")
             raise  # Re-raise the exception
 
@@ -105,7 +104,7 @@ class OrganizationSchema(Schema):
 
 # Define the Person schema
 class PersonSchema(Schema):
-    # ... (previous fields definition)
+    # ... (Same as Person fields)
 
     @staticmethod
     def get_attribute(obj, attr):
@@ -132,6 +131,6 @@ class PersonSchema(Schema):
         type_ = "person"
 
 
-# Define the top-level schema for the whole JSON structure
+# Define the top-level schema for the whole JSON structure (data {})
 class DataSchema(Schema):
     data = fields.Nested(PersonSchema, required=True)
