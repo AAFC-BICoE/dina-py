@@ -1,52 +1,85 @@
-"""Dina Web Services. Define basic dina module API calls."""
-
 import os
 import requests
 import yaml
 import logging
-
 from keycloak import KeycloakOpenID
 
 KEYCLOACK_CONFIG_PATH = "./keycloak-config.yml"
+BASE_URL = "https://dina-dev2.biodiversity.agr.gc.ca/api/v1/"
 
 
 class DinaAPI:
-    """Base class containing basic API calls, to be inherited by other classes."""
+    """Base class containing basic DINA module API calls.
 
-    def __init__(self, config_path: str = None) -> None:
-        """Creates basic web services based on config path provided.
-        Will use a default path if not provided.
+    This class provides the basic functionality for making API calls to the DINA web services.
+    It handles token authentication using Keycloak and sets necessary headers for API requests.
+
+    Parameters:
+        config_path (str): Path to the YAML configuration file containing Keycloak settings.
+
+    Attributes:
+        configs (dict): Configuration information loaded from the YAML file.
+        token (dict): Keycloak token obtained during authentication.
+        session (requests.Session): Requests session object for making HTTP requests.
+        base_url (str): Base URL for the DINA web API.
+
+    """
+
+    def __init__(self, config_path: str = None):
+        """Creates basic web services based on the provided config path or a default path.
+
+        If the config_path is not provided, the default KEYCLOACK_CONFIG_PATH will be used.
+
+        Parameters:
+            config_path (str, optional): Path to the YAML configuration file (default: None).
+
         """
-        if config_path == None:
+        if config_path is None:
             config_path = KEYCLOACK_CONFIG_PATH
 
-        self.configs = None  # contains configuration information
-        self.token = None  # keycloak token
+        self.configs = None
+        self.token = None
 
         self.set_configs(config_path)
         self.set_token()
 
-        self.req_header = None  # contains request header for accessing DINA
+        self.session = requests.Session()
         self.set_req_header()
 
         # Base web API URL, to be extended in inherited classes
-        self.base_url = "https//dina-dev2.biodiversity.agr.gc.ca/api/"
+        self.base_url = BASE_URL
 
-    def set_configs(self, config_path: str) -> None:
-        """Loads config from YAML file and saves it to configs variable."""
+    def set_configs(self, config_path: str):
+        """Loads config from YAML file and saves it to the 'configs' variable.
+
+        Parameters:
+            config_path (str): Path to the YAML configuration file.
+
+        Raises:
+            FileNotFoundError: If the config_path does not point to an existing file.
+            yaml.YAMLError: If there is an error in reading or parsing the YAML file.
+
+        """
         try:
-            config_file = open(config_path, "r")
-            config_yml = yaml.safe_load(config_file)
-            config_file.close
+            with open(config_path, "r") as config_file:
+                self.configs = yaml.safe_load(config_file)
+        except FileNotFoundError:
+            logging.error(f"Configuration file not found: {config_path}")
+            raise
         except yaml.YAMLError as exc:
             logging.error("Error in configuration file. Cannot execute.")
             logging.error(exc)
+            raise
 
-        self.configs = config_yml
+    def set_token(self):
+        """Creates a Keycloak token based on configurations and environment variables.
 
-    def set_token(self) -> None:
-        """Creates a keycloak token based on configs and env variables and
-        saves it to token variable."""
+        The Keycloak token is retrieved and saved to the 'token' attribute.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error during the token retrieval.
+
+        """
         keycloak_openid = KeycloakOpenID(
             server_url=self.configs["url"],
             client_id=self.configs["client_id"],
@@ -57,22 +90,48 @@ class DinaAPI:
 
         try:
             self.token = keycloak_openid.token(
-                os.environ["keycloak_username"], os.environ["keycloak_password"]
+                os.environ.get("keycloak_username"),
+                os.environ.get("keycloak_password"),
             )
         except KeyError as exc:
             logging.error("Could not retrieve credentials from env variables.")
             logging.error(exc)
+            raise
 
-    def set_req_header(self) -> None:
-        """Creates request header based on current token and saves it to
-        req_header variable."""
-        self.req_header = {
-            "Accept": "application/vnd.api+json",
-            "Content-Type": "application/vnd.api+json",
-            "Authorization": "bearer {}".format(self.token["access_token"]),
-        }
+    def set_req_header(self):
+        """Sets the header for the session.
+
+        The header includes the 'Accept', 'Content-Type', and 'Authorization' fields.
+        Token must be set beforehand.
+
+        """
+        self.session.headers.update(
+            {
+                "Accept": "application/vnd.api+json",
+                "Content-Type": "application/vnd.api+json",
+                "Authorization": f"bearer {self.token['access_token']}",
+            }
+        )
 
     def get_req_dina(self, full_url: str, params: dict = None) -> requests.Response:
-        """Base method for a GET request to DINA. The full_url should be
-        an extension of the base_url."""
-        return requests.get(full_url, headers=self.req_header, params=params)
+        """Base method for a GET request to DINA.
+
+        Args:
+            full_url (str): The full URL for the API request (extension of the base_url).
+            params (dict, optional): Query parameters for the request (default: None).
+
+        Returns:
+            requests.Response: The response object containing the API response.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error during the HTTP request.
+
+        """
+        try:
+            response = self.session.get(full_url, params=params)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as exc:
+            logging.error(f"Request to {full_url} failed.")
+            logging.error(exc)
+            raise  # Re-raise the exception to propagate it to the caller
