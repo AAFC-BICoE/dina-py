@@ -2,6 +2,7 @@ import os
 import requests
 import yaml
 import logging
+
 from keycloak import KeycloakOpenID
 
 KEYCLOACK_CONFIG_PATH = "./keycloak-config.yml"
@@ -129,9 +130,10 @@ class DinaAPI:
         """
         try:
             response = self.session.get(full_url, params=params)
-            response.raise_for_status()
-            return response
+            response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
-            logging.error(f"Request to {full_url} failed.")
-            logging.error(exc)
-            raise  # Re-raise the exception to propagate it to the caller
+            # Handle the exception here, e.g., log the error or raise a custom exception
+            logging.error(f"Failed to fetch data from {full_url}: {exc}")
+            raise  # Re-raise the exception
+
+        return response.json()

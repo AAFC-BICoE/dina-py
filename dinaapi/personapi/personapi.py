@@ -1,4 +1,6 @@
 import requests
+import logging
+
 from marshmallow_jsonapi import Schema, fields
 
 from ..dinaapi import DinaAPI
@@ -26,8 +28,16 @@ class PersonAPI(DinaAPI):
         Returns:
             requests.Response: The response object containing the API response.
         """
-        full_url = self.base_url + uuid
-        return self.get_req_dina(full_url)
+        full_url = self.base_url + "agent-api/person/" + uuid
+
+        try:
+            response_data = self.get_req_dina(full_url)
+        except Exception as exc:
+            # Handle the exception here, e.g., log the error or return a custom error message
+            logging.error(f"Failed to find person with UUID {uuid}: {exc}")
+            raise  # Re-raise the exception
+
+        return response_data
 
 
 class Person:
