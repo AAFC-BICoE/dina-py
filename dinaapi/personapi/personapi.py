@@ -39,98 +39,40 @@ class PersonAPI(DinaAPI):
         return response_data
 
 
-class Person:
-    """Class representing a Person object."""
-
-    def __init__(
-        self,
-        id,
-        type,
-        displayName,
-        email,
-        createdBy,
-        createdOn,
-        givenNames,
-        familyNames,
-        webpage,
-        remarks,
-        aliases,
-        organizations,
-        identifiers,
-    ):
-        """Initialize a Person object.
-
-        Parameters:
-            id (str): The unique identifier of the person.
-            type (str): The type of the person.
-            displayName (str): The display name of the person.
-            email (str): The email address of the person.
-            createdBy (str): The creator of the person.
-            createdOn (str): The creation date of the person.
-            givenNames (str): The given names of the person.
-            familyNames (str): The family names of the person.
-            webpage (str): The webpage URL of the person.
-            remarks (str): Any remarks or notes about the person.
-            aliases (list[str]): List of aliases or alternative names of the person.
-            organizations (list[dict]): List of organizations associated with the person.
-            identifiers (list[dict]): List of identifiers associated with the person.
-        """
-        self.id = id
-        self.type = type
-        self.displayName = displayName
-        self.email = email
-        self.createdBy = createdBy
-        self.createdOn = createdOn
-        self.givenNames = givenNames
-        self.familyNames = familyNames
-        self.webpage = webpage
-        self.remarks = remarks
-        self.aliases = aliases
-        self.organizations = organizations
-        self.identifiers = identifiers
-
-
-# Define the Identifier schema
 class IdentifierSchema(Schema):
-    id = fields.Str()
-    type = fields.Str()
+    class Meta:
+        type_ = "identifier"
 
+    id = fields.Str(required=True)
 
-# Define the Organization schema
 class OrganizationSchema(Schema):
-    id = fields.Str()
-    type = fields.Str()
+    class Meta:
+        type_ = "organization"
 
+    id = fields.Str(required=True)
 
-# Define the Person schema
 class PersonSchema(Schema):
-    # ... (Same as Person fields)
-
-    @staticmethod
-    def get_attribute(obj, attr):
-        return getattr(obj, attr, None)
-
-    id = fields.Str(attribute="id", dump_only=True)
-    type = fields.Str(attribute="type", dump_only=True)
-    displayName = fields.Str(attribute="displayName")
-    email = fields.Str(attribute="email")
-    createdBy = fields.Str(attribute="createdBy")
-    createdOn = fields.DateTime(attribute="createdOn")
-    givenNames = fields.Str(attribute="givenNames")
-    familyNames = fields.Str(attribute="familyNames")
-    webpage = fields.Str(attribute="webpage")
-    remarks = fields.Str(attribute="remarks")
-    aliases = fields.List(fields.Str, attribute="aliases")
-
-    organizations = fields.List(
-        fields.Nested(OrganizationSchema), attribute="organizations"
-    )
-    identifiers = fields.List(fields.Nested(IdentifierSchema), attribute="identifiers")
-
     class Meta:
         type_ = "person"
+        self_view = "person_detail"
+        self_view_kwargs = {"id": "<id>"}
+        self_view_many = "person_list"
 
+    id = fields.Str(required=True)
+    displayName = fields.Str(required=True, attribute="displayName")
+    email = fields.Email(required=True, attribute="email")
+    createdBy = fields.Str(required=True, attribute="createdBy")
+    createdOn = fields.DateTime(required=True, attribute="createdOn")
+    givenNames = fields.Str(required=True, attribute="givenNames")
+    familyNames = fields.Str(required=True, attribute="familyNames")
+    webpage = fields.Url(required=True, attribute="webpage")
+    remarks = fields.Str(required=True, attribute="remarks")
+    aliases = fields.List(fields.Str(), required=True, attribute="aliases")
 
-# Define the top-level schema for the whole JSON structure (data {})
-class DataSchema(Schema):
-    data = fields.Nested(PersonSchema, required=True)
+    # Define relationships using .nested
+    organizations = fields.Relationship(
+        type_="organization", attribute="organizations", many=True, include_resource_linkage=True, nested="OrganizationSchema"
+    )
+    identifiers = fields.Relationship(
+        type_="identifier", attribute="identifiers", many=True, include_resource_linkage=True, nested="IdentifierSchema"
+    )
