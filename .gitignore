@@ -1,3 +1,4 @@
 .vscode/
-tests/keycloak-config.yml
+*/keycloak-config.yml
 __pycache__/
+test.py
