@@ -3,10 +3,10 @@ import requests
 import yaml
 import logging
 
-from keycloak import KeycloakOpenID
+from keycloak import KeycloakConnectionError, KeycloakOpenID
 
 KEYCLOACK_CONFIG_PATH = "./keycloak-config.yml"
-BASE_URL = "https://dina-dev2.biodiversity.agr.gc.ca/api/v1/"
+BASE_URL = "https://dina-dev2.biodiversity.agr.gc.ca/api/"
 
 
 class DinaAPI:
@@ -85,8 +85,8 @@ class DinaAPI:
             server_url=self.configs["url"],
             client_id=self.configs["client_id"],
             realm_name=self.configs["realm_name"],
-            verify=self.configs["secure"],
             client_secret_key=None,
+            verify=self.configs["secure"],
         )
 
         try:
@@ -136,4 +136,4 @@ class DinaAPI:
             logging.error(f"Failed to fetch data from {full_url}: {exc}")
             raise  # Re-raise the exception
 
-        return response.json()
+        return response
