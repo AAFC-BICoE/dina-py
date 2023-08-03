@@ -28,7 +28,7 @@ class PersonAPI(DinaAPI):
         Returns:
             requests.Response: The response object containing the API response.
         """
-        full_url = self.base_url + "agent-api/person/" + uuid
+        full_url = self.base_url + uuid
 
         try:
             response_data = self.get_req_dina(full_url)
