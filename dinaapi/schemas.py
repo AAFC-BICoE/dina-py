@@ -28,9 +28,9 @@ class PersonSchema(Schema):
     createdOn = fields.DateTime(required=True, attribute="createdOn")
     givenNames = fields.Str(required=True, attribute="givenNames")
     familyNames = fields.Str(required=True, attribute="familyNames")
-    webpage = fields.Url(required=True, attribute="webpage")
-    remarks = fields.Str(required=True, attribute="remarks")
-    aliases = fields.List(fields.Str(), required=True, attribute="aliases")
+    webpage = fields.Url(required=False, attribute="webpage")
+    remarks = fields.Str(required=False, attribute="remarks")
+    aliases = fields.List(fields.Str(), required=False, attribute="aliases")
 
     # Define relationships using .nested
     organizations = fields.Relationship(
