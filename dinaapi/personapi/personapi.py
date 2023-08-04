@@ -54,9 +54,8 @@ class OrganizationSchema(Schema):
 class PersonSchema(Schema):
     class Meta:
         type_ = "person"
-        self_view = "person_detail"
-        self_view_kwargs = {"id": "<id>"}
-        self_view_many = "person_list"
+        self_view = "/api/v1/person/{id}"
+        # self_view_many = "person_list"
 
     id = fields.Str(required=True)
     displayName = fields.Str(required=True, attribute="displayName")
