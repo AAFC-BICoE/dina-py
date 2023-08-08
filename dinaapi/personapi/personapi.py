@@ -3,6 +3,7 @@ import logging
 
 
 from ..dinaapi import DinaAPI
+from ..schemas import PersonSchema
 
 
 class PersonAPI(DinaAPI):
@@ -17,15 +18,14 @@ class PersonAPI(DinaAPI):
         super().__init__(config_path)
         self.base_url += "agent-api/person/"
 
-    # maybe change it to return a Person object and not a response?
-    def find(self, uuid: str) -> requests.Response:
-        """Returns the GET response of a person with the given UUID.
+    def find(self, uuid: str) -> dict:
+        """Returns the deserialized GET response of a person with the given UUID.
 
         Parameters:
             uuid (str): The UUID of the person to find.
 
         Returns:
-            requests.Response: The response object containing the API response.
+            dict: A deserialized object of the Person GET response.
         """
         full_url = self.base_url + uuid
 
@@ -35,4 +35,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to find person with UUID {uuid}: {exc}")
             raise  # Re-raise the exception
 
-        return response_data
+        person_schema = PersonSchema()
+        deserialized_data = person_schema.load(response_data.json())
+
+        return deserialized_data
