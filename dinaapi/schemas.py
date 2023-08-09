@@ -1,14 +1,14 @@
 from marshmallow_jsonapi import Schema, fields
 
 class PersonSchema(Schema):
-    id = fields.Str()
-    displayName = fields.Str(attribute="attributes.displayName")
-    email = fields.Str(attribute="attributes.email")
-    createdBy = fields.Str(attribute="attributes.createdBy")
-    createdOn = fields.DateTime(attribute="attributes.createdOn")
-    givenNames = fields.Str(attribute="attributes.givenNames")
-    familyNames = fields.Str(attribute="attributes.familyNames")
-    aliases = fields.List(fields.Str(), attribute="attributes.aliases")
+    id = fields.Str(required=True)
+    displayName = fields.Str(required=True, attribute="attributes.displayName")
+    email = fields.Str(required=True, attribute="attributes.email")
+    createdBy = fields.Str(required=True, attribute="attributes.createdBy")
+    createdOn = fields.DateTime(required=True, attribute="attributes.createdOn")
+    givenNames = fields.Str(required=True, attribute="attributes.givenNames")
+    familyNames = fields.Str(required=True, attribute="attributes.familyNames")
+    aliases = fields.List(fields.Str(), allow_none=True, attribute="attributes.aliases")
     webpage = fields.Str(allow_none=True, attribute="attributes.webpage")
     remarks = fields.Str(allow_none=True, attribute="attributes.remarks")
     

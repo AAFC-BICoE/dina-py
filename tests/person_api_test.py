@@ -37,9 +37,7 @@ class PersonAPITestCase(unittest.TestCase):
                     "organizations": {
                         "data": [{"type": "organization", "id": "12345"}]
                     },
-                    "identifiers": {
-                        "data": [{"type": "identifier", "id": "67890"}]
-                    },
+                    "identifiers": {"data": [{"type": "identifier", "id": "67890"}]},
                 },
             }
         }
@@ -83,41 +81,38 @@ class PersonAPITestCase(unittest.TestCase):
         # Example valid data
         data = {
             "data": {
-                "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
                 "type": "person",
+                "links": {
+                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"
+                },
                 "attributes": {
-                    "displayName": "test user",
-                    "email": "test@canada.ca",
-                    "createdBy": "test user",
-                    "createdOn": "1985-04-12T23:20:50.52Z",
-                    "givenNames": "Jane",
-                    "familyNames": "Doe",
-                    "webpage": "https://github.com/DINA-Web",
-                    "remarks": "this is a mock remark",
-                    "aliases": [
-                        "Jane Roe",
-                        "Janie Doe"
-                    ]
+                    "displayName": "testBob",
+                    "email": "bob.builder@agr.gc.ca",
+                    "createdBy": "cnc-su",
+                    "createdOn": "2023-02-20T16:18:10.688627Z",
+                    "givenNames": "Bob",
+                    "familyNames": "Builder",
+                    "aliases": ["Yes we can"],
+                    "webpage": None,
+                    "remarks": None,
                 },
                 "relationships": {
-                    "organizations": {
-                        "data": [
-                            {
-                                "type": "organization",
-                                "id": "a600f9da-fcbe-4fef-9ae3-0f131ca05e0c"
-                            }
-                        ]
-                    },
                     "identifiers": {
-                        "data": [
-                            {
-                                "type": "identifier",
-                                "id": "a600f9da-fcbe-4fef-9ae3-0f131ca05e0c"
-                            }
-                        ]
-                    }
-                }
-            }
+                        "links": {
+                            "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/identifiers",
+                            "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/identifiers",
+                        }
+                    },
+                    "organizations": {
+                        "links": {
+                            "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/organizations",
+                            "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/organizations",
+                        }
+                    },
+                },
+            },
+            "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
         }
 
         # Create a schema instance and validate the data
@@ -132,47 +127,45 @@ class PersonAPITestCase(unittest.TestCase):
         # Example invalid data with missing required fields
         invalid_data = {
             "data": {
-                "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
                 "type": "person",
+                "links": {
+                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"
+                },
                 "attributes": {
-                    # Missing "displayName" field
-                    "email": "test@canada.ca",
-                    "createdBy": "test user",
-                    "createdOn": "1985-04-12T23:20:50.52Z",
-                    "givenNames": "Jane",
-                    "familyNames": "Doe",
-                    "webpage": "https://github.com/DINA-Web",
-                    "remarks": "this is a mock remark",
-                    "aliases": [
-                        "Jane Roe",
-                        "Janie Doe"
-                    ]
+                    # "displayName": "testBob", no display name
+                    "email": "bob.builder@agr.gc.ca",
+                    "createdBy": "cnc-su",
+                    "createdOn": "2023-02-20T16:18:10.688627Z",
+                    "givenNames": "Bob",
+                    "familyNames": "Builder",
+                    "aliases": ["Yes we can"],
+                    "webpage": None,
+                    "remarks": None,
                 },
                 "relationships": {
-                    "organizations": {
-                        "data": [
-                            {
-                                "type": "organization",
-                                "id": "a600f9da-fcbe-4fef-9ae3-0f131ca05e0c"
-                            }
-                        ]
-                    },
                     "identifiers": {
-                        "data": [
-                            {
-                                "type": "identifier",
-                                "id": "a600f9da-fcbe-4fef-9ae3-0f131ca05e0c"
-                            }
-                        ]
-                    }
-                }
-            }
+                        "links": {
+                            "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/identifiers",
+                            "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/identifiers",
+                        }
+                    },
+                    "organizations": {
+                        "links": {
+                            "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/organizations",
+                            "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/organizations",
+                        }
+                    },
+                },
+            },
+            "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
         }
 
         # Create a schema instance and attempt to validate the invalid data
         schema = PersonSchema()
         with self.assertRaises(ValidationError):
             schema.load(invalid_data)
+
 
 if __name__ == "__main__":
     unittest.main()
