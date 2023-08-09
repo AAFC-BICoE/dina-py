@@ -13,18 +13,20 @@ class PersonSchema(Schema):
     remarks = fields.Str(allow_none=True, attribute="attributes.remarks")
     
     identifiers = fields.Relationship(
+        self_url="/api/v1/person/{id}/relationships/identifiers",
+        self_url_kwargs={"id": "<id>"},
         related_url="/api/v1/person/{id}/identifiers",
         related_url_kwargs={"id": "<id>"},
         many=True,
-        include_resource_linkage=True,
         type_="identifiers",
     )
     
     organizations = fields.Relationship(
+        self_url="/api/v1/person/{id}/relationships/organizations",
+        self_url_kwargs={"id": "<id>"},
         related_url="/api/v1/person/{id}/organizations",
         related_url_kwargs={"id": "<id>"},
         many=True,
-        include_resource_linkage=True,
         type_="organizations",
     )
 
@@ -32,7 +34,10 @@ class PersonSchema(Schema):
     
     class Meta:
         type_ = "person"
+        self_url = "/api/v1/person/{id}"
+        self_url_kwargs = {"id": "<id>"}
         strict = True
+
 
 
 # GET response for Person
