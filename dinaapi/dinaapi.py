@@ -3,7 +3,7 @@ import requests
 import yaml
 import logging
 
-from keycloak import KeycloakConnectionError, KeycloakOpenID
+from keycloak import KeycloakOpenID
 
 KEYCLOACK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina-dev2.biodiversity.agr.gc.ca/api/"
