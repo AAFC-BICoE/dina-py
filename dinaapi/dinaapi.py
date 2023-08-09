@@ -137,3 +137,77 @@ class DinaAPI:
             raise  # Re-raise the exception
 
         return response
+
+    def post_req_dina(self, full_url: str, json_data: dict, params: dict = None):
+        """Base method for a POST request to DINA.
+
+        Args:
+            full_url (str): The full URL for the API request (extension of the base_url).
+            json_data (dict): JSON data to be sent in the request body.
+            params (dict, optional): Query parameters for the request (default: None).
+
+        Returns:
+            requests.Response: The response object containing the API response.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error during the HTTP request.
+
+        """
+        try:
+            response = self.session.post(full_url, json=json_data, params=params)
+            response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
+        except requests.exceptions.RequestException as exc:
+            # Handle the exception here, e.g., log the error or raise a custom exception
+            logging.error(f"Failed to fetch data from {full_url}: {exc}")
+            raise  # Re-raise the exception
+
+        return response
+    
+    def patch_req_dina(self, full_url: str, json_data: dict, params: dict = None):
+        """Base method for a PATCH request to DINA.
+
+        Args:
+            full_url (str): The full URL for the API request (extension of the base_url).
+            json_data (dict): JSON data to be sent in the request body.
+            params (dict, optional): Query parameters for the request (default: None).
+
+        Returns:
+            requests.Response: The response object containing the API response.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error during the HTTP request.
+
+        """
+        try:
+            response = self.session.patch(full_url, json=json_data, params=params)
+            response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
+        except requests.exceptions.RequestException as exc:
+            # Handle the exception here, e.g., log the error or raise a custom exception
+            logging.error(f"Failed to perform PATCH request to {full_url}: {exc}")
+            raise  # Re-raise the exception
+
+        return response
+    
+    def delete_req_dina(self, full_url: str, params: dict = None):
+        """Base method for a DELETE request to DINA.
+
+        Args:
+            full_url (str): The full URL for the API request (extension of the base_url).
+            params (dict, optional): Query parameters for the request (default: None).
+
+        Returns:
+            requests.Response: The response object containing the API response.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error during the HTTP request.
+
+        """
+        try:
+            response = self.session.delete(full_url, params=params)
+            response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
+        except requests.exceptions.RequestException as exc:
+            # Handle the exception here, e.g., log the error or raise a custom exception
+            logging.error(f"Failed to delete data from {full_url}: {exc}")
+            raise  # Re-raise the exception
+
+        return response
