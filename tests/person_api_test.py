@@ -13,50 +13,60 @@ sys.path.insert(0, project_root)
 # Now you can import modules from the dinaapi package
 from dinaapi.personapi.personapi import PersonAPI, PersonSchema
 
+KEYCLOAK_CONFIG_PATH = 'tests/keycloak-config.yml'
+
+VALID_PERSON_DATA = {
+    "data": {
+        "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
+        "type": "person",
+        "links": {"self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"},
+        "attributes": {
+            "displayName": "testBob",
+            "email": "bob.builder@agr.gc.ca",
+            "createdBy": "cnc-su",
+            "createdOn": "2023-02-20T16:18:10.688627Z",
+            "givenNames": "Bob",
+            "familyNames": "Builder",
+            "aliases": ["Yes we can"],
+            "webpage": None,
+            "remarks": None,
+        },
+        "relationships": {
+            "identifiers": {
+                "links": {
+                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/identifiers",
+                    "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/identifiers",
+                }
+            },
+            "organizations": {
+                "links": {
+                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/organizations",
+                    "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/organizations",
+                }
+            },
+        },
+    },
+    "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
+}
 
 class PersonAPITestCase(unittest.TestCase):
     @responses.activate
     def test_person_find(self):
-        # Mock the API response
-        mock_response_data = {
-            "data": {
-                "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-                "type": "person",
-                "attributes": {
-                    "displayName": "John Doe",
-                    "email": "john@example.com",
-                    "createdBy": "admin",
-                    "createdOn": "2023-08-02T12:00:00Z",
-                    "givenNames": "John",
-                    "familyNames": "Doe",
-                    "webpage": "https://example.com",
-                    "remarks": "This is a mock person.",
-                    "aliases": ["Johnny"],
-                },
-                "relationships": {
-                    "organizations": {
-                        "data": [{"type": "organization", "id": "12345"}]
-                    },
-                    "identifiers": {"data": [{"type": "identifier", "id": "67890"}]},
-                },
-            }
-        }
-
         responses.add(
             responses.GET,
             "https://dina-dev2.biodiversity.agr.gc.ca/api/agent-api/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-            json=mock_response_data,
+            json=VALID_PERSON_DATA,
             status=200,
         )
 
         # Instantiate PersonAPI and make the API call
-        person_api = PersonAPI()
-        response = person_api.find("bfa3c68b-8e13-4295-8e25-47dbe041cb64")
+        person_api = PersonAPI(KEYCLOAK_CONFIG_PATH)
+        deserialized_data = person_api.find("bfa3c68b-8e13-4295-8e25-47dbe041cb64")
 
         # Check the response status code and content
-        self.assertEqual(response.status_code, 200)
-        response_data = response.json()
-        self.assertDictEqual(response_data, mock_response_data)
+        self.assertEqual(deserialized_data.status_code, 200)
+        response_data = deserialized_data.json()
+        self.assertDictEqual(response_data, VALID_PERSON_DATA)
 
     @responses.activate
     def test_person_find_not_found(self):
@@ -69,7 +79,7 @@ class PersonAPITestCase(unittest.TestCase):
         )
 
         # Instantiate PersonAPI and make the API call
-        person_api = PersonAPI()
+        person_api = PersonAPI(KEYCLOAK_CONFIG_PATH)
         response = person_api.find("non_existent_uuid")
 
         # Check the response status code and content
@@ -78,47 +88,10 @@ class PersonAPITestCase(unittest.TestCase):
         self.assertEqual(response_data, {"error": "Person not found"})
 
     def test_valid_data(self):
-        # Example valid data
-        data = {
-            "data": {
-                "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-                "type": "person",
-                "links": {
-                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"
-                },
-                "attributes": {
-                    "displayName": "testBob",
-                    "email": "bob.builder@agr.gc.ca",
-                    "createdBy": "cnc-su",
-                    "createdOn": "2023-02-20T16:18:10.688627Z",
-                    "givenNames": "Bob",
-                    "familyNames": "Builder",
-                    "aliases": ["Yes we can"],
-                    "webpage": None,
-                    "remarks": None,
-                },
-                "relationships": {
-                    "identifiers": {
-                        "links": {
-                            "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/identifiers",
-                            "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/identifiers",
-                        }
-                    },
-                    "organizations": {
-                        "links": {
-                            "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/organizations",
-                            "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/organizations",
-                        }
-                    },
-                },
-            },
-            "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
-        }
-
         # Create a schema instance and validate the data
         schema = PersonSchema()
         try:
-            result = schema.load(data)
+            result = schema.load(VALID_PERSON_DATA)
             self.assertIsInstance(result, dict)
         except ValidationError as e:
             self.fail(f"Validation failed with error: {e.messages}")
