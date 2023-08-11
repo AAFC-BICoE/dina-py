@@ -7,7 +7,15 @@ Python access to the DINA API
 * JSON-API serializer and deserializer with Marshmallow JSON-API (schemas.py, currently only PersonSchema)
 * GET request for a Person (PersonAPI)
 
-## Example Usage
+## How to extend functionality 
+
+* To extend functionality, create subclasses from DinaAPI and extend the base_url attribute with the full URL for the API call required
+* Then create new methods for GET, POST, PATCH, etc. and use the base DinaAPI request functions.
+    * Have the methods return objects of the entity class in the future
+* Create a Schema using Marshmallow JSON-API for the entity and use it for serialization and deserialization.
+* Try to create tests.
+
+## Example API Usage
 
 In code:
 ```py
