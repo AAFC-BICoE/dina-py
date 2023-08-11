@@ -1,4 +1,6 @@
 # This file contains models for representing objects and entities from Dina.
+# Not currently being used by any other file, however should think about returning these objects instead of a dict
+# when performing requests.
 
 
 class Person:
