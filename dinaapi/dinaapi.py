@@ -143,6 +143,8 @@ class DinaAPI:
 
         return response
 
+    # TODO: everything below is untested
+
     def post_req_dina(self, full_url: str, json_data: dict, params: dict = None):
         """Base method for a POST request to DINA.
 

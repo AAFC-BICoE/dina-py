@@ -5,7 +5,7 @@
 from marshmallow_jsonapi import Schema, fields
 
 class PersonSchema(Schema):
-    '''Schema for a Person used for serializing and deserializing.'''
+    '''Schema for a Person used for serializing and deserializing JSON.'''
     id = fields.Str(required=True)
     displayName = fields.Str(required=True, attribute="attributes.displayName")
     email = fields.Str(required=True, attribute="attributes.email")
