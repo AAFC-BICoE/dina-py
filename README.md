@@ -92,3 +92,8 @@ Serialized Data:
 * A way to re-use tokens when making different API calls.
 * Implement and test the other request types for Person.
 * Add support for other Dina entities.
+* 
+## Tests
+
+* 2 tests only, both for PersonSchema, testing deserialization only
+* Can run tests directly from test file
