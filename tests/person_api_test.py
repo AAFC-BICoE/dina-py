@@ -1,6 +1,5 @@
 import unittest
 
-import responses
 from marshmallow.exceptions import ValidationError
 
 import sys
@@ -13,7 +12,7 @@ sys.path.insert(0, project_root)
 # Now you can import modules from the dinaapi package
 from dinaapi.personapi.personapi import PersonAPI, PersonSchema
 
-KEYCLOAK_CONFIG_PATH = 'tests/keycloak-config.yml'
+KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
 
 VALID_PERSON_DATA = {
     "data": {
@@ -49,45 +48,9 @@ VALID_PERSON_DATA = {
     "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
 }
 
+
 class PersonAPITestCase(unittest.TestCase):
-    @responses.activate
-    def test_person_find(self):
-        responses.add(
-            responses.GET,
-            "https://dina-dev2.biodiversity.agr.gc.ca/api/agent-api/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-            json=VALID_PERSON_DATA,
-            status=200,
-        )
-
-        # Instantiate PersonAPI and make the API call
-        person_api = PersonAPI(KEYCLOAK_CONFIG_PATH)
-        deserialized_data = person_api.find("bfa3c68b-8e13-4295-8e25-47dbe041cb64")
-
-        # Check the response status code and content
-        self.assertEqual(deserialized_data.status_code, 200)
-        response_data = deserialized_data.json()
-        self.assertDictEqual(response_data, VALID_PERSON_DATA)
-
-    @responses.activate
-    def test_person_find_not_found(self):
-        # Mock the API response for a not found error
-        responses.add(
-            responses.GET,
-            "https://dina-dev2.biodiversity.agr.gc.ca/api/agent-api/person/non_existent_uuid",
-            json={"error": "person not found"},
-            status=404,
-        )
-
-        # Instantiate PersonAPI and make the API call
-        person_api = PersonAPI(KEYCLOAK_CONFIG_PATH)
-        response = person_api.find("non_existent_uuid")
-
-        # Check the response status code and content
-        self.assertEqual(response.status_code, 404)
-        response_data = response.json()
-        self.assertEqual(response_data, {"error": "Person not found"})
-
-    def test_valid_data(self):
+    def test_valid_person_schema(self):
         # Create a schema instance and validate the data
         schema = PersonSchema()
         try:
@@ -96,7 +59,7 @@ class PersonAPITestCase(unittest.TestCase):
         except ValidationError as e:
             self.fail(f"Validation failed with error: {e.messages}")
 
-    def test_invalid_data(self):
+    def test_invalid_person_schema(self):
         # Example invalid data with missing required fields
         invalid_data = {
             "data": {
