@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='dina-web-api',       # Replace with the actual name of your package
-    version='0.1.0',                # Replace with the desired version number
+    name='dina-web-api',
+    version='0.1.0',
     packages=find_packages(),
     install_requires=[
         'requests',
