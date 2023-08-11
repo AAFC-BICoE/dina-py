@@ -5,7 +5,7 @@ Python access to the DINA API
 ## Current Features
 
 * JSON-API serializer and deserializer with Marshmallow JSON-API (schemas.py)
-* GET, POST, PATCH, and DELETE requests for a Person (PersonAPI)
+* GET request for a Person (PersonAPI)
 
 ## Example Usage
 
