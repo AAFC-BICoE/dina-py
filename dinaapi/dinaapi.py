@@ -1,3 +1,8 @@
+# This file contains the base class to inherit from when adding functionality for Dina entities.
+# Handles authentication and token generation, as well as generating a requests session.
+# Creates basic request methods that should be used by inherited classes.
+
+
 import os
 import requests
 import yaml

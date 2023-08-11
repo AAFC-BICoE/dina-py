@@ -1,3 +1,8 @@
+# This file contains tests relating to PersonAPI.
+# Currently only contains tests for the PersonSchema (serialization and deserialization tests).
+# API mock call tests should be added.
+
+
 import unittest
 
 from marshmallow.exceptions import ValidationError

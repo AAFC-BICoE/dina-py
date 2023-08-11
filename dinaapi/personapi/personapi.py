@@ -1,5 +1,7 @@
-import logging
+# This file contains the PersonAPI class used for performing requests on the Person entity.
 
+
+import logging
 
 from ..dinaapi import DinaAPI
 from ..schemas import PersonSchema
@@ -17,7 +19,7 @@ class PersonAPI(DinaAPI):
         super().__init__(config_path)
         self.base_url += "agent-api/person/"
 
-    # TODO: return deserialized object or return response?
+    # TODO: return deserialized object or return response or model (Person object)?
     def find(self, uuid: str) -> dict:
         """Returns the deserialized GET response of a person with the given UUID.
 

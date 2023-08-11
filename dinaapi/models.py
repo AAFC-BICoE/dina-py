@@ -1,3 +1,6 @@
+# This file contains models for representing objects and entities from Dina.
+
+
 class Person:
     """
     Represents an individual person's information.

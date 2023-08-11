@@ -1,6 +1,11 @@
+# This file holds schemas for serializing and deserializing Person entities
+# using the JSON API format. It utilizes the marshmallow_jsonapi library.
+
+
 from marshmallow_jsonapi import Schema, fields
 
 class PersonSchema(Schema):
+    '''Schema for a Person used for serializing and deserializing.'''
     id = fields.Str(required=True)
     displayName = fields.Str(required=True, attribute="attributes.displayName")
     email = fields.Str(required=True, attribute="attributes.email")
