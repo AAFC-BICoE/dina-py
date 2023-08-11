@@ -16,3 +16,13 @@ from dinaapi import PersonAPI
 pAPI = PersonAPI("keycloak config path")
 person = pAPI.find("my uuid") // returns deserialized JSON as dict
 ```
+
+## Notes
+
+* Only the find() method for PersonAPI has been tested to work. The other requests (POST, PATCH, DELETE) have not been tested and should be re-implemented or modified.
+* Furthermore, the PersonSchema serializes and deserialized correctly in the context of the find() method.
+
+## To add
+
+* Develop models in order to have an object returned rather than a dictionary for the requests.
+* A way to refresh the token when it is expired.
