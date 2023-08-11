@@ -4,7 +4,7 @@ Python access to the DINA API
 
 ## Current Features
 
-* JSON-API serializer and deserializer with Marshmallow JSON-API (schemas.py)
+* JSON-API serializer and deserializer with Marshmallow JSON-API (schemas.py, currently only PersonSchema)
 * GET request for a Person (PersonAPI)
 
 ## Example Usage
