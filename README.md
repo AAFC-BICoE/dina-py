@@ -21,6 +21,7 @@ person = pAPI.find("my uuid") // returns deserialized JSON as dict
 
 * Only the find() method for PersonAPI has been tested to work. The other requests (POST, PATCH, DELETE) have not been tested and should be re-implemented or modified.
 * Furthermore, the PersonSchema serializes and deserialized correctly in the context of the find() method.
+* Keycloak username and password must be set as environemental variables (keycloak_username and keycloak_password). Can be set using os.environ if needed.
 
 ## Todo
 
