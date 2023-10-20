@@ -1,4 +1,7 @@
 .vscode/
 */keycloak-config.yml
-__pycache__/
 test.py
+
+# Python
+__pycache__/
+*.egg-info

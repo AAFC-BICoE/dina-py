@@ -2,17 +2,15 @@
 # Handles authentication and token generation, as well as generating a requests session.
 # Creates basic request methods that should be used by inherited classes.
 
-
 import os
 import requests
 import yaml
 import logging
 
-from keycloak import KeycloakOpenID
+from keycloak.keycloak_openid import KeycloakOpenID
 
-KEYCLOACK_CONFIG_PATH = "./keycloak-config.yml"
-BASE_URL = "https://dina-dev2.biodiversity.agr.gc.ca/api/"
-
+KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
+BASE_URL = "https://dina.local/api/"
 
 class DinaAPI:
     """Base class containing basic DINA module API calls.
@@ -34,14 +32,14 @@ class DinaAPI:
     def __init__(self, config_path: str = None):
         """Creates basic web services based on the provided config path or a default path.
 
-        If the config_path is not provided, the default KEYCLOACK_CONFIG_PATH will be used.
+        If the config_path is not provided, the default KEYCLOAK_CONFIG_PATH will be used.
 
         Parameters:
             config_path (str, optional): Path to the YAML configuration file (default: None).
 
         """
         if config_path is None:
-            config_path = KEYCLOACK_CONFIG_PATH
+            config_path = KEYCLOAK_CONFIG_PATH
 
         self.configs = None
         self.token = None
@@ -146,7 +144,8 @@ class DinaAPI:
     # TODO: everything below is untested
 
     def post_req_dina(self, full_url: str, json_data: dict, params: dict = None):
-        """Base method for a POST request to DINA.
+        """
+        Base method for a POST request to DINA.
 
         Args:
             full_url (str): The full URL for the API request (extension of the base_url).
@@ -166,6 +165,34 @@ class DinaAPI:
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
             logging.error(f"Failed to fetch data from {full_url}: {exc}")
+            raise  # Re-raise the exception
+
+        return response
+
+    def post_file_dina(self, full_url: str, file_path: str, params: dict = None):
+        """
+        Base method for a POST request to DINA.
+
+        Args:
+            full_url (str): The full URL for the API request (extension of the base_url).
+            file_path (str): The location of the file to be uploaded including file itself and 
+                extension.
+            params (dict, optional): Query parameters for the request (default: None).
+
+        Returns:
+            requests.Response: The response object containing the API response.
+
+        Raises:
+            requests.exceptions.RequestException: If there is an error during the HTTP request.
+        """
+        file = {'file': open(file_path, 'rb')}
+
+        try:
+            response = self.session.post(full_url, files=file, params=params)
+            response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
+        except requests.exceptions.RequestException as exc:
+            # Handle the exception here, e.g., log the error or raise a custom exception
+            logging.error(f"Failed to post file to {full_url}: {exc}")
             raise  # Re-raise the exception
 
         return response
