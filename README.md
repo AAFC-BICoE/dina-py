@@ -14,20 +14,34 @@ a virtual environment for the dependencies required.
 
 ```bash
 sudo apt install python3.10-venv
-python -m venv env
+python3 -m venv env
 source env/bin/activate
 ```
 
-Install the library:
+Install the library and all required dependencies:
 
 ```bash
-pip install ./
+python3 -m pip install .
 ```
 
 Then it can be imported using:
 
 ```py
 from dinaapi.api.agentapi.personapi import PersonAPI
+```
+
+The username and password are set via environment variables. This can be done via the command line:
+
+```bash
+set keycloak_username=username
+set keycloak_password=password
+```
+
+Or programmatically using:
+
+```py
+os.environ["keycloak_username"] = "username"
+os.environ["keycloak_password"] = "password"
 ```
 
 ## How to extend functionality 

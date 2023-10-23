@@ -2,7 +2,8 @@
 # Handles authentication and token generation, as well as generating a requests session.
 # Creates basic request methods that should be used by inherited classes.
 
-import datetime
+from datetime import timezone 
+import datetime 
 import os
 import requests
 import yaml
@@ -45,15 +46,18 @@ class DinaAPI:
         if base_url is None:
             self.base_url = BASE_URL
 
+        logging.basicConfig(level=logging.INFO)
+        logging.captureWarnings(True)
+
         self.configs = None
         self.token = None
         self.keycloak = None
 
         self.set_configs(config_path)
         self.set_keycloak()
-
+        
         self.session = requests.Session()
-        self.set_req_header()
+        self.verify_token()
 
     def set_configs(self, config_path: str):
         """Loads config from YAML file and saves it to the 'configs' variable.
@@ -95,15 +99,20 @@ class DinaAPI:
         will be retrieved.
         """
         # Calculate the current time in seconds since the UNIX epoch
-        current_time = int(datetime.utcnow().timestamp())
+        current_time = int(datetime.datetime.now(timezone.utc).timestamp())
       
         # Check if the token has expired and regenerate it if it is.
-        if self.token['exp'] <= current_time:
+        if self.token is None or 'exp' not in self.token or self.token['exp'] <= current_time:
             try:
+                logging.info("Generating new token...")
                 self.token = self.keycloak.token(
                     os.environ.get("keycloak_username"),
                     os.environ.get("keycloak_password"),
                 )
+
+                # Set the bearer token in the header.
+                self.set_req_header()
+                logging.info("Token generated!")
             except KeyError as exc:
                 logging.error("Could not retrieve credentials from env variables.")
                 logging.error(exc)
@@ -138,9 +147,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token(self)
+        self.verify_token()
         try:
-            response = self.session.get(full_url, params=params)
+            response = self.session.get(full_url, params=params, verify=False)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -167,9 +176,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token(self)
+        self.verify_token()
         try:
-            response = self.session.post(full_url, json=json_data, params=params)
+            response = self.session.post(full_url, json=json_data, params=params, verify=False)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -194,11 +203,16 @@ class DinaAPI:
         Raises:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
         """
-        self.verify_token(self)
-        file = {'file': open(file_path, 'rb')}
+        self.verify_token()
 
         try:
-            response = self.session.post(full_url, files=file, params=params)
+            file = {'file': open(file_path, 'rb')}
+        except FileNotFoundError:
+            logging.error(f'\t\tError: Unable to locate file -> {file_path}.\n\t\t\tEnsure the filepath is correct.')
+            return None
+
+        try:
+            response = self.session.post(full_url, files=file, params=params, verify=False)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -222,9 +236,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token(self)
+        self.verify_token()
         try:
-            response = self.session.patch(full_url, json=json_data, params=params)
+            response = self.session.patch(full_url, json=json_data, params=params, verify=False)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -247,9 +261,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token(self)
+        self.verify_token()
         try:
-            response = self.session.delete(full_url, params=params)
+            response = self.session.delete(full_url, params=params, verify=False)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
