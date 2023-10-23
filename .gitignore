@@ -2,6 +2,19 @@
 */keycloak-config.yml
 test.py
 
-# Python
+# Byte-compiled / optimized Python files
 __pycache__/
-*.egg-info
+*.pyc
+*.pyo
+*~
+*.bak
+*.swp
+
+# Package and distribution files
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+env/

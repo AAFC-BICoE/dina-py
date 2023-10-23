@@ -2,12 +2,13 @@
 # Handles authentication and token generation, as well as generating a requests session.
 # Creates basic request methods that should be used by inherited classes.
 
+import datetime
 import os
 import requests
 import yaml
 import logging
 
-from keycloak.keycloak_openid import KeycloakOpenID
+from keycloak import KeycloakOpenID
 
 KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina.local/api/"
@@ -29,29 +30,30 @@ class DinaAPI:
 
     """
 
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: str = None, base_url: str = None):
         """Creates basic web services based on the provided config path or a default path.
 
         If the config_path is not provided, the default KEYCLOAK_CONFIG_PATH will be used.
 
         Parameters:
             config_path (str, optional): Path to the YAML configuration file (default: None).
-
+            base_url (str, optional): URL to the URL to perform the API requests against. If not
+                provided then local deployment URL is used. Should end with a forward slash.
         """
         if config_path is None:
             config_path = KEYCLOAK_CONFIG_PATH
+        if base_url is None:
+            self.base_url = BASE_URL
 
         self.configs = None
         self.token = None
+        self.keycloak = None
 
         self.set_configs(config_path)
-        self.set_token()
+        self.set_keycloak()
 
         self.session = requests.Session()
         self.set_req_header()
-
-        # Base web API URL, to be extended in inherited classes
-        self.base_url = BASE_URL
 
     def set_configs(self, config_path: str):
         """Loads config from YAML file and saves it to the 'configs' variable.
@@ -75,32 +77,37 @@ class DinaAPI:
             logging.error(exc)
             raise
 
-    def set_token(self):
-        """Creates a Keycloak token based on configurations and environment variables.
-
-        The Keycloak token is retrieved and saved to the 'token' attribute.
-
-        Raises:
-            requests.exceptions.RequestException: If there is an error during the token retrieval.
-
+    def set_keycloak(self):
         """
-        keycloak_openid = KeycloakOpenID(
+        Creates a Keycloak token based on configurations and environment variables.
+        """
+        self.keycloak = KeycloakOpenID(
             server_url=self.configs["url"],
             client_id=self.configs["client_id"],
             realm_name=self.configs["realm_name"],
             client_secret_key=None,
             verify=self.configs["secure"],
         )
-
-        try:
-            self.token = keycloak_openid.token(
-                os.environ.get("keycloak_username"),
-                os.environ.get("keycloak_password"),
-            )
-        except KeyError as exc:
-            logging.error("Could not retrieve credentials from env variables.")
-            logging.error(exc)
-            raise
+    
+    def verify_token(self):
+        """
+        Check if the current token is still valid or it has expired. If it has expired a new token
+        will be retrieved.
+        """
+        # Calculate the current time in seconds since the UNIX epoch
+        current_time = int(datetime.utcnow().timestamp())
+      
+        # Check if the token has expired and regenerate it if it is.
+        if self.token['exp'] <= current_time:
+            try:
+                self.token = self.keycloak.token(
+                    os.environ.get("keycloak_username"),
+                    os.environ.get("keycloak_password"),
+                )
+            except KeyError as exc:
+                logging.error("Could not retrieve credentials from env variables.")
+                logging.error(exc)
+                raise
 
     def set_req_header(self):
         """Sets the header for the session.
@@ -131,6 +138,7 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
+        self.verify_token(self)
         try:
             response = self.session.get(full_url, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
@@ -159,6 +167,7 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
+        self.verify_token(self)
         try:
             response = self.session.post(full_url, json=json_data, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
@@ -185,6 +194,7 @@ class DinaAPI:
         Raises:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
         """
+        self.verify_token(self)
         file = {'file': open(file_path, 'rb')}
 
         try:
@@ -212,6 +222,7 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
+        self.verify_token(self)
         try:
             response = self.session.patch(full_url, json=json_data, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
@@ -236,6 +247,7 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
+        self.verify_token(self)
         try:
             response = self.session.delete(full_url, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes

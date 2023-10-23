@@ -1,5 +1,4 @@
 requests==2.31.0
 marshmallow-jsonapi==0.24.0
 python-keycloak==3.3.0
-pyyaml==5.4.1
-keycloak-client==0.15.4
+pyyaml==5.3.1
