@@ -4,7 +4,7 @@
 import logging
 
 from ...dinaapi import DinaAPI
-from dinaapi.apis.agentapi.schemas.personschema import PersonSchema
+from dinapy.apis.agentapi.schemas.personschema import PersonSchema
 
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""

@@ -9,6 +9,19 @@ Python access to the DINA API
 
 ## Installation Instructions
 
+### Dina-scripts usage
+
+From inside of the dina-scripts docker container, the dina-py library can be installed using the 
+GitHub branch you wish to install:
+
+```bash
+pip install "https://github.com/AAFC-BICoE/dina-py/archive/refs/heads/dev.zip"
+```
+
+Running the command above will install the `dev` branch. Any branch name can be used.
+
+### Local Install
+
 Before installing, it's recommended to use a virtual environment in python but not required. create 
 a virtual environment for the dependencies required.
 
@@ -27,7 +40,7 @@ python3 -m pip install .
 Then it can be imported using:
 
 ```py
-from dinaapi.api.agentapi.personapi import PersonAPI
+from dinapy.api.agentapi.personapi import PersonAPI
 ```
 
 The username and password are set via environment variables. This can be done via the command line:
@@ -56,7 +69,7 @@ os.environ["keycloak_password"] = "password"
 
 In code:
 ```py
-from dinaapi.api.agentapi.personapi import PersonAPI
+from dinapy.api.agentapi.personapi import PersonAPI
 
 // GET request
 pAPI = PersonAPI("keycloak config path")
