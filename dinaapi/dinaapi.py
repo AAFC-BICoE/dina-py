@@ -2,8 +2,6 @@
 # Handles authentication and token generation, as well as generating a requests session.
 # Creates basic request methods that should be used by inherited classes.
 
-from datetime import timezone 
-import datetime 
 import os
 import requests
 import yaml
