@@ -1,4 +1,5 @@
 import os
+import random
 import secrets
 from dinaapi.apis.objectstoreapi.uploadfileapi import UploadFileAPI
 
@@ -27,16 +28,31 @@ object_store_api = UploadFileAPI("./keycloak-config.yml")
 
 print("ObjectStore API is configured correctly")
 
-# output directory for the generated files to go temporaly.
+# output directory for the generated files to go temporary.
 output_directory = "./temp"
 
-# File name to generate
-file_name = "randomFile.bin"
+for i in range(1000000):
+    # File name to generate
+    file_name = f"randomFile_{i}.bin"
 
-file_size = 1024 * 1024 * 100  # 100 MB
+    # Random size to generate in MB:
+    file_size = 1024 * 1024 * random.randint(1, 100)
 
-generated_file_path = generate_random_file(output_directory, file_name, file_size)
+    generated_file_path = generate_random_file(output_directory, file_name, file_size)
 
-print("File generated. Attempt to upload this to the object store.")
+    print(f"File generated: {file_name} (Size: {file_size / 1024 / 1024}MB) - Attempting to upload this to the object store.")
 
-object_store_api.upload("aafc", generated_file_path)
+    response = object_store_api.upload("aafc", generated_file_path)
+    print(f"File uploaded. File identifier: {response['fileIdentifier']}")
+
+    print(f"Verifying file exists...")
+    file_info_response = object_store_api.get_file_info("aafc", response['fileIdentifier'] + response['evaluatedFileExtension'])
+    print(f"File info: {file_info_response}")
+
+    if ("length" not in file_info_response):
+        print(f"Missing file found! File identifier: {response['fileIdentifier']} - File uploaded: {file_name}")
+        break
+    
+    # Delete the generated file after it has been verified it exists:
+    os.remove(os.path.join(output_directory, file_name))
+    print("------------------------------------------------------------------------------------------------")

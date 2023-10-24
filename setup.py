@@ -9,6 +9,7 @@ setup(
         'marshmallow-jsonapi==0.24.0',
         'python-keycloak==3.3.0',
         'pyyaml==5.3.1',
+        'certifi==2023.7.22'
     ],
     author='AAFC-BICoE',
     # author_email='your@email.com',

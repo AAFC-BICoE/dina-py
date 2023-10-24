@@ -10,6 +10,7 @@ import yaml
 import logging
 
 from keycloak import KeycloakOpenID
+from keycloak.exceptions import KeycloakPostError
 
 KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina.local/api/"
@@ -53,11 +54,10 @@ class DinaAPI:
         self.token = None
         self.keycloak = None
 
+        self.session = requests.Session()
+
         self.set_configs(config_path)
         self.set_keycloak()
-        
-        self.session = requests.Session()
-        self.verify_token()
 
     def set_configs(self, config_path: str):
         """Loads config from YAML file and saves it to the 'configs' variable.
@@ -90,33 +90,30 @@ class DinaAPI:
             client_id=self.configs["client_id"],
             realm_name=self.configs["realm_name"],
             client_secret_key=None,
-            verify=self.configs["secure"],
+            verify=self.configs["secure"]
         )
-    
-    def verify_token(self):
-        """
-        Check if the current token is still valid or it has expired. If it has expired a new token
-        will be retrieved.
-        """
-        # Calculate the current time in seconds since the UNIX epoch
-        current_time = int(datetime.datetime.now(timezone.utc).timestamp())
-      
-        # Check if the token has expired and regenerate it if it is.
-        if self.token is None or 'exp' not in self.token or self.token['exp'] <= current_time:
-            try:
-                logging.info("Generating new token...")
-                self.token = self.keycloak.token(
-                    os.environ.get("keycloak_username"),
-                    os.environ.get("keycloak_password"),
-                )
 
-                # Set the bearer token in the header.
-                self.set_req_header()
-                logging.info("Token generated!")
-            except KeyError as exc:
-                logging.error("Could not retrieve credentials from env variables.")
-                logging.error(exc)
-                raise
+        try:
+            self.token = self.keycloak.token(
+                os.environ.get("keycloak_username"),
+                os.environ.get("keycloak_password"),
+            )
+
+            # Set the bearer token in the header.
+            self.set_req_header()
+        except KeyError as exc:
+            logging.error("Could not retrieve credentials from env variables.")
+            logging.error(exc)
+            raise
+    
+    def refresh_token(self):
+        """
+        Attempt to refresh the token using the refresh token.
+        """
+        try:
+            self.keycloak.refresh_token(self.token["refresh_token"])
+        except KeycloakPostError as exc:
+            logging.error(f"Could not refresh the keycloak token: {exc}")
 
     def set_req_header(self):
         """Sets the header for the session.
@@ -147,9 +144,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token()
+        self.refresh_token()
         try:
-            response = self.session.get(full_url, params=params, verify=False)
+            response = self.session.get(full_url, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -176,9 +173,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token()
+        self.refresh_token()
         try:
-            response = self.session.post(full_url, json=json_data, params=params, verify=False)
+            response = self.session.post(full_url, json=json_data, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -203,7 +200,7 @@ class DinaAPI:
         Raises:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
         """
-        self.verify_token()
+        self.refresh_token()
 
         try:
             file = {'file': open(file_path, 'rb')}
@@ -212,7 +209,8 @@ class DinaAPI:
             return None
 
         try:
-            response = self.session.post(full_url, files=file, params=params, verify=False)
+            # For uploading the Accept and Content-Type are not included.
+            response = self.session.post(full_url, files=file, params=params, headers={"Accept": None, "Content-Type": None})
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -236,9 +234,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token()
+        self.refresh_token()
         try:
-            response = self.session.patch(full_url, json=json_data, params=params, verify=False)
+            response = self.session.patch(full_url, json=json_data, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -261,9 +259,9 @@ class DinaAPI:
             requests.exceptions.RequestException: If there is an error during the HTTP request.
 
         """
-        self.verify_token()
+        self.refresh_token()
         try:
-            response = self.session.delete(full_url, params=params, verify=False)
+            response = self.session.delete(full_url, params=params)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
