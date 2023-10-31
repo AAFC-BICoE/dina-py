@@ -8,7 +8,7 @@ import yaml
 import logging
 
 from keycloak import KeycloakOpenID
-from keycloak.exceptions import KeycloakPostError
+from keycloak.exceptions import KeycloakAuthenticationError
 
 KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina.local/api/"
@@ -91,6 +91,9 @@ class DinaAPI:
             verify=self.configs["secure"]
         )
 
+        self.generate_token()
+
+    def generate_token(self):
         try:
             self.token = self.keycloak.token(
                 os.environ.get("keycloak_username"),
@@ -99,20 +102,19 @@ class DinaAPI:
 
             # Set the bearer token in the header.
             self.set_req_header()
-        except KeyError as exc:
-            logging.error("Could not retrieve credentials from env variables.")
+        except Exception as exc:
             logging.error(exc)
-            raise
+            raise        
     
     def refresh_token(self):
         """
-        Attempt to refresh the token using the refresh token.
+        Check if the token still valid or if it needs to be regenerated.
         """
         try:
-            self.keycloak.refresh_token(self.token["refresh_token"])
-        except KeycloakPostError as exc:
-            logging.error(f"Could not refresh the keycloak token: {exc}")
-
+            self.keycloak.userinfo(self.token['access_token'])
+        except KeycloakAuthenticationError as e:
+            self.generate_token()
+      
     def set_req_header(self):
         """Sets the header for the session.
 
@@ -144,7 +146,7 @@ class DinaAPI:
         """
         self.refresh_token()
         try:
-            response = self.session.get(full_url, params=params)
+            response = self.session.get(full_url, params=params, verify=self.configs["secure"])
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
