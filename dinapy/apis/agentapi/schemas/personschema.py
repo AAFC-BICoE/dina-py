@@ -1,7 +1,5 @@
 # This file holds schemas for serializing and deserializing Person entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
-
-
 from marshmallow_jsonapi import Schema, fields
 
 class PersonSchema(Schema):
@@ -42,8 +40,6 @@ class PersonSchema(Schema):
         self_url = "/api/v1/person/{id}"
         self_url_kwargs = {"id": "<id>"}
         strict = True
-
-
 
 # GET response for Person
 # {

@@ -1,4 +1,20 @@
 .vscode/
 */keycloak-config.yml
-__pycache__/
 test.py
+
+# Byte-compiled / optimized Python files
+__pycache__/
+*.pyc
+*.pyo
+*~
+*.bak
+*.swp
+
+# Package and distribution files
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+env/

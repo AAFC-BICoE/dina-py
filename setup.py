@@ -1,14 +1,15 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='dina-web-api',
+    name='dinapy',
     version='0.1.0',
     packages=find_packages(),
     install_requires=[
-        'requests',
-        'marshmallow-jsonapi',
-        'keycloak',
-        'PyYAML',
+        'requests==2.31.0',
+        'marshmallow-jsonapi==0.24.0',
+        'python-keycloak==3.3.0',
+        'pyyaml==5.3.1',
+        'certifi==2023.7.22'
     ],
     author='AAFC-BICoE',
     # author_email='your@email.com',

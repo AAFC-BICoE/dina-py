@@ -7,6 +7,56 @@ Python access to the DINA API
 * JSON-API serializer and deserializer with Marshmallow JSON-API (schemas.py, currently only PersonSchema)
 * GET request for a Person (PersonAPI)
 
+## Installation Instructions
+
+### Dina-scripts usage
+
+From inside of the dina-scripts docker container, the dina-py library can be installed using the 
+GitHub branch you wish to install:
+
+```bash
+pip install "https://github.com/AAFC-BICoE/dina-py/archive/refs/heads/dev.zip"
+```
+
+Running the command above will install the `dev` branch. Any branch name can be used.
+
+### Local Install
+
+Before installing, it's recommended to use a virtual environment in python but not required. create 
+a virtual environment for the dependencies required.
+
+```bash
+sudo apt install python3.10-venv
+python3 -m venv env
+source env/bin/activate
+```
+
+Install the library and all required dependencies:
+
+```bash
+python3 -m pip install .
+```
+
+Then it can be imported using:
+
+```py
+from dinapy.api.agentapi.personapi import PersonAPI
+```
+
+The username and password are set via environment variables. This can be done via the command line:
+
+```bash
+set keycloak_username=username
+set keycloak_password=password
+```
+
+Or programmatically using:
+
+```py
+os.environ["keycloak_username"] = "username"
+os.environ["keycloak_password"] = "password"
+```
+
 ## How to extend functionality 
 
 * To extend functionality, create subclasses from DinaAPI and extend the base_url attribute with the full URL for the API call required
@@ -19,7 +69,7 @@ Python access to the DINA API
 
 In code:
 ```py
-from dinaapi import PersonAPI
+from dinapy.api.agentapi.personapi import PersonAPI
 
 // GET request
 pAPI = PersonAPI("keycloak config path")
@@ -96,11 +146,10 @@ Serialized Data:
 ## Todo
 
 * Develop models in order to have an object returned rather than a dict for the request return types.
-* A way to refresh the token when it is expired.
 * A way to re-use tokens when making different API calls.
 * Implement and test the other request types for Person.
 * Add support for other Dina entities.
-* 
+
 ## Tests
 
 * 2 tests only, both for PersonSchema, testing deserialization only
