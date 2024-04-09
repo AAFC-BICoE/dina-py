@@ -8,7 +8,7 @@ setup(
         'requests==2.31.0',
         'marshmallow-jsonapi==0.24.0',
         'python-keycloak==3.3.0',
-        'pyyaml==5.3.1',
+        'pyyaml==6.0',
         'certifi==2023.7.22'
     ],
     author='AAFC-BICoE',
