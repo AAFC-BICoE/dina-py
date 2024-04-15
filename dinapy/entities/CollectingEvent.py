@@ -14,11 +14,11 @@ class CollectingEventDTOBuilder:
             relationships=None
         )
 
-    def set_attributes(self, attributes):
+    def attributes(self, attributes):
         self.collecting_event.attributes = attributes
         return self
 
-    def set_relationships(self, relationships):
+    def relationships(self, relationships):
         self.collecting_event.relationships = relationships
         return self
 
@@ -71,159 +71,159 @@ class CollectingEventAttributesDTOBuilder:
     def __init__(self):
         self.dto = CollectingEventAttributesDTO()
 
-    def set_version(self, version):
+    def version(self, version):
         self.dto.version = version
         return self
 
-    def set_notPubliclyReleasableReason(self, notPubliclyReleasableReason):
+    def notPubliclyReleasableReason(self, notPubliclyReleasableReason):
         self.dto.notPubliclyReleasableReason = notPubliclyReleasableReason
         return self
 
-    def set_dwcMaximumDepthInMeters(self, dwcMaximumDepthInMeters):
+    def dwcMaximumDepthInMeters(self, dwcMaximumDepthInMeters):
         self.dto.dwcMaximumDepthInMeters = dwcMaximumDepthInMeters
         return self
 
-    def set_dwcCountry(self, dwcCountry):
+    def dwcCountry(self, dwcCountry):
         self.dto.dwcCountry = dwcCountry
         return self
 
-    def set_dwcMinimumElevationInMeters(self, dwcMinimumElevationInMeters):
+    def dwcMinimumElevationInMeters(self, dwcMinimumElevationInMeters):
         self.dto.dwcMinimumElevationInMeters = dwcMinimumElevationInMeters
         return self
 
-    def set_dwcCountryCode(self, dwcCountryCode):
+    def dwcCountryCode(self, dwcCountryCode):
         self.dto.dwcCountryCode = dwcCountryCode
         return self
 
-    def set_dwcFieldNumber(self, dwcFieldNumber):
+    def dwcFieldNumber(self, dwcFieldNumber):
         self.dto.dwcFieldNumber = dwcFieldNumber
         return self
 
-    def set_dwcRecordNumber(self, dwcRecordNumber):
+    def dwcRecordNumber(self, dwcRecordNumber):
         self.dto.dwcRecordNumber = dwcRecordNumber
         return self
 
-    def set_dwcVerbatimDepth(self, dwcVerbatimDepth):
+    def dwcVerbatimDepth(self, dwcVerbatimDepth):
         self.dto.dwcVerbatimDepth = dwcVerbatimDepth
         return self
 
-    def set_dwcMinimumDepthInMeters(self, dwcMinimumDepthInMeters):
+    def dwcMinimumDepthInMeters(self, dwcMinimumDepthInMeters):
         self.dto.dwcMinimumDepthInMeters = dwcMinimumDepthInMeters
         return self
 
-    def set_dwcMaximumElevationInMeters(self, dwcMaximumElevationInMeters):
+    def dwcMaximumElevationInMeters(self, dwcMaximumElevationInMeters):
         self.dto.dwcMaximumElevationInMeters = dwcMaximumElevationInMeters
         return self
 
-    def set_dwcStateProvince(self, dwcStateProvince):
+    def dwcStateProvince(self, dwcStateProvince):
         self.dto.dwcStateProvince = dwcStateProvince
         return self
 
-    def set_dwcVerbatimCoordinateSystem(self, dwcVerbatimCoordinateSystem):
+    def dwcVerbatimCoordinateSystem(self, dwcVerbatimCoordinateSystem):
         self.dto.dwcVerbatimCoordinateSystem = dwcVerbatimCoordinateSystem
         return self
 
-    def set_dwcVerbatimElevation(self, dwcVerbatimElevation):
+    def dwcVerbatimElevation(self, dwcVerbatimElevation):
         self.dto.dwcVerbatimElevation = dwcVerbatimElevation
         return self
 
-    def set_dwcVerbatimLatitude(self, dwcVerbatimLatitude):
+    def dwcVerbatimLatitude(self, dwcVerbatimLatitude):
         self.dto.dwcVerbatimLatitude = dwcVerbatimLatitude
         return self
 
-    def set_dwcVerbatimLongitude(self, dwcVerbatimLongitude):
+    def dwcVerbatimLongitude(self, dwcVerbatimLongitude):
         self.dto.dwcVerbatimLongitude = dwcVerbatimLongitude
         return self
 
-    def set_otherRecordNumbers(self, otherRecordNumbers):
+    def otherRecordNumbers(self, otherRecordNumbers):
         self.dto.otherRecordNumbers = otherRecordNumbers
         return self
 
-    def set_publiclyReleasable(self, publiclyReleasable):
+    def publiclyReleasable(self, publiclyReleasable):
         self.dto.publiclyReleasable = publiclyReleasable
         return self
 
-    def set_group(self, group):
+    def group(self, group):
         self.dto.group = group
         return self
 
-    def set_createdBy(self, createdBy):
+    def createdBy(self, createdBy):
         self.dto.createdBy = createdBy
         return self
 
-    def set_createdOn(self, createdOn):
+    def createdOn(self, createdOn):
         self.dto.createdOn = createdOn
         return self
 
-    def set_geoReferenceAssertions(self, geoReferenceAssertions):
+    def geoReferenceAssertions(self, geoReferenceAssertions):
         self.dto.geoReferenceAssertions = geoReferenceAssertions
         return self
 
-    def set_geographicPlaceNameSource(self, geographicPlaceNameSource):
+    def geographicPlaceNameSource(self, geographicPlaceNameSource):
         self.dto.geographicPlaceNameSource = geographicPlaceNameSource
         return self
 
-    def set_geographicPlaceNameSourceDetail(self, geographicPlaceNameSourceDetail):
+    def geographicPlaceNameSourceDetail(self, geographicPlaceNameSourceDetail):
         self.dto.geographicPlaceNameSourceDetail = geographicPlaceNameSourceDetail
         return self
 
-    def set_habitat(self, habitat):
+    def habitat(self, habitat):
         self.dto.habitat = habitat
         return self
 
-    def set_eventGeom(self, eventGeom):
+    def eventGeom(self, eventGeom):
         self.dto.eventGeom = eventGeom
         return self
 
-    def set_extensionValues(self, extensionValues):
+    def extensionValues(self, extensionValues):
         self.dto.extensionValues = extensionValues
         return self
 
-    def set_dwcVerbatimCoordinates(self, dwcVerbatimCoordinates):
+    def dwcVerbatimCoordinates(self, dwcVerbatimCoordinates):
         self.dto.dwcVerbatimCoordinates = dwcVerbatimCoordinates
         return self
 
-    def set_dwcRecordedBy(self, dwcRecordedBy):
+    def dwcRecordedBy(self, dwcRecordedBy):
         self.dto.dwcRecordedBy = dwcRecordedBy
         return self
 
-    def set_dwcVerbatimSRS(self, dwcVerbatimSRS):
+    def dwcVerbatimSRS(self, dwcVerbatimSRS):
         self.dto.dwcVerbatimSRS = dwcVerbatimSRS
         return self
 
-    def set_startEventDateTime(self, startEventDateTime):
+    def startEventDateTime(self, startEventDateTime):
         self.dto.startEventDateTime = startEventDateTime
         return self
 
-    def set_substrate(self, substrate):
+    def substrate(self, substrate):
         self.dto.substrate = substrate
         return self
 
-    def set_tags(self, tags):
+    def tags(self, tags):
         self.dto.tags = tags
         return self
 
-    def set_endEventDateTime(self, endEventDateTime):
+    def endEventDateTime(self, endEventDateTime):
         self.dto.endEventDateTime = endEventDateTime
         return self
 
-    def set_verbatimEventDateTime(self, verbatimEventDateTime):
+    def verbatimEventDateTime(self, verbatimEventDateTime):
         self.dto.verbatimEventDateTime = verbatimEventDateTime
         return self
 
-    def set_dwcVerbatimLocality(self, dwcVerbatimLocality):
+    def dwcVerbatimLocality(self, dwcVerbatimLocality):
         self.dto.dwcVerbatimLocality = dwcVerbatimLocality
         return self
 
-    def set_host(self, host):
+    def host(self, host):
         self.dto.host = host
         return self
 
-    def set_managedAttributes(self, managedAttributes):
+    def managedAttributes(self, managedAttributes):
         self.dto.managedAttributes = managedAttributes
         return self
 
-    def set_remarks(self, remarks):
+    def remarks(self, remarks):
         self.dto.remarks = remarks
         return self
 

@@ -8,26 +8,26 @@ from .attributesschema import AttributesSchema
 
 class MaterialSampleSchema(Schema):
     '''Schema for a Person used for serializing and deserializing JSON.'''
-    id = fields.Str(required=False)
-    type = fields.Str()
-    version = fields.Int(required=True, attribute="attributes.version")
+    id = fields.Str(dump_only=False)
+    #type = fields.Str()
+    version = fields.Int(allow_none=True, attribute="attributes.version")
     group = fields.Str(required=True, attribute="attributes.group")
     createdOn = fields.Str(required=True, attribute="attributes.createdOn")
     createdBy = fields.Str(required=True, attribute="attributes.createdBy")
     dwcCatalogNumber = fields.Str(allow_none=True, attribute="attributes.dwcCatalogNumber")
-    dwcOtherCatalogNumbers = fields.List(fields.Str(), attribute="attributes.dwcOtherCatalogNumbers")
-    materialSampleName = fields.Str(required=True, attribute="attributes.materialSampleName")
-    materialSampleType = fields.Str(required=True, attribute="attributes.materialSampleType")
-    materialSampleChildren = fields.List(fields.Str(), attribute="attributes.materialSampleChildren")
+    dwcOtherCatalogNumbers = fields.List(fields.Str(), allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
+    materialSampleName = fields.Str(allow_none=True, attribute="attributes.materialSampleName")
+    materialSampleType = fields.Str(allow_none=True, attribute="attributes.materialSampleType")
+    materialSampleChildren = fields.List(fields.Str(), allow_none=True, attribute="attributes.materialSampleChildren")
     preparationDate = fields.Str(allow_none=True, attribute="attributes.preparationDate")
     preservationType = fields.Str(allow_none=True, attribute="attributes.preservationType")
     preparationFixative = fields.Str(allow_none=True, attribute="attributes.preparationFixative")
     preparationMaterials = fields.Str(allow_none=True, attribute="attributes.preparationMaterials")
     preparationSubstrate = fields.Str(allow_none=True, attribute="attributes.preparationSubstrate")
-    managedAttributes = fields.Dict(attribute="attributes.managedAttributes")
+    managedAttributes = fields.Dict(required=False, attribute="attributes.managedAttributes")
     preparationManagedAttributes = fields.Dict(attribute="attributes.preparationManagedAttributes")
-    extensionValues = fields.Dict(attribute="attributes.extensionValues")
-    preparationRemarks = fields.Str(attribute="attributes.preparationRemarks")
+    extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
+    preparationRemarks = fields.Str(allow_none=True, attribute="attributes.preparationRemarks")
     dwcDegreeOfEstablishment = fields.Str(allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
     barcode = fields.Str(allow_none=True, attribute="attributes.barcode")
     publiclyReleasable = fields.Str(allow_none=True, attribute="attributes.publiclyReleasable")
@@ -39,7 +39,7 @@ class MaterialSampleSchema(Schema):
     stateChangeRemarks = fields.Str(allow_none=True, attribute="attributes.stateChangeRemarks")
     associations = fields.List(fields.Str(), attribute="attributes.associations")
     allowDuplicateName = fields.Bool(required=True, attribute="attributes.allowDuplicateName")
-    restrictionFieldsExtension = fields.Dict(attribute="attributes.restrictionFieldsExtension")
+    restrictionFieldsExtension = fields.Dict(allow_none=True, attribute="attributes.restrictionFieldsExtension")
     isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
     restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
     sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
@@ -157,8 +157,8 @@ class MaterialSampleSchema(Schema):
     
     class Meta:
         type_ = "material-sample"
-        self_url = "/api/v1/material-sample/{id}"
-        self_url_kwargs = {"id": "<id>"}
+        #self_url = "/api/v1/material-sample/{id}"
+        #self_url_kwargs = {"id": "<id>"}
         strict = True
 
         

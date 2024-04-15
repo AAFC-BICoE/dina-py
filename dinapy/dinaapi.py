@@ -157,19 +157,6 @@ class DinaAPI:
 
 	# TODO: everything below is untested
 
-	def get_list_from_string(self, string_list):
-		"""Turn a SeqDB string with seperator '|' into a list of string
-
-		Args:
-			string_list (string): (i.e. 'experimenter_1 | experimenter_2 | experimenter_3')
-
-		Returns:
-			list of string: a list of string
-		"""
-		list_of_string = string_list.split('|')
-		# Remove blanks
-		list_of_string = list(filter(None, list_of_string))
-		return list_of_string
 
 	def post_req_dina(self, full_url: str, json_data: dict, params: dict = None):
 		"""

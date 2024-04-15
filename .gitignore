@@ -1,7 +1,7 @@
 .vscode/
 */keycloak-config.yml
 test.py
-
+.conda/
 # Byte-compiled / optimized Python files
 __pycache__/
 *.pyc
