@@ -18,6 +18,9 @@
     material_sample_list = get_dina_records_by_field(dina_material_sample_api,"group","aafc")
     first_record_id = list[0]["id]
 
+* GET entity by id:
+    response = dina_collecting_event_api.get_entity("cce513a7-0797-4d6e-ae88-34043e552434")
+
 * GET entity by param (returns a list of material sample records):
     params = {"filter[rsql]": "group"=="aafc", "sort": "-createdOn","page[limit]": step, "page[offset]": 300}
     material_sample_list = api.get_entity_by_param(params)
@@ -25,6 +28,14 @@
 
 * DELETE entity by id (removes an entity by id):
 	dina_material_sample_api.remove_entity("uuid_string")
+
+* PATCH entity by id
+
+	material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").createdBy("dina-admin").build()
+	material_sample = MaterialSampleDTOBuilder().id(id).attributes(material_sample_attributes).build()
+	serialized_material_sample = material_sample_schema.dump(material_sample)
+
+	response = dina_material_sample_api.update_entity(id,serialized_material_sample)
 
 ## Todo
 

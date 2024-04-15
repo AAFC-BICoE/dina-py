@@ -14,6 +14,10 @@ class MaterialSampleDTOBuilder:
             relationships=None
         )
 
+    def id(self, id):
+        self.material_sample.id = id
+        return self
+    
     def attributes(self, attributes):
         self.material_sample.attributes = attributes
         return self

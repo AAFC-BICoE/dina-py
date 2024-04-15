@@ -21,20 +21,22 @@ os.environ["keycloak_password"] = "dina-admin"
 def main():
 
 	dina_material_sample_api = MaterialSampleAPI()
-	material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").build()
-	material_sample = MaterialSampleDTOBuilder().attributes(material_sample_attributes).build()
+
 	material_sample_schema = MaterialSampleSchema()
 	
-	serialized_material_sample = material_sample_schema.dump(material_sample)
 	
 	#response = dina_material_sample_api.get_entity_by_field("group","aafc")
 	list = get_dina_records_by_field(dina_material_sample_api,"group","aafc")
 
-	for record in list:
-		response = dina_material_sample_api.remove_entity(record["id"])
-		print(response.status_code)
+	id = list[0]["id"]
 
-	#print(response.json())
+	material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").createdBy("dina-admin").build()
+	material_sample = MaterialSampleDTOBuilder().id(id).attributes(material_sample_attributes).build()
+	serialized_material_sample = material_sample_schema.dump(material_sample)
+
+	response = dina_material_sample_api.update_entity(id,serialized_material_sample)
+
+	print(response.status_code)
 
 	deserialized_material_sample = material_sample_schema.load(response.json())
 

@@ -20,7 +20,7 @@ class CollectionModuleApi(DinaAPI):
 		new_request_url = self.base_url + '/' + str(entity_id)
 		jsn_resp = self.get_req_dina(new_request_url)
 		return jsn_resp if jsn_resp else ''
-
+	
 	def create_entity(self, json_data):
 		"""Creates a DINA collection module entity
 
@@ -52,4 +52,20 @@ class CollectionModuleApi(DinaAPI):
 		entity_id = str(entity_id) if isinstance(entity_id, int) else entity_id
 		new_request_url = self.base_url + '/' + str(entity_id)
 		jsn_resp = self.delete_req_dina(new_request_url)
+		return jsn_resp if jsn_resp else ''
+	
+	def update_entity(self, entity_id, json_data):
+
+		"""Updates an entity
+
+		Args:
+			entity_id (string): entity id
+
+		Returns:
+			json response: 'result' from the json response OR nothing if entity was not found
+		"""
+
+		entity_id = str(entity_id) if isinstance(entity_id, int) else entity_id
+		new_request_url = self.base_url + '/' + str(entity_id)
+		jsn_resp = self.patch_req_dina(new_request_url,json_data)
 		return jsn_resp if jsn_resp else ''
