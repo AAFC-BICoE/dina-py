@@ -24,7 +24,6 @@ def main():
 
 	material_sample_schema = MaterialSampleSchema()
 	
-	
 	#response = dina_material_sample_api.get_entity_by_field("group","aafc")
 	list = get_dina_records_by_field(dina_material_sample_api,"group","aafc")
 
@@ -41,8 +40,6 @@ def main():
 	deserialized_material_sample = material_sample_schema.load(response.json())
 
 	print(deserialized_material_sample)
-
-	
 	
 if __name__ == '__main__':
 	main()

@@ -7,7 +7,7 @@ import sys
 from .attributesschema import AttributesSchema
 
 class MaterialSampleSchema(Schema):
-    '''Schema for a Person used for serializing and deserializing JSON.'''
+    '''Schema for a Material Sample used for serializing and deserializing JSON.'''
     id = fields.Str(dump_only=False)
     #type = fields.Str()
     version = fields.Int(allow_none=True, attribute="attributes.version")
@@ -37,7 +37,7 @@ class MaterialSampleSchema(Schema):
     materialSampleRemarks = fields.Str(allow_none=True, attribute="attributes.materialSampleRemarks")
     stateChangedOn = fields.Str(allow_none=True, attribute="attributes.stateChangedOn")
     stateChangeRemarks = fields.Str(allow_none=True, attribute="attributes.stateChangeRemarks")
-    associations = fields.List(fields.Str(), attribute="attributes.associations")
+    associations = fields.List(fields.Str(), allow_none=True, attribute="attributes.associations")
     allowDuplicateName = fields.Bool(required=True, attribute="attributes.allowDuplicateName")
     restrictionFieldsExtension = fields.Dict(allow_none=True, attribute="attributes.restrictionFieldsExtension")
     isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
@@ -52,6 +52,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="collectingEvent",
+    allow_none=True,
     )
 
     collection = fields.Relationship(
@@ -61,6 +62,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="collection",
+    allow_none=True,
     )
 
     preparationType = fields.Relationship(
@@ -70,6 +72,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="preparationType",
+    allow_none=True,
     )
 
     preparationMethod = fields.Relationship(
@@ -79,6 +82,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="preparationMethod",
+    allow_none=True,
     )
 
     parentMaterialSample = fields.Relationship(
@@ -88,6 +92,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="parentMaterialSample",
+    allow_none=True,
     )
 
     preparedBy = fields.Relationship(
@@ -115,6 +120,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="preparationProtocol",
+    allow_none=True,
     )
 
     projects = fields.Relationship(
@@ -124,6 +130,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="projects",
+    allow_none=True,
     )
 
     assemblages = fields.Relationship(
@@ -133,6 +140,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="assemblages",
+    allow_none=True,
     )
 
     organism = fields.Relationship(
@@ -142,6 +150,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="organism",
+    allow_none=True,
     )
 
     storageUnit = fields.Relationship(
@@ -151,6 +160,7 @@ class MaterialSampleSchema(Schema):
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="storageUnit",
+    allow_none=True,
     )
 
     meta = fields.DocumentMeta()

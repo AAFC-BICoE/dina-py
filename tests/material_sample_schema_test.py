@@ -169,9 +169,9 @@ class MaterialSampleSchemaTest(unittest.TestCase):
         schema = MaterialSampleSchema()
         try:
             result = schema.load(VALID_MATERIAL_SAMPLE_DATA)
-            #pp = pprint.PrettyPrinter(indent=0)
-            #pp.pprint(result)
-            #self.assertIsInstance(result, dict)
+            pp = pprint.PrettyPrinter(indent=0)
+            pp.pprint(result)
+            self.assertIsInstance(result, dict)
         except ValidationError as e:
             self.fail(f"Validation failed with error: {e.messages}")
 
