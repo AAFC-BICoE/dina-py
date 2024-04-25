@@ -15,7 +15,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Now you can import modules from the dinaapi package
-from dinapy.apis.agentapi.schemas.personschema import PersonSchema
+from dinapy.schemas.personschema import PersonSchema
 
 KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
 
