@@ -1,7 +1,7 @@
 # This file contains the UploadFileAPI class used for uploading files to the Object Store API.
 import logging
 
-from ...dinaapi import DinaAPI
+from dinapy.dinaapi import DinaAPI
 
 class UploadFileAPI(DinaAPI):
     """

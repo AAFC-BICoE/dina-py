@@ -1,16 +1,14 @@
 from setuptools import setup, find_packages
 
+# REQUIREMENTS
+with open('requirements.txt', 'r') as req:
+    REQUIREMENTS = [line.rstrip() for line in req.readlines() if len(line) > 1 and line[1] is not '#']
+
 setup(
     name='dinapy',
     version='0.1.0',
     packages=find_packages(),
-    install_requires=[
-        'requests==2.31.0',
-        'marshmallow-jsonapi==0.24.0',
-        'python-keycloak==3.3.0',
-        'pyyaml==6.0',
-        'certifi==2023.7.22'
-    ],
+    install_requires=REQUIREMENTS,
     author='AAFC-BICoE',
     # author_email='your@email.com',
     description='Dina Web Services - Python library for interacting with the DINA web services',
