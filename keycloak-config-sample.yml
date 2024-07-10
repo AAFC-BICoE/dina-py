@@ -1,0 +1,4 @@
+url: https://dina-dev2.biodiversity.agr.gc.ca/auth/ 
+realm_name: dina
+client_id: dina-public
+secure: False
