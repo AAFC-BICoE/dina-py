@@ -1,8 +1,6 @@
 import argparse
 from dinapy.apis.objectstoreapi.uploadfileapi import UploadFileAPI
 from pathlib import Path
-import json
-
 
 class DinaApiClient:
     """
