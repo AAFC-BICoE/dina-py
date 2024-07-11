@@ -1,7 +1,7 @@
 import argparse
-import os
 from dinapy.apis.objectstoreapi.uploadfileapi import UploadFileAPI
-from pathlib import Path, PurePath
+from pathlib import Path
+import json
 
 
 class DinaApiClient:
@@ -47,36 +47,35 @@ def create_parser():
 
 
 def main():
-    # Set keycloak user
-    os.environ["keycloak_username"] = "dina-admin"
-    os.environ["keycloak_password"] = "dina-admin"
-    
     # Initialize argparse
     parser = create_parser()
     args = parser.parse_args()
-    
+
     dina_api_client = DinaApiClient()
-    
     if args.upload_file:
         # Use Path object instead of just str to handle Windows paths and Posix (Unix) paths
         path = Path(args.upload_file)
-        response_json = dina_api_client.uploadfileapi.upload(
-            args.group, path.as_posix()
-        )
-        if args.verbose:
-            print(response_json)
+        upload_file(args, dina_api_client, path)
     elif args.upload_dir:
         # .rglob recognizes file patterns
         pathlist = Path(args.upload_dir).rglob("*.*")
         for path in pathlist:
-            response_json = dina_api_client.uploadfileapi.upload(
-                args.group, path.as_posix()
-            )
-            if args.verbose:
-                print(response_json)
-
+            upload_file(args, dina_api_client, path)
     else:
         raise Exception("Incorrect arguments.")
+
+
+def upload_file(args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path):
+    response_json: dict = dina_api_client.uploadfileapi.upload(args.group, path.as_posix())
+    log_response: dict = {
+        "originalFilename": response_json.get("originalFilename"),
+        "uuid": response_json.get("uuid"),
+        "warnings": response_json.get("meta").get("warnings")
+    }
+    print(log_response)
+
+    if args.verbose:
+        print(response_json)
 
 
 if __name__ == "__main__":

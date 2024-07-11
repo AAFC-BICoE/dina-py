@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 # REQUIREMENTS
 with open('requirements.txt', 'r') as req:
-    REQUIREMENTS = [line.rstrip() for line in req.readlines() if len(line) > 1 and line[1] is not '#']
+    REQUIREMENTS = [line.rstrip() for line in req.readlines() if len(line) > 1 and line[1] != '#']
 
 setup(
     name='dinapy',
