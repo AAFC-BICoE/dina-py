@@ -1,17 +1,17 @@
 class CollectingEventDTO:
-    def __init__(self, id = None, type = "collecting-event", attributes = None, relationships = None):
+    def __init__(
+        self, id=None, type="collecting-event", attributes=None, relationships=None
+    ):
         self.id = id
         self.type = type
         self.attributes = attributes or {}
         self.relationships = relationships or {}
 
+
 class CollectingEventDTOBuilder:
     def __init__(self):
         self.collecting_event = CollectingEventDTO(
-            id=None,
-            type="collecting-event",
-            attributes=None,
-            relationships=None
+            id=None, type="collecting-event", attributes=None, relationships=None
         )
 
     def attributes(self, attributes):
@@ -25,8 +25,50 @@ class CollectingEventDTOBuilder:
     def build(self):
         return self.collecting_event
 
+
 class CollectingEventAttributesDTO:
-    def __init__(self, version=None, notPubliclyReleasableReason=None, dwcMaximumDepthInMeters=None, dwcCountry=None, dwcMinimumElevationInMeters=None, dwcCountryCode=None, dwcFieldNumber=None, dwcRecordNumber=None, dwcVerbatimDepth=None, dwcMinimumDepthInMeters=None, dwcMaximumElevationInMeters=None, dwcStateProvince=None, dwcVerbatimCoordinateSystem=None, dwcVerbatimElevation=None, dwcVerbatimLatitude=None, dwcVerbatimLongitude=None, otherRecordNumbers=None, publiclyReleasable=None, group=None, createdBy=None, createdOn=None, geoReferenceAssertions=None, geographicPlaceNameSource=None, geographicPlaceNameSourceDetail=None, habitat=None, eventGeom=None, extensionValues=None, dwcVerbatimCoordinates=None, dwcRecordedBy=None, dwcVerbatimSRS=None, startEventDateTime=None, substrate=None, tags=None, endEventDateTime=None, verbatimEventDateTime=None, dwcVerbatimLocality=None, host=None, managedAttributes={}, remarks=None):
+    def __init__(
+        self,
+        version=None,
+        notPubliclyReleasableReason=None,
+        dwcMaximumDepthInMeters=None,
+        dwcCountry=None,
+        dwcMinimumElevationInMeters=None,
+        dwcCountryCode=None,
+        dwcFieldNumber=None,
+        dwcRecordNumber=None,
+        dwcVerbatimDepth=None,
+        dwcMinimumDepthInMeters=None,
+        dwcMaximumElevationInMeters=None,
+        dwcStateProvince=None,
+        dwcVerbatimCoordinateSystem=None,
+        dwcVerbatimElevation=None,
+        dwcVerbatimLatitude=None,
+        dwcVerbatimLongitude=None,
+        otherRecordNumbers=None,
+        publiclyReleasable=None,
+        group=None,
+        createdBy=None,
+        createdOn=None,
+        geoReferenceAssertions=None,
+        geographicPlaceNameSource=None,
+        geographicPlaceNameSourceDetail=None,
+        habitat=None,
+        eventGeom=None,
+        extensionValues=None,
+        dwcVerbatimCoordinates=None,
+        dwcRecordedBy=None,
+        dwcVerbatimSRS=None,
+        startEventDateTime=None,
+        substrate=None,
+        tags=None,
+        endEventDateTime=None,
+        verbatimEventDateTime=None,
+        dwcVerbatimLocality=None,
+        host=None,
+        managedAttributes={},
+        remarks=None,
+    ):
         self.version = version
         self.notPubliclyReleasableReason = notPubliclyReleasableReason
         self.dwcMaximumDepthInMeters = dwcMaximumDepthInMeters
@@ -66,6 +108,7 @@ class CollectingEventAttributesDTO:
         self.host = host
         self.managedAttributes = managedAttributes
         self.remarks = remarks
+
 
 class CollectingEventAttributesDTOBuilder:
     def __init__(self):
@@ -229,4 +272,3 @@ class CollectingEventAttributesDTOBuilder:
 
     def build(self):
         return self.dto
-

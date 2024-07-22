@@ -1,95 +1,57 @@
 # This file holds schemas for serializing and deserializing Person entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
-from marshmallow import post_load
+from marshmallow import post_load, validate
 from marshmallow_jsonapi import Schema, fields
 from .attributesschema import AttributesSchema
 from marshmallow.exceptions import ValidationError
 
-class CollectingEventSchema(Schema):
+class MetadataSchema(Schema):
     '''Schema for a Collecting Event used for serializing and deserializing JSON.'''
     id = fields.Str(dump_only=False)
     #type = fields.Str()
     #self_link = fields.Nested("links.self")
     version = fields.Int(attribute="attributes.version")
-    notPubliclyReleasableReason = fields.Str(allow_none=True, attribute="attributes.notPubliclyReleasableReason")
-    dwcMaximumDepthInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMaximumDepthInMeters")
-    dwcCountry = fields.Str(allow_none=True, attribute="attributes.dwcCountry")
-    dwcMinimumElevationInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMinimumElevationInMeters")
-    dwcCountryCode = fields.Str(allow_none=True, attribute="attributes.dwcCountryCode")
-    dwcFieldNumber = fields.Str(allow_none=True, attribute="attributes.dwcFieldNumber")
-    dwcRecordNumber = fields.Str(allow_none=True, attribute="attributes.dwcRecordNumber")
-    dwcVerbatimDepth = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimDepth")
-    dwcMinimumDepthInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMinimumDepthInMeters")
-    dwcMaximumElevationInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMaximumElevationInMeters")
-    dwcStateProvince = fields.Str(allow_none=True, attribute="attributes.dwcStateProvince")
-    dwcVerbatimCoordinateSystem = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimCoordinateSystem")
-    dwcVerbatimElevation = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimElevation")
-    dwcVerbatimLatitude = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimLatitude")
-    dwcVerbatimLongitude = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimLongitude")
-    otherRecordNumbers = fields.Str(allow_none=True, attribute="attributes.otherRecordNumbers")
-    publiclyReleasable = fields.Str(allow_none=True,attribute="attributes.publiclyReleasable")
-    group = fields.Str(attribute="attributes.group")
     createdBy = fields.Str(attribute="attributes.createdBy")
     createdOn = fields.DateTime(attribute="attributes.createdOn")
-    geoReferenceAssertions = fields.List(fields.Dict(), allow_none=True, required=False, attribute="attributes.geoReferenceAssertions")
-    geographicPlaceNameSource = fields.Str(allow_none=True, attribute="attributes.geographicPlaceNameSource")
-    geographicPlaceNameSourceDetail = fields.Str(allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
-    habitat = fields.Str(allow_none=True, attribute="attributes.habitat")
-    eventGeom = fields.Dict(allow_none=True, attribute="attributes.eventGeom")
-    extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
-    dwcVerbatimCoordinates = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimCoordinates")
-    dwcRecordedBy = fields.Str(allow_none=True, attribute="attributes.dwcRecordedBy")
-    dwcVerbatimSRS = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimSRS")
-    startEventDateTime = fields.Str(allow_none=True, attribute="attributes.startEventDateTime")
-    substrate = fields.Str(allow_none=True, attribute="attributes.substrate")
-    tags = fields.List(fields.Str(), allow_none=True, required=False, attribute="attributes.tags")
-    endEventDateTime = fields.DateTime(allow_none=True, attribute="attributes.endEventDateTime")
-    verbatimEventDateTime = fields.DateTime(allow_none=True, attribute="attributes.verbatimEventDateTime")
-    dwcVerbatimLocality = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimLocality")
-    host = fields.Str(allow_none=True, attribute="attributes.host")
+    bucket = fields.Str(attribute="attributes.bucket")
+    fileIdentifier = fields.UUID(attribute="attributes.fileIdentifier")
+    fileExtension = fields.Str(attribute="attributes.fileExtension")
+    resourceExternalURL = fields.Str(attribute="attributes.resourceExternalURL")
+    dcFormat = fields.Str(attribute="attributes.dcFormat")
+    dcType = fields.Str(validate=validate.OneOf(["IMAGE", "MOVING_IMAGE", "SOUND", "TEXT", "DATASET", "UNDETERMINED"]))
+    acCaption = fields.Str(attribute="attributes.acCaption")
+    acDigitizationDate = fields.DateTime(attribute="attributes.acDigitizationDate")
+    xmpMetadataDate = fields.DateTime(attribute="attributes.acDigitizationDate")
+    xmpRightsWebStatement = fields.Str(attribute="attributes.xmpRightsWebStatement")
+    dcRights = fields.Str(attribute="attributes.dcRights")
+    xmpRightsOwner = fields.Str(attribute="attributes.xmpRightsOwner")
+    xmpRightsUsageTerms = fields.Str(attribute="attributes.xmpRightsUsageTerms")
+    orientation = fields.Int(attribute="attributes.orientation")
+    originalFilename = fields.Str(attribute="attributes.originalFilename")
+    acHashFunction = fields.Str(attribute="attributes.acHashFunction")
+    acHashValue = fields.Str(attribute="attributes.acHashValue")
+    acTags = fields.List(fields.Str(), attribute="attributes.acTags")
+    publiclyReleasable = fields.Str(attribute="attributes.publiclyReleasable")
+    notPubliclyReleasableReason = fields.Str(attribute="attributes.notPubliclyReleasableReason")
+    acSubtype =  fields.Str(attribute="attributes.acSubtype")
+    group = fields.Str(attribute="attributes.group")
     managedAttributes = fields.Dict(attribute="attributes.managedAttributes")
-    remarks = fields.Str(allow_none=True, attribute="attributes.remarks")
-    collectionMethod = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/collectionMethod",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/collectionMethod",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collectionMethod",
-    )
-
+    
+    # Relationships
     protocol = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/protocol",
+    self_url="/api/v1/metadata/{id}/relationships/protocol",
     self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/protocol",
+    related_url="/api/v1/metadata/{id}/protocol",
     related_url_kwargs={"id": "<id>"},
     many=True,
     type_="protocol",
     )
 
-    collectors = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/collectors",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/collectors",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collectors",
-    )
-
-    attachment = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/attachment",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/attachment",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="attachment",
-    )
-
     meta = fields.DocumentMeta()
         
     class Meta:
-        type_ = "collecting-event"
-        #self_url = "/api/v1/collecting-event/{id}" or None
+        type_ = "metadata"
+        #self_url = "/api/v1/metadata/{id}" or None
         #self_url_kwargs = {"id": "<id>"}
         strict = True
     
@@ -113,9 +75,9 @@ class CollectingEventSchema(Schema):
 # {
 #     "data": {
 #         "id": "f08516e5-add2-4baa-89bc-5b8abd0ec8ba",
-#         "type": "collecting-event",
+#         "type": "metadata",
 #         "links": {
-#             "self": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba"
+#             "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba"
 #         },
 #         "attributes": {
 #             "version": 0,
@@ -227,26 +189,26 @@ class CollectingEventSchema(Schema):
 #         "relationships": {
 #             "collectionMethod": {
 #                 "links": {
-#                     "self": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectionMethod",
-#                     "related": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectionMethod"
+#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectionMethod",
+#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectionMethod"
 #                 }
 #             },
 #             "protocol": {
 #                 "links": {
-#                     "self": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/protocol",
-#                     "related": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/protocol"
+#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/protocol",
+#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/protocol"
 #                 }
 #             },
 #             "collectors": {
 #                 "links": {
-#                     "self": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectors",
-#                     "related": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectors"
+#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectors",
+#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectors"
 #                 }
 #             },
 #             "attachment": {
 #                 "links": {
-#                     "self": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/attachment",
-#                     "related": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/attachment"
+#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/attachment",
+#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/attachment"
 #                 }
 #             }
 #         }
