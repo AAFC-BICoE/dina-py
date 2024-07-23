@@ -1,66 +1,91 @@
-# This file holds schemas for serializing and deserializing Person entities
-# using the JSON API format. It utilizes the marshmallow_jsonapi library.
+# This file holds schemas for serializing and deserializing Metadata entities
+# Using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow import post_load, validate
 from marshmallow_jsonapi import Schema, fields
-from .attributesschema import AttributesSchema
-from marshmallow.exceptions import ValidationError
+
 
 class MetadataSchema(Schema):
-    '''Schema for a Collecting Event used for serializing and deserializing JSON.'''
+    """Schema for a Metadata used for serializing and deserializing JSON."""
+
     id = fields.Str(dump_only=False)
-    #type = fields.Str()
-    #self_link = fields.Nested("links.self")
+    # type = fields.Str()
+    # self_link = fields.Nested("links.self")
     version = fields.Int(attribute="attributes.version")
     createdBy = fields.Str(attribute="attributes.createdBy")
     createdOn = fields.DateTime(attribute="attributes.createdOn")
     bucket = fields.Str(attribute="attributes.bucket")
-    fileIdentifier = fields.UUID(attribute="attributes.fileIdentifier")
-    fileExtension = fields.Str(attribute="attributes.fileExtension")
-    resourceExternalURL = fields.Str(attribute="attributes.resourceExternalURL")
-    dcFormat = fields.Str(attribute="attributes.dcFormat")
-    dcType = fields.Str(validate=validate.OneOf(["IMAGE", "MOVING_IMAGE", "SOUND", "TEXT", "DATASET", "UNDETERMINED"]))
-    acCaption = fields.Str(attribute="attributes.acCaption")
-    acDigitizationDate = fields.DateTime(attribute="attributes.acDigitizationDate")
-    xmpMetadataDate = fields.DateTime(attribute="attributes.acDigitizationDate")
-    xmpRightsWebStatement = fields.Str(attribute="attributes.xmpRightsWebStatement")
-    dcRights = fields.Str(attribute="attributes.dcRights")
-    xmpRightsOwner = fields.Str(attribute="attributes.xmpRightsOwner")
-    xmpRightsUsageTerms = fields.Str(attribute="attributes.xmpRightsUsageTerms")
-    orientation = fields.Int(attribute="attributes.orientation")
+    fileIdentifier = fields.UUID(attribute="attributes.fileIdentifier", allow_none=True)
+    fileExtension = fields.Str(attribute="attributes.fileExtension", allow_none=True)
+    resourceExternalURL = fields.Str(
+        attribute="attributes.resourceExternalURL", allow_none=True
+    )
+    dcFormat = fields.Str(attribute="attributes.dcFormat", allow_none=True)
+    dcType = fields.Str(
+        validate=validate.OneOf(
+            ["IMAGE", "MOVING_IMAGE", "SOUND", "TEXT", "DATASET", "UNDETERMINED"]
+        ),
+        allow_none=True,
+    )
+    acCaption = fields.Str(attribute="attributes.acCaption", allow_none=True)
+    acDigitizationDate = fields.DateTime(attribute="attributes.acDigitizationDate", allow_none=True)
+    xmpMetadataDate = fields.DateTime(attribute="attributes.xmpMetadataDate", allow_none=True)
+    xmpRightsWebStatement = fields.Str(attribute="attributes.xmpRightsWebStatement", allow_none=True)
+    dcRights = fields.Str(attribute="attributes.dcRights", allow_none=True)
+    xmpRightsOwner = fields.Str(attribute="attributes.xmpRightsOwner", allow_none=True)
+    xmpRightsUsageTerms = fields.Str(attribute="attributes.xmpRightsUsageTerms", allow_none=True)
+    orientation = fields.Int(attribute="attributes.orientation", allow_none=True)
     originalFilename = fields.Str(attribute="attributes.originalFilename")
-    acHashFunction = fields.Str(attribute="attributes.acHashFunction")
-    acHashValue = fields.Str(attribute="attributes.acHashValue")
-    acTags = fields.List(fields.Str(), attribute="attributes.acTags")
-    publiclyReleasable = fields.Str(attribute="attributes.publiclyReleasable")
-    notPubliclyReleasableReason = fields.Str(attribute="attributes.notPubliclyReleasableReason")
-    acSubtype =  fields.Str(attribute="attributes.acSubtype")
-    group = fields.Str(attribute="attributes.group")
-    managedAttributes = fields.Dict(attribute="attributes.managedAttributes")
-    
+    acHashFunction = fields.Str(attribute="attributes.acHashFunction", allow_none=True)
+    acHashValue = fields.Str(attribute="attributes.acHashValue", allow_none=True)
+    acTags = fields.List(fields.Str(), attribute="attributes.acTags", allow_none=True)
+    publiclyReleasable = fields.Bool(attribute="attributes.publiclyReleasable", allow_none=True)
+    notPubliclyReleasableReason = fields.Str(
+        attribute="attributes.notPubliclyReleasableReason", allow_none=True
+    )
+    acSubtype = fields.Str(attribute="attributes.acSubtype", allow_none=True)
+    group = fields.Str(attribute="attributes.group", required=True)
+    managedAttributes = fields.Dict(attribute="attributes.managedAttributes", allow_none=True)
+
     # Relationships
-    protocol = fields.Relationship(
-    self_url="/api/v1/metadata/{id}/relationships/protocol",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/metadata/{id}/protocol",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="protocol",
+    acMetadataCreator = fields.Relationship(
+        self_url="/api/v1/metadata/{id}/relationships/acMetadataCreator",
+        self_url_kwargs={"id": "<id>"},
+        related_url="/api/v1/metadata/{id}/acMetadataCreator",
+        related_url_kwargs={"id": "<id>"},
+        type_="person",
+    )
+
+    derivatives = fields.Relationship(
+        self_url="/api/v1/metadata/{id}/relationships/derivatives",
+        self_url_kwargs={"id": "<id>"},
+        related_url="/api/v1/metadata/{id}/derivatives",
+        related_url_kwargs={"id": "<id>"},
+        type_="derivative",
+        many=True,
+    )
+
+    dcCreator = fields.Relationship(
+        self_url="/api/v1/metadata/{id}/relationships/dcCreator",
+        self_url_kwargs={"id": "<id>"},
+        related_url="/api/v1/metadata/{id}/dcCreator",
+        related_url_kwargs={"id": "<id>"},
+        type_="person",
     )
 
     meta = fields.DocumentMeta()
-        
+
     class Meta:
         type_ = "metadata"
-        #self_url = "/api/v1/metadata/{id}" or None
-        #self_url_kwargs = {"id": "<id>"}
+        # self_url = "/api/v1/metadata/{id}" or None
+        # self_url_kwargs = {"id": "<id>"}
         strict = True
-    
+
     def get_url(self, obj, **kwargs):
         if obj.id is not None:
             return super().get_url(obj, **kwargs)
         else:
             return None
-    
+
     @post_load
     def remove_none_values(self, data, **kwargs):
         def clean_dict(d):
@@ -71,160 +96,61 @@ class MetadataSchema(Schema):
 
         return clean_dict(data)
 
-        
+
 # {
-#     "data": {
-#         "id": "f08516e5-add2-4baa-89bc-5b8abd0ec8ba",
-#         "type": "metadata",
-#         "links": {
-#             "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba"
-#         },
-#         "attributes": {
-#             "version": 0,
-#             "dwcFieldNumber": null,
-#             "dwcRecordNumber": null,
-#             "otherRecordNumbers": null,
-#             "group": "phillips-lab",
-#             "createdBy": "s-seqdbsoil",
-#             "createdOn": "2024-01-26T17:09:33.932301Z",
-#             "geoReferenceAssertions": [
-#                 {
-#                     "dwcDecimalLatitude": 44.2,
-#                     "dwcDecimalLongitude": -80.7,
-#                     "dwcCoordinateUncertaintyInMeters": null,
-#                     "createdOn": "2024-01-26T17:09:33.931468083Z",
-#                     "dwcGeoreferencedDate": null,
-#                     "georeferencedBy": null,
-#                     "literalGeoreferencedBy": null,
-#                     "dwcGeoreferenceProtocol": null,
-#                     "dwcGeoreferenceSources": null,
-#                     "dwcGeoreferenceRemarks": null,
-#                     "dwcGeodeticDatum": null,
-#                     "isPrimary": true,
-#                     "dwcGeoreferenceVerificationStatus": null
-#                 }
-#             ],
-#             "eventGeom": {
-#                 "type": "Point",
-#                 "crs": {
-#                     "type": "name",
-#                     "properties": {
-#                         "name": "EPSG:4326"
-#                     }
-#                 },
-#                 "coordinates": [
-#                     -80.7,
-#                     44.2
-#                 ]
-#             },
-#             "dwcVerbatimCoordinates": "44.2 -80.7",
-#             "dwcRecordedBy": null,
-#             "startEventDateTime": "2017-08-07",
-#             "endEventDateTime": null,
-#             "verbatimEventDateTime": null,
-#             "dwcVerbatimLocality": null,
-#             "host": null,
-#             "managedAttributes": {
-#                 "site_codes": "BS",
-#                 "cover_crops": "Yes; Annual Ryegrass",
-#                 "seq_db_legacy": "{\"Collection Info\":{\"id\":1053400,\"latitude\":\"44.2\",\"longitude\":\"-80.7\",\"year\":\"2017\",\"month\":\"08\",\"day\":\"07\",\"zeroPaddedDate\":\"2017-008-007\",\"notes\":\"Blocks of soil kept intact and on ice until transport back to lab\",\"elevation\":384.0,\"depth\":\"0-0.15\",\"lastModified\":\"2021-02-18T22:57:53.120+00:00\",\"latLon\":\"44.2 -80.7\",\"siteCodes\":\"BS\",\"protocol\":{\"id\":224,\"type\":\"COLLECTION_EVENT\",\"name\":\"Phillips_OMAFRA_SYU_SampleCollectionProtocol.docx\",\"version\":\"\",\"description\":\"\",\"steps\":\"\",\"notes\":\"\",\"reference\":\"\",\"equipment\":\"\",\"forwardPrimerConcentration\":\"\",\"reversePrimerConcentration\":\"\",\"reactionMixVolume\":\"\",\"reactionMixVolumePerTube\":\"\",\"group\":{\"id\":458,\"groupName\":\"GI_Phillips\",\"description\":\"\",\"defaultRead\":false,\"defaultWrite\":false,\"defaultDelete\":false,\"defaultCreate\":false,\"lastModified\":\"2021-01-15T16:25:33.348+00:00\"},\"reactionComponents\":[{\"reactionComponentId\":1016,\"name\":\"\",\"concentration\":\"\",\"lastModified\":\"2021-02-17T18:29:31.605+00:00\",\"id\":1016}],\"lastModified\":\"2021-02-17T18:29:31.479+00:00\"}},\"MIxS Specifications\":{\"id\":783441,\"envPackage\":\"Soil\",\"dnaStorageConditions\":\"neg 80oC; up to 6 months\",\"sampVolWeDnaExt\":\"0.25g\",\"calcium\":\"2440\",\"magnesium\":\"250\",\"orgMatter\":\"4\",\"ph\":7.4,\"potassium\":\"69\",\"sodium\":\"14\",\"waterContent\":\"0.2281041792852818\",\"curLandUse\":\"farmstead\",\"curVegetation\":\"corn\",\"cropRotation\":\"Yes; Corn-Hay/cereal forage\",\"tillage\":\"Conventional\",\"horizon\":\"A horizon\",\"waterContentSoilMeth\":\"Gravimetric\",\"poolDnaExtracts\":\"Yes; 2 x 0.25g\",\"storeCond\":\"6months/-20oC\",\"linkClimateInfo\":\"https://climate.weather.gc.ca/climate_normals/index_e.html\",\"annualSeasonTemp\":\"6.6\",\"linkClassInfo\":\"https://sis.agr.gc.ca/cansis/soils/on/DYK/~~~~~/A/description.html\",\"faoClass\":\"Orthic Gray Brown Luvisol\",\"texture\":\"sandy loam\",\"coverCrops\":\"Yes; Annual Ryegrass\",\"growingDegreeDays\":\"2004.5\",\"cationExchangeCapacity\":\"14.5\",\"availablePhosphorus\":\"25\",\"aggregateStability\":\"-14.528593500000001\",\"lastModified\":\"2021-02-18T22:57:53.123+00:00\"}}",
-#                 "available_phosp": "25",
-#                 "aggregate_stability": "-14.528593500000001",
-#                 "growing_degree_days": "2004.5",
-#                 "cation_exchange_capacity": "14.5"
-#             },
-#             "dwcVerbatimLatitude": "44.2",
-#             "dwcVerbatimLongitude": "-80.7",
-#             "dwcVerbatimCoordinateSystem": null,
-#             "dwcVerbatimSRS": null,
-#             "dwcVerbatimElevation": null,
-#             "dwcVerbatimDepth": null,
-#             "dwcCountry": null,
-#             "dwcCountryCode": null,
-#             "dwcStateProvince": null,
-#             "habitat": null,
-#             "dwcMinimumElevationInMeters": 384,
-#             "dwcMinimumDepthInMeters": 0,
-#             "dwcMaximumElevationInMeters": null,
-#             "dwcMaximumDepthInMeters": 0.15,
-#             "substrate": "Soil",
-#             "remarks": "Blocks of soil kept intact and on ice until transport back to lab",
-#             "publiclyReleasable": null,
-#             "notPubliclyReleasableReason": null,
-#             "tags": null,
-#             "geographicPlaceNameSource": null,
-#             "geographicPlaceNameSourceDetail": null,
-#             "extensionValues": {
-#                 "mixs_soil_v4": {
-#                     "ph": "7.4",
-#                     "horizon": "A horizon",
-#                     "texture": "sandy loam",
-#                     "tillage": "Conventional",
-#                     "fao_class": "Orthic Gray Brown Luvisol",
-#                     "store_cond": "6months/-20oC",
-#                     "env_package": "Soil",
-#                     "cur_land_use": "farmstead",
-#                     "crop_rotation": "Yes; Corn-Hay/cereal forage",
-#                     "water_content": "0.2281041792852818",
-#                     "cur_vegetation": "corn",
-#                     "link_class_info": "https://sis.agr.gc.ca/cansis/soils/on/DYK/~~~~~/A/description.html",
-#                     "link_climate_info": "https://climate.weather.gc.ca/climate_normals/index_e.html",
-#                     "pool_dna_extracts": "Yes; 2 x 0.25g",
-#                     "annual_season_temp": "6.6",
-#                     "samp_vol_we_dna_ext": "0.25g",
-#                     "water_content_soil_meth": "Gravimetric"
-#                 },
-#                 "mixs_soil_v5": {
-#                     "dna_storage_conditons": "neg 80oC; up to 6 months"
-#                 },
-#                 "mixs_sediment_v4": {
-#                     "sodium": "14",
-#                     "calcium": "2440",
-#                     "magnesium": "250",
-#                     "potassium": "69",
-#                     "org_matter": "4"
-#                 }
-#             }
-#         },
-#         "relationships": {
-#             "collectionMethod": {
-#                 "links": {
-#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectionMethod",
-#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectionMethod"
-#                 }
-#             },
-#             "protocol": {
-#                 "links": {
-#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/protocol",
-#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/protocol"
-#                 }
-#             },
-#             "collectors": {
-#                 "links": {
-#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectors",
-#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectors"
-#                 }
-#             },
-#             "attachment": {
-#                 "links": {
-#                     "self": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/attachment",
-#                     "related": "/api/v1/metadata/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/attachment"
-#                 }
-#             }
-#         }
+#   "data": {
+#     "id": "0190e0df-abef-7cf5-baa2-9453ec6f012d",
+#     "type": "metadata",
+#     "attributes": {
+#       "createdBy": "dina-admin",
+#       "createdOn": "2024-07-23T18:34:33.328038Z",
+#       "bucket": "aafc",
+#       "fileIdentifier": "0190e0df-0809-71a3-b8e5-036cfbfec914",
+#       "fileExtension": ".png",
+#       "resourceExternalURL": null,
+#       "dcFormat": "image/png",
+#       "dcType": "IMAGE",
+#       "acCaption": "sample_640×426.png",
+#       "acDigitizationDate": "2024-07-23T07:00:00Z",
+#       "xmpMetadataDate": "2024-07-23T18:34:33.357486Z",
+#       "xmpRightsWebStatement": "https://open.canada.ca/en/open-government-licence-canada",
+#       "dcRights": "© His Majesty The King in Right of Canada, as represented by the Minister of Agriculture and Agri-Food | © Sa Majesté le Roi du chef du Canada, représentée par le ministre de l’Agriculture et de l’Agroalimentaire",
+#       "xmpRightsOwner": "Government of Canada",
+#       "xmpRightsUsageTerms": "Government of Canada Usage Term",
+#       "orientation": 1,
+#       "originalFilename": "sample_640×426.png",
+#       "acHashFunction": "SHA-1",
+#       "acHashValue": "e29c5ca02f1b2faec0302700fc084584cf2869ae",
+#       "publiclyReleasable": true,
+#       "acSubtype": "OBJECT SUBTYPE 1",
+#       "group": "aafc",
+#       "managedAttributes": {
+#         "legacy_barcode": "123"
+#       }
 #     },
-#     "meta": {
-#         "totalResourceCount": 1,
-#         "external": [
-#             {
-#                 "href": "agent/api/v1/person",
-#                 "type": "person"
-#             },
-#             {
-#                 "href": "objectstore/api/v1/metadata",
-#                 "type": "metadata"
-#             }
-#         ],
-#         "moduleVersion": "0.84"
+#     "relationships": {
+#       "acMetadataCreator": {
+#         "data": {
+#           "id": "3c47203f-9833-4945-b673-ece4e3bd4f9a",
+#           "type": "person"
+#         }
+#       },
+#       "dcCreator": {
+#         "data": {
+#           "id": "afcf0bcc-c6c8-40c5-b97b-1855ce5d1729",
+#           "type": "person"
+#         }
+#       }
 #     }
+#   },
+#   "meta": {
+#     "totalResourceCount": 1,
+#     "external": [
+#       {
+#         "href": "Agent/api/v1/person",
+#         "type": "person"
+#       }
+#     ],
+#     "moduleVersion": "1.17"
+#   },
 # }

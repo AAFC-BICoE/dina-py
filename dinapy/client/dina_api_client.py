@@ -8,9 +8,7 @@ class DinaApiClient:
     """
 
     def __init__(self) -> None:
-        self.uploadfileapi = UploadFileAPI(
-            None, "https://dina-dev2.biodiversity.agr.gc.ca/api/"
-        )
+        self.uploadfileapi = UploadFileAPI()
 
 
 def create_parser():

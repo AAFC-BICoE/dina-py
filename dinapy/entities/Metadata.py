@@ -81,7 +81,6 @@ class MetadataAttributesDTO:
         self.group = group
         self.managedAttributes = managedAttributes
 
-
 class MetadataAttributesDTOBuilder:
     def __init__(self):
         self.dto = MetadataAttributesDTO()

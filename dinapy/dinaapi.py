@@ -79,6 +79,8 @@ class DinaAPI:
                     # Set keycloak user
                     os.environ["keycloak_username"] = self.configs["keycloak_username"]
                     os.environ["keycloak_password"] = self.configs["keycloak_password"]
+                if (self.configs["url"]):
+                    self.base_url = self.configs["url"]
         except FileNotFoundError:
             logging.error(f"Configuration file not found: {config_path}")
             raise
