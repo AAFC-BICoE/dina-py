@@ -42,6 +42,7 @@ def main():
                 "attributes"
             ]
             metadata_attributes_config["fileIdentifier"] = response_json.get("uuid")
+            metadata_attributes_config["bucket"] = TEST_GROUP
             metadata_relationships_config = dina_api_config["objectstore-api"][
                 "metadata"
             ]["relationships"]
@@ -69,7 +70,7 @@ def main():
             metadata_schema = MetadataSchema()
             serialized_metadata = metadata_schema.dump(metadata_dto)
             response = dina_api_client.metadata_api.create_entity(serialized_metadata)
-            print(serialized_metadata)
+            print(response.json())
 
 
 if __name__ == "__main__":
