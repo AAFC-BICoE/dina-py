@@ -1,4 +1,5 @@
 import argparse
+from dinapy.apis.objectstoreapi.metadata_api import MetadataAPI
 from dinapy.apis.objectstoreapi.uploadfileapi import UploadFileAPI
 from pathlib import Path
 
@@ -7,8 +8,9 @@ class DinaApiClient:
     Class for handling making requests to DINA APIs
     """
 
-    def __init__(self) -> None:
-        self.uploadfileapi = UploadFileAPI()
+    def __init__(self, config_path: str = None, base_url: str = None) -> None:
+        self.upload_file_api = UploadFileAPI(config_path, base_url)
+        self.metadata_api = MetadataAPI(config_path, base_url)
 
 
 def create_parser():
@@ -41,6 +43,17 @@ def create_parser():
     )
     return parser
 
+def upload_file(args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path):
+    response_json: dict = dina_api_client.upload_file_api.upload(args.group, path.as_posix())
+    log_response: dict = {
+        "originalFilename": response_json.get("originalFilename"),
+        "uuid": response_json.get("uuid"),
+        "warnings": response_json.get("meta").get("warnings")
+    }
+    print(log_response)
+
+    if args.verbose:
+        print(response_json)
 
 def main():
     # Initialize argparse
@@ -59,19 +72,6 @@ def main():
             upload_file(args, dina_api_client, path)
     else:
         raise Exception("Incorrect arguments.")
-
-
-def upload_file(args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path):
-    response_json: dict = dina_api_client.uploadfileapi.upload(args.group, path.as_posix())
-    log_response: dict = {
-        "originalFilename": response_json.get("originalFilename"),
-        "uuid": response_json.get("uuid"),
-        "warnings": response_json.get("meta").get("warnings")
-    }
-    print(log_response)
-
-    if args.verbose:
-        print(response_json)
 
 
 if __name__ == "__main__":
