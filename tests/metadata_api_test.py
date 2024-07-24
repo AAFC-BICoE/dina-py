@@ -43,32 +43,16 @@ def main():
             ]
             metadata_attributes_config["fileIdentifier"] = response_json.get("uuid")
             metadata_attributes_config["bucket"] = TEST_GROUP
-            metadata_relationships_config = dina_api_config["objectstore-api"][
-                "metadata"
-            ]["relationships"]
-            # metadata_attributes_dto = (
-            #     MetadataAttributesDTOBuilder()
-            #     .bucket(TEST_GROUP)
-            #     .acSubtype(metadata_attributes_config["acSubtype"])
-            #     .dcType(metadata_attributes_config["dcType"])
-            #     .managedAttributes(metadata_attributes_config["managedAttributes"])
-            #     .orientation(metadata_attributes_config["orientation"])
-            #     .xmpRightsOwner(metadata_attributes_config["xmpRightsOwner"])
-            #     .xmpRightsUsageTerms(metadata_attributes_config["xmpRightsUsageTerms"])
-            #     .xmpRightsWebStatement(
-            #         metadata_attributes_config["xmpRightsWebStatement"]
-            #     )
-            #     .dcRights(metadata_attributes_config["dcRights"])
-            #     .build()
-            # )
             metadata_dto = (
                 MetadataDTOBuilder()
                 .attributes(metadata_attributes_config)
-                .relationships(metadata_relationships_config)
                 .build()
             )
             metadata_schema = MetadataSchema()
             serialized_metadata = metadata_schema.dump(metadata_dto)
+            serialized_metadata["data"]["relationships"] = dina_api_config["objectstore-api"][
+                "metadata"
+            ]["relationships"]
             response = dina_api_client.metadata_api.create_entity(serialized_metadata)
             print(response.json())
 
