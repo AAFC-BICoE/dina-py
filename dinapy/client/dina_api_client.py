@@ -2,6 +2,7 @@ import argparse
 from dinapy.apis.objectstoreapi.uploadfileapi import UploadFileAPI
 from pathlib import Path
 
+
 class DinaApiClient:
     """
     Class for handling making requests to DINA APIs
@@ -64,11 +65,15 @@ def main():
 
 
 def upload_file(args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path):
-    response_json: dict = dina_api_client.uploadfileapi.upload(args.group, path.as_posix())
+    response_json: dict = dina_api_client.uploadfileapi.upload(
+        args.group, path.as_posix()
+    )
     log_response: dict = {
         "originalFilename": response_json.get("originalFilename"),
         "uuid": response_json.get("uuid"),
         "warnings": response_json.get("meta").get("warnings")
+        if response_json.get("meta")
+        else "",
     }
     print(log_response)
 
