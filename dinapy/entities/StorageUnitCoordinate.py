@@ -26,11 +26,10 @@ class StorageUnitCoordinateDTOBuilder:
         return self.collecting_event
 
 class StorageUnitCoordinateAttributesDTO:
-    def __init__(self, usageType=None, wellRow=None, wellColumn=None, cellNumber=None, storageUnitName=None, createdOn=None, createdBy=None):
+    def __init__(self, usageType=None, wellRow=None, wellColumn=None, storageUnitName=None, createdOn=None, createdBy=None):
         self.usageType = usageType
         self.wellRow = wellRow
         self.wellColumn = wellColumn
-        self.cellNumber = cellNumber
         self.storageUnitName = storageUnitName
         self.createdOn = createdOn
         self.createdBy = createdBy
@@ -49,10 +48,6 @@ class StorageUnitCoordinateAttributesDTOBuilder:
     
     def wellColumn(self, wellColumn):
         self.dto.wellColumn = wellColumn
-        return self
-    
-    def cellNumber(self, cellNumber):
-        self.dto.cellNumber = cellNumber
         return self
     
     def storageUnitName(self, storageUnitName):

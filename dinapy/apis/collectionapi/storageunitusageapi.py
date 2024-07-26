@@ -3,7 +3,7 @@ import logging
 
 from .collectionapi import CollectionModuleApi
 
-class MaterialSampleAPI(CollectionModuleApi):
+class StorageUnitUsageAPI(CollectionModuleApi):
 	"""
 	Class for handling object store uploading related DINA API requests.
 	"""
