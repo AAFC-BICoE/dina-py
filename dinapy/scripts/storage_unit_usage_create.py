@@ -40,8 +40,8 @@ def parse_csv_and_populate_dto(csv_file):
 
 			relationships = RelationshipDTO.Builder()\
 				.add_relationship("storageUnit", "storage-unit", row['storageUnitId'],)\
-				.add_relationship("storageUnitType", "storage-unit-type", row['storageUnitTypeId'])\
 				.build()
+				# .add_relationship("storageUnitType", "storage-unit-type", row['storageUnitTypeId'])\
 			
 			dto = StorageUnitCoordinateDTOBuilder()\
 				.attributes(attributes)\
