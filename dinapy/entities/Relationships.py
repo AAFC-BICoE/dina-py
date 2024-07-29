@@ -1,19 +1,19 @@
 class Relationship:
-    def __init__(self, type, id):
-        self.type = type
-        self.id = id
+	def __init__(self, type, id):
+		self.type = type
+		self.id = id
 
 class RelationshipDTO:
-    def __init__(self):
-        self.relationships = {}
+	def __init__(self):
+		self.relationships = {}
 
-    class Builder:
-        def __init__(self):
-            self.dto = RelationshipDTO()
+	class Builder:
+		def __init__(self):
+			self.dto = RelationshipDTO()
 
-        def add_relationship(self, key, type, id):
-            self.dto.relationships[key] = Relationship(type, id)
-            return self
+		def add_relationship(self, key, type, id):
+			self.dto.relationships[key] = Relationship(type, id)
+			return self
 
-        def build(self):
-            return self.dto
+		def build(self):
+			return self.dto

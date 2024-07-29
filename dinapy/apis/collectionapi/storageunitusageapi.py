@@ -16,6 +16,6 @@ class StorageUnitUsageAPI(CollectionModuleApi):
 				provided then local deployment URL is used. Should end with a forward slash.
 		"""
 		super().__init__(config_path, base_url)
-		self.base_url += "storageUnitCoordinates"
+		self.base_url += "storage-unit-usage"
 
 	

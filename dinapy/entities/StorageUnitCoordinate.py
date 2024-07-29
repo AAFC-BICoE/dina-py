@@ -5,9 +5,21 @@ class StorageUnitCoordinateDTO:
         self.attributes = attributes or {}
         self.relationships = relationships or {}
 
+    def get_id(self):
+        return self.id
+
+    def get_type(self):
+        return self.type
+
+    def get_attributes(self):
+        return self.attributes
+
+    def get_relationships(self):
+        return self.relationships
+    
 class StorageUnitCoordinateDTOBuilder:
     def __init__(self):
-        self.collecting_event = StorageUnitCoordinateDTO(
+        self.dto = StorageUnitCoordinateDTO(
             id=None,
             type="storage-unit-usage",
             attributes=None,
@@ -15,15 +27,15 @@ class StorageUnitCoordinateDTOBuilder:
         )
 
     def attributes(self, attributes):
-        self.collecting_event.attributes = attributes
+        self.dto.attributes = attributes
         return self
 
     def relationships(self, relationships):
-        self.collecting_event.relationships = relationships
+        self.dto.relationships = relationships
         return self
 
     def build(self):
-        return self.collecting_event
+        return self.dto
 
 class StorageUnitCoordinateAttributesDTO:
     def __init__(self, usageType=None, wellRow=None, wellColumn=None, createdOn=None, createdBy=None):
