@@ -1,7 +1,8 @@
 # This file contains the UploadFileAPI class used for uploading files to the Object Store API.
 import logging
 
-from ...dinaapi import DinaAPI
+from dinapy.dinaapi import DinaAPI
+
 
 class UploadFileAPI(DinaAPI):
     """
@@ -18,9 +19,13 @@ class UploadFileAPI(DinaAPI):
                 provided then local deployment URL is used. Should end with a forward slash.
         """
         super().__init__(config_path, base_url)
-        self.base_url += "objectstore-api/"
+        self.base_url = (
+            base_url + "objectstore-api/"
+            if base_url
+            else self.base_url + "objectstore-api/"
+        )
 
-    def upload(self, bucket: str, file_path: str ):
+    def upload(self, bucket: str, file_path: str):
         """
         Upload a new file into the object store.
 
@@ -37,7 +42,7 @@ class UploadFileAPI(DinaAPI):
             raise  # Re-raise the exception
 
         return response_data.json()
-    
+
     def get_file_info(self, bucket: str, file_name: str):
         full_url = self.base_url + "file-info/" + bucket + "/" + file_name
         try:
@@ -45,5 +50,5 @@ class UploadFileAPI(DinaAPI):
         except Exception as exc:
             logging.error(f"Failed to retrieve the file info: {exc}")
             raise  # Re-raise the exception
-        
+
         return response_data.json()
