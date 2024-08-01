@@ -1,4 +1,4 @@
-# This file contains the UploadFileAPI class used for uploading files to the Object Store API.
+# This file contains the StorageUnitUsageAPI class used for interacting with the Storage Unit Usage endpoint of the Collection API.
 import logging
 
 from .collectionapi import CollectionModuleApi

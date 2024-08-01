@@ -23,10 +23,11 @@ os.environ["keycloak_password"] = "dina-admin"
 class MaterialSampleSchemaTest(unittest.TestCase):
 			
 	storageUnitId = '0190f065-3d4b-7a6d-be78-a49548922396'
+	storageUnitTypeId = '0190f065-3d4b-7a6d-be78-a12432643123'
 	relationships = RelationshipDTO.Builder()\
 		.add_relationship("storageUnit", "storage-unit", storageUnitId)\
+		.add_relationship("storageUnitType", "storage-unit-type", storageUnitTypeId)\
 		.build()
-		# .add_relationship("storageUnitType", "storage-unit-type", row['storageUnitTypeId'])\
 	
 	dto = StorageUnitUsageDTOBuilder()\
 		.set_usageType("material-sample")\

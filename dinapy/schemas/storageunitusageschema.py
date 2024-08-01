@@ -1,9 +1,6 @@
-# This file holds schemas for serializing and deserializing Person entities
+# This file holds schemas for serializing and deserializing StorageUnitUsage entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-from marshmallow import post_dump
-from marshmallow import ValidationError
-from dinapy.schemas.custom_schema_fields import Relationship
 
 class StorageUnitTypeSchema(Schema):
 	id = fields.Str(dump_only=True)
@@ -28,7 +25,6 @@ class StorageUnitUsage(Schema):
 	storageUnitName = fields.Str(required=True,allow_none=True)
 	createdOn = fields.Str(dump_only=False, required=True)
 	createdBy = fields.Str(dump_only=False, required=True)
-	SKIP_VALUES = set([None])
 
 	storageUnit = fields.Relationship(
 		self_url="/api/v1/storage-unit-usage/{id}/relationships/storageUnit",
@@ -46,6 +42,7 @@ class StorageUnitUsage(Schema):
 		related_url="/api/v1/storage-unit-usage/{id}/storageUnitType",
 		related_url_kwargs={"id": "<id>"},
 		include_resource_linkage=True,
+		attribute="relationships.storageUnitType",
 		type_="storage-unit-type"
 	)
 
