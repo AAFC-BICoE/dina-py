@@ -16,4 +16,4 @@ class RelationshipDTO:
 			return self
 
 		def build(self):
-			return self.dto
+			return self.dto.relationships

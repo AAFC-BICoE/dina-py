@@ -6,6 +6,7 @@ import os
 import requests
 import yaml
 import logging
+import json
 
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
@@ -126,7 +127,7 @@ class DinaAPI:
 			{
 				"Accept": "application/vnd.api+json",
 				"Content-Type": "application/vnd.api+json",
-				"Authorization": f"bearer {self.token['access_token']}",
+				"Authorization": f"Bearer {self.token['access_token']}",
 			}
 		)
 
@@ -155,9 +156,6 @@ class DinaAPI:
 
 		return response
 
-	# TODO: everything below is untested
-
-
 	def post_req_dina(self, full_url: str, json_data: dict, params: dict = None):
 		"""
 		Base method for a POST request to DINA.
@@ -176,7 +174,7 @@ class DinaAPI:
 		"""
 		self.refresh_token()
 		try:
-			response = self.session.post(full_url, json=json_data, params=params)
+			response = self.session.post(full_url, json=json_data, headers= self.session.headers, verify=self.configs["secure"])
 			response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
 		except requests.exceptions.RequestException as exc:
 			# Handle the exception here, e.g., log the error or raise a custom exception
@@ -184,6 +182,8 @@ class DinaAPI:
 			raise  # Re-raise the exception
 
 		return response
+
+	# TODO: everything below is untested
 
 	def post_file_dina(self, full_url: str, file_path: str, params: dict = None):
 		"""

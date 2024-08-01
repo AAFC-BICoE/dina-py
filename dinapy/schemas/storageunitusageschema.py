@@ -1,35 +1,54 @@
 # This file holds schemas for serializing and deserializing Person entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-from marshmallow import pre_dump
-
+from marshmallow import post_dump
+from marshmallow import ValidationError
 from dinapy.schemas.custom_schema_fields import Relationship
 
-class StorageUnitUsage(Schema):
-	'''Schema for a Person used for serializing and deserializing JSON.'''
-	id = fields.Str(dump_only=False)
-	usageType = fields.Str(attribute="attributes.usageType")
-	wellRow = fields.Str(required=True, attribute="attributes.wellRow")
-	wellColumn = fields.Int(required=True, attribute="attributes.wellColumn")
-	cellNumber = fields.Int(dump_only=False, required=True,allow_none=True, attribute="attributes.cellNumber")
-	storageUnitName = fields.Str(required=True,allow_none=True, attribute="attributes.storageUnitName")
-	createdOn = fields.Str(dump_only=False, required=True,allow_none=True, attribute="attributes.createdOn")
-	createdBy = fields.Str(dump_only=False, required=True,allow_none=True, attribute="attributes.createdBy")
-
-	storageUnit = Relationship(attribute="relationships.storageUnit", allow_none=True)
-	storageUnitType = Relationship(attribute="relationships.storageUnitType", allow_none=True)
-
-	meta = fields.DocumentMeta()
+class StorageUnitTypeSchema(Schema):
+	id = fields.Str(dump_only=True)
+	type = fields.Str()
 	
 	class Meta:
-		type_ = "storage-unit-usage"
-		strict = True
+		type_ = 'storage-unit-type'
 
-	@pre_dump
-	def prepare_relationships(self, obj, many, **kwargs):
-		if hasattr(obj, 'relationships'):
-			obj.relationships = {
-				"storageUnit": obj.relationships.get("storageUnit"),
-				"storageUnitType": obj.relationships.get("storageUnitType")
-			}
-		return obj
+class StorageUnitSchema(Schema):
+	id = fields.Str(dump_only=True)
+	type = fields.Str()
+	
+	class Meta:
+		type_ = 'storage-unit'
+	
+class StorageUnitUsage(Schema):
+	id = fields.Str(load_only=True)
+	usageType = fields.Str()
+	wellRow = fields.Str(required=True)
+	wellColumn = fields.Int(required=True)
+	cellNumber = fields.Int(dump_only=False, required=True,allow_none=True)
+	storageUnitName = fields.Str(required=True,allow_none=True)
+	createdOn = fields.Str(dump_only=False, required=True)
+	createdBy = fields.Str(dump_only=False, required=True)
+	SKIP_VALUES = set([None])
+
+	storageUnit = fields.Relationship(
+		self_url="/api/v1/storage-unit-usage/{id}/relationships/storageUnit",
+		self_url_kwargs={"id": "<id>"},
+		related_url="/api/v1/storage-unit-usage/{id}/storageUnit",
+		related_url_kwargs={"id": "<id>"},
+		include_resource_linkage=True,
+		attribute="relationships.storageUnit",
+		type_="storage-unit"
+	)
+
+	storageUnitType = fields.Relationship(
+		self_url="/api/v1/storage-unit-usage/{id}/relationships/storageUnitType",
+		self_url_kwargs={"id": "<id>"},
+		related_url="/api/v1/storage-unit-usage/{id}/storageUnitType",
+		related_url_kwargs={"id": "<id>"},
+		include_resource_linkage=True,
+		type_="storage-unit-type"
+	)
+
+	
+	class Meta:
+		type_ = 'storage-unit-usage'
