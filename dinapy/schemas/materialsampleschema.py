@@ -1,6 +1,7 @@
 # This file holds schemas for serializing and deserializing Person entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
+from marshmallow import post_dump,post_load
 import os
 import sys
 
@@ -44,7 +45,16 @@ class MaterialSampleSchema(Schema):
     restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
     sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
     
+    @post_dump
+    def remove_none_values(self, data, **kwargs):
+        def clean_dict(d):
+            if not isinstance(d, dict):
+                return d
+            cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
+            return cleaned if cleaned else None
 
+        return clean_dict(data)
+    
     collectingEvent = fields.Relationship(
     self_url="/api/v1/material-sample/{id}/relationships/collectingEvent",
     self_url_kwargs={"id": "<id>"},
