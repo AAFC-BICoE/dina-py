@@ -1,14 +1,8 @@
 class StorageUnitUsageDTO:
-	def __init__(self, id=None, type=None, usageType=None, wellRow=None, wellColumn=None, createdOn=None, createdBy=None, storageUnit=None, storageUnitType=None, relationships=None):
+	def __init__(self, id=None, type=None, attributes=None, relationships=None):
 		self.id = id
 		self.type = type
-		self.usageType = usageType
-		self.wellRow = wellRow
-		self.wellColumn = wellColumn
-		self.createdOn = createdOn
-		self.createdBy = createdBy
-		self.storageUnit = storageUnit
-		self.storageUnitType = storageUnitType
+		self.attributes = attributes
 		self.relationships = relationships
 
 	def get_id(self):
@@ -21,13 +15,7 @@ class StorageUnitUsageDTOBuilder:
 	def __init__(self):
 		self._id = None
 		self._type = 'storage-unit-usage'
-		self._usageType = None
-		self._wellRow = None
-		self._wellColumn = None
-		self._createdOn = None
-		self._createdBy = None
-		self._storageUnit = None
-		self._storageUnitType = None
+		self._attributes = None
 		self._relationships = None
 
 	def set_id(self, id):
@@ -37,6 +25,38 @@ class StorageUnitUsageDTOBuilder:
 	def set_type(self, type):
 		self._type = type
 		return self
+
+	def set_attributes(self, attributes):
+		self._attributes = attributes
+		return self
+	
+	def set_relationships(self, relationships):
+		self._relationships = relationships
+		return self
+
+	def build(self):
+		return StorageUnitUsageDTO(self._id, self._type, self._attributes, self._relationships)
+
+class StorageUnitUsageAttributesDTO:
+	def __init__(self, usageType=None, wellRow=None, wellColumn=None,cellNumber=None,storageUnitName=None,createdOn=None,createdBy=None):
+		self.usageType = usageType
+		self.wellRow = wellRow
+		self.wellColumn = wellColumn
+		self.cellNumber = cellNumber
+		self.storageUnitName = storageUnitName
+		self.createdOn = createdOn
+		self.createdBy = createdBy
+
+
+class StorageUnitUsageAttributesDTOBuilder:
+	def __init__(self):
+		self._usageType = None
+		self._wellRow = None
+		self._wellColumn = None
+		self._cellNumber = None
+		self._storageUnitName = None
+		self._createdOn = None
+		self._createdBy = None
 
 	def set_usageType(self, usageType):
 		self._usageType = usageType
@@ -50,6 +70,14 @@ class StorageUnitUsageDTOBuilder:
 		self._wellColumn = wellColumn
 		return self
 	
+	def set_cellNumber(self, cellNumber):
+		self._cellNumber = cellNumber
+		return self
+
+	def set_storageUnitName(self,storageUnitName):
+		self._storageUnitName = storageUnitName
+		return self
+	
 	def set_createdOn(self, createdOn):
 		self._createdOn = createdOn
 		return self
@@ -58,17 +86,5 @@ class StorageUnitUsageDTOBuilder:
 		self._createdBy = createdBy
 		return self
 	
-	def set_storageUnit(self, storageUnit):
-		self._storageUnit = storageUnit
-		return self
-	
-	def set_storageUnitType(self, storageUnitType):
-		self._storageUnitType = storageUnitType
-		return self
-	
-	def set_relationships(self, relationships):
-		self._relationships = relationships
-		return self
-
 	def build(self):
-		return StorageUnitUsageDTO(self._id, self._type, self._usageType, self._wellRow, self._wellColumn, self._createdOn, self._createdBy, self._storageUnit, self._storageUnitType, self._relationships)
+		return StorageUnitUsageAttributesDTO(self._usageType, self._wellRow, self._wellColumn,self._cellNumber, self._storageUnitName,self._createdOn, self._createdBy)

@@ -1,11 +1,8 @@
-import csv
-import argparse
 import sys
 import os
 from marshmallow.exceptions import ValidationError
 import unittest
-import json
-
+import pprint
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
@@ -20,23 +17,93 @@ from dinapy.utils import *
 os.environ["keycloak_username"] = "dina-admin"
 os.environ["keycloak_password"] = "dina-admin"
 
-class MaterialSampleSchemaTest(unittest.TestCase):
-			
-	storageUnitId = '0190f065-3d4b-7a6d-be78-a49548922396'
-	storageUnitTypeId = '0190f065-3d4b-7a6d-be78-a12432643123'
-	relationships = RelationshipDTO.Builder()\
-		.add_relationship("storageUnit", "storage-unit", storageUnitId)\
-		.add_relationship("storageUnitType", "storage-unit-type", storageUnitTypeId)\
-		.build()
-	
-	dto = StorageUnitUsageDTOBuilder()\
-		.set_usageType("material-sample")\
-		.set_relationships(relationships)\
-		.build()
-	
-	schema = StorageUnitUsage()
+class StorageUnitUsageSchemaTest(unittest.TestCase):
 
-	try:
-		serialized_storage_unit_usage = schema.dump(dto)
-	except ValidationError as e:
-		print(f"Validation failed with error: {e.messages}")
+	def test_serialization(self):
+		# Create a schema instance and validate the data
+		storageUnitId = '0190f065-3d4b-7a6d-be78-a49548922396'
+		storageUnitTypeId = '0190f065-3d4b-7a6d-be78-a12432643123'
+		relationships = RelationshipDTO.Builder()\
+			.add_relationship("storageUnit", "storage-unit", storageUnitId)\
+			.add_relationship("storageUnitType", "storage-unit-type", storageUnitTypeId)\
+			.build()
+		
+		attributes = StorageUnitUsageAttributesDTOBuilder()\
+			.set_wellColumn(1)\
+			.set_wellRow("A")\
+			.set_usageType("material-sample")\
+			.set_storageUnitName('test')\
+			.build()
+		
+		dto = StorageUnitUsageDTOBuilder()\
+			.set_attributes(attributes)\
+			.set_relationships(relationships)\
+			.build()
+		
+		schema = StorageUnitUsage()
+
+		try:
+			serialized_storage_unit_usage = schema.dump(dto)
+			pp = pprint.PrettyPrinter(indent=0)
+			pp.pprint(serialized_storage_unit_usage)
+			self.assertIsInstance(serialized_storage_unit_usage, dict)
+		except ValidationError as e:
+			self.fail(f"Validation failed with error: {e.messages}")
+
+
+	def test_deserialization(self):
+		data =\
+		{
+			"data": {
+				"id": "01902d3c-69ae-7ad2-9bbe-e9c8bcf223fe",
+				"type": "storage-unit-usage",
+				"links": {
+					"self": "/api/v1/storage-unit-usage/01902d3c-69ae-7ad2-9bbe-e9c8bcf223fe"
+				},
+				"attributes": {
+					"wellColumn": 1,
+					"wellRow": "A",
+					"usageType": "material-sample",
+					"cellNumber": 1,
+					"storageUnitName": "Nazir-test",
+					"createdOn": "2024-06-18T21:24:12.320912Z",
+					"createdBy": "elkayssin"
+				},
+				"relationships": {
+					"storageUnitType": {
+						"links": {
+							"self": "/api/v1/storage-unit-usage/01902d3c-69ae-7ad2-9bbe-e9c8bcf223fe/relationships/storageUnitType",
+							"related": "/api/v1/storage-unit-usage/01902d3c-69ae-7ad2-9bbe-e9c8bcf223fe/storageUnitType"
+						}
+					},
+					"storageUnit": {
+						"links": {
+							"self": "/api/v1/storage-unit-usage/01902d3c-69ae-7ad2-9bbe-e9c8bcf223fe/relationships/storageUnit",
+							"related": "/api/v1/storage-unit-usage/01902d3c-69ae-7ad2-9bbe-e9c8bcf223fe/storageUnit"
+						},
+						"data": {
+						"id": "01902d3a-0ec1-7a57-8284-f4ba3aff1664",
+						"type": "storage-unit"
+						},
+					}
+				}
+			},
+			"meta": {
+				"totalResourceCount": 1,
+				"moduleVersion": "0.91"
+			}
+		}
+
+		schema = StorageUnitUsage()
+
+		try:
+			deserialized_storage_unit_usage = schema.load(data)
+			pp = pprint.PrettyPrinter(indent=0)
+			pp.pprint(deserialized_storage_unit_usage)
+			self.assertIsInstance(deserialized_storage_unit_usage, dict)
+
+		except ValidationError as e:
+			self.fail(f"Validation failed with error: {e.messages}")
+
+if __name__ == "__main__":
+    unittest.main()
