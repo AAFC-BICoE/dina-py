@@ -1,187 +1,303 @@
-# This file holds schemas for serializing and deserializing Person entities
+# This file holds schemas for serializing and deserializing Material Sample entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
 from marshmallow import post_dump,post_load
 import os
 import sys
 
-from .attributesschema import AttributesSchema
+from dinapy.entities.MaterialSample import MaterialSampleDTO
 
-class MaterialSampleSchema(Schema):
-    '''Schema for a Material Sample used for serializing and deserializing JSON.'''
-    id = fields.Str(dump_only=False)
-    #type = fields.Str()
-    version = fields.Int(allow_none=True, attribute="attributes.version")
-    group = fields.Str(required=True, attribute="attributes.group")
-    createdOn = fields.Str(required=True,allow_none=True, attribute="attributes.createdOn")
-    createdBy = fields.Str(required=True,allow_none=True, attribute="attributes.createdBy")
-    dwcCatalogNumber = fields.Str(allow_none=True, attribute="attributes.dwcCatalogNumber")
-    dwcOtherCatalogNumbers = fields.List(fields.Str(), allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
-    materialSampleName = fields.Str(allow_none=True, attribute="attributes.materialSampleName")
-    materialSampleType = fields.Str(allow_none=True, attribute="attributes.materialSampleType")
-    materialSampleChildren = fields.List(fields.Str(), allow_none=True, attribute="attributes.materialSampleChildren")
-    preparationDate = fields.Str(allow_none=True, attribute="attributes.preparationDate")
-    preservationType = fields.Str(allow_none=True, attribute="attributes.preservationType")
-    preparationFixative = fields.Str(allow_none=True, attribute="attributes.preparationFixative")
-    preparationMaterials = fields.Str(allow_none=True, attribute="attributes.preparationMaterials")
-    preparationSubstrate = fields.Str(allow_none=True, attribute="attributes.preparationSubstrate")
-    managedAttributes = fields.Dict(required=False, attribute="attributes.managedAttributes")
-    preparationManagedAttributes = fields.Dict(attribute="attributes.preparationManagedAttributes")
-    extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
-    preparationRemarks = fields.Str(allow_none=True, attribute="attributes.preparationRemarks")
-    dwcDegreeOfEstablishment = fields.Str(allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
-    barcode = fields.Str(allow_none=True, attribute="attributes.barcode")
-    publiclyReleasable = fields.Str(allow_none=True, attribute="attributes.publiclyReleasable")
-    notPubliclyReleasableReason = fields.Str(allow_none=True, attribute="attributes.notPubliclyReleasableReason")
-    tags = fields.Str(allow_none=True, attribute="attributes.tags")
-    materialSampleState = fields.Str(allow_none=True, attribute="attributes.materialSampleState")
-    materialSampleRemarks = fields.Str(allow_none=True, attribute="attributes.materialSampleRemarks")
-    stateChangedOn = fields.Str(allow_none=True, attribute="attributes.stateChangedOn")
-    stateChangeRemarks = fields.Str(allow_none=True, attribute="attributes.stateChangeRemarks")
-    associations = fields.List(fields.Str(), allow_none=True, attribute="attributes.associations")
-    allowDuplicateName = fields.Bool(required=True, attribute="attributes.allowDuplicateName")
-    restrictionFieldsExtension = fields.Dict(allow_none=True, attribute="attributes.restrictionFieldsExtension")
-    isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
-    restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
-    sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
-    
-    @post_dump
-    def remove_none_values(self, data, **kwargs):
-        def clean_dict(d):
-            if not isinstance(d, dict):
-                return d
-            cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
-            return cleaned if cleaned else None
-
-        return clean_dict(data)
-    
-    collectingEvent = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/collectingEvent",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/collectingEvent",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collectingEvent",
-    allow_none=True,
-    )
-
-    collection = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/collection",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/collection",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collection",
-    allow_none=True,
-    )
-
-    preparationType = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparationType",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparationType",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparationType",
-    allow_none=True,
-    )
-
-    preparationMethod = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparationMethod",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparationMethod",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparationMethod",
-    allow_none=True,
-    )
-
-    parentMaterialSample = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/parentMaterialSample",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/parentMaterialSample",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="parentMaterialSample",
-    allow_none=True,
-    )
-
-    preparedBy = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparedBy",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparedBy",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparedBy",
-    )
-
-    attachment = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/attachment",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/attachment",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="attachment",
-    )
-
-    preparationProtocol = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparationProtocol",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparationProtocol",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparationProtocol",
-    allow_none=True,
-    )
-
-    projects = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/projects",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/projects",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="projects",
-    allow_none=True,
-    )
-
-    assemblages = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/assemblages",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/assemblages",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="assemblages",
-    allow_none=True,
-    )
-
-    organism = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/organism",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/organism",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="organism",
-    allow_none=True,
-    )
-
-    storageUnit = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/storageUnit",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/storageUnit",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="storageUnit",
-    allow_none=True,
-    )
-
-    meta = fields.DocumentMeta()
+class CollectingEvent(Schema):
+	id = fields.Str(dump_only=True,allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'collecting-event'
+class Organism(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
     
     class Meta:
-        type_ = "material-sample"
-        #self_url = "/api/v1/material-sample/{id}"
-        #self_url_kwargs = {"id": "<id>"}
-        strict = True
+        type_ = 'organism'
 
+class Assemblages(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'assemblages'
+
+class Projects(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'projects'
+
+class PreparationProtocol(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'preparation-protocol'
+
+class Attachment(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'attachment'
+
+class PreparedBy(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'prepared-by'
+
+class ParentMaterialSample(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'parent-material-sample'
+
+class PreparationMethod(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'preparation-method'
+
+class PreparationType(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'preparation-type'
+
+class Collection(Schema):
+    id = fields.Str(dump_only=True, allow_none=True)
+    type = fields.Str(allow_none=True)
+    
+    class Meta:
+        type_ = 'collection'
         
+class StorageUnit(Schema):
+	id = fields.Str(dump_only=True,allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'storage-unit'
+            
+class MaterialSampleSchema(Schema):
+	'''Schema for a Material Sample used for serializing and deserializing JSON.'''
+	id = fields.Str(load_only=True)
+	version = fields.Int(allow_none=True, attribute="attributes.version")
+	group = fields.Str(required=True, attribute="attributes.group")
+	createdOn = fields.DateTime(load_only=True, attribute="attributes.createdOn")
+	createdBy = fields.Str(load_only=True, attribute="attributes.createdBy")
+	dwcCatalogNumber = fields.Str(allow_none=True, attribute="attributes.dwcCatalogNumber")
+	dwcOtherCatalogNumbers = fields.List(fields.Str(), allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
+	materialSampleName = fields.Str(allow_none=True, attribute="attributes.materialSampleName")
+	materialSampleType = fields.Str(allow_none=True, attribute="attributes.materialSampleType")
+	materialSampleChildren = fields.List(fields.Str(), allow_none=True, attribute="attributes.materialSampleChildren")
+	preparationDate = fields.Str(allow_none=True, attribute="attributes.preparationDate")
+	preservationType = fields.Str(allow_none=True, attribute="attributes.preservationType")
+	preparationFixative = fields.Str(allow_none=True, attribute="attributes.preparationFixative")
+	preparationMaterials = fields.Str(allow_none=True, attribute="attributes.preparationMaterials")
+	preparationSubstrate = fields.Str(allow_none=True, attribute="attributes.preparationSubstrate")
+	managedAttributes = fields.Dict(required=False, attribute="attributes.managedAttributes")
+	preparationManagedAttributes = fields.Dict(attribute="attributes.preparationManagedAttributes")
+	extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
+	preparationRemarks = fields.Str(allow_none=True, attribute="attributes.preparationRemarks")
+	dwcDegreeOfEstablishment = fields.Str(allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
+	barcode = fields.Str(allow_none=True, attribute="attributes.barcode")
+	publiclyReleasable = fields.Str(allow_none=True, attribute="attributes.publiclyReleasable")
+	notPubliclyReleasableReason = fields.Str(allow_none=True, attribute="attributes.notPubliclyReleasableReason")
+	tags = fields.Str(allow_none=True, attribute="attributes.tags")
+	materialSampleState = fields.Str(allow_none=True, attribute="attributes.materialSampleState")
+	materialSampleRemarks = fields.Str(allow_none=True, attribute="attributes.materialSampleRemarks")
+	stateChangedOn = fields.Str(allow_none=True, attribute="attributes.stateChangedOn")
+	stateChangeRemarks = fields.Str(allow_none=True, attribute="attributes.stateChangeRemarks")
+	associations = fields.List(fields.Str(), allow_none=True, attribute="attributes.associations")
+	allowDuplicateName = fields.Bool(required=True, attribute="attributes.allowDuplicateName")
+	restrictionFieldsExtension = fields.Dict(allow_none=True, attribute="attributes.restrictionFieldsExtension")
+	isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
+	restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
+	sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
+	
+	@post_dump
+	def remove_none_values(self, data, **kwargs):
+		def clean_dict(d):
+			if not isinstance(d, dict):
+				return d
+			cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
+			return cleaned if cleaned else None
+
+		return clean_dict(data)
+
+	def load(self, data, many=None, partial=None):
+		if 'relationships' in data['data']:
+			for relationship_name, relationship_data in data['data']['relationships'].items():
+				if 'data' not in relationship_data:
+					# Handle missing data for the relationship
+					relationship_data['data'] = None  # Or set to appropriate default
+		return super().load(data)
+	
+	@post_load
+	def remove_none_values(self, data, **kwargs):
+		def clean_dict(d):
+			if not isinstance(d, dict):
+				return d
+			cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
+			return cleaned if cleaned else None
+
+		return clean_dict(data)
+	
+	@post_load
+	def object_deserialization(self, data, **kwargs):
+		if 'meta' in data:
+			del data['meta']
+		return MaterialSampleDTO(**data)
+
+	collection = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/collection",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/collection",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.collection",
+	type_="collection"
+	)
+      
+	collectingEvent = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/collectingEvent",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/collectingEvent",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.collectingEvent",
+	type_="collecting-event"
+	)
+
+	preparationType = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/preparationType",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/preparationType",
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.preparationType",
+	type_="preparation-type",
+	)
+
+	preparationMethod = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/preparationMethod",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/preparationMethod",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.preparationMethod",
+	type_="preparation-method",
+	)
+
+	parentMaterialSample = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/parentMaterialSample",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/parentMaterialSample",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.parentMaterialSample",
+	type_="parent-material-sample",
+	)
+
+	preparedBy = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/preparedBy",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/preparedBy",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.preparedBy",
+	type_="prepared-by",
+	)
+
+	attachment = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/attachment",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/attachment",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.attachment",
+	type_="attachment",
+	)
+
+	preparationProtocol = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/preparationProtocol",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/preparationProtocol",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.preparationProtocol",
+	type_="preparation-protocol",
+	)
+
+	projects = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/projects",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/projects",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.projects",
+	type_="projects",
+	)
+
+	assemblages = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/assemblages",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/assemblages",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.assemblages",
+	type_="assemblages",
+	)
+
+	organism = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/organism",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/organism",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.organism",
+	type_="organism",
+	)
+
+	storageUnit = fields.Relationship(
+	self_url="/api/v1/material-sample/{id}/relationships/storageUnit",
+	self_url_kwargs={"id": "<id>"},
+	related_url="/api/v1/material-sample/{id}/storageUnit",
+	related_url_kwargs={"id": "<id>"},
+	allow_none=True,
+	include_resource_linkage=True,
+	attribute="relationships.storageUnit",
+	type_="storage-unit",
+	)
+
+	meta = fields.DocumentMeta()
+	
+	class Meta:
+		type_ = "material-sample"
+
+		
 # GET response for MaterialSample
 # {
 #     "data": {

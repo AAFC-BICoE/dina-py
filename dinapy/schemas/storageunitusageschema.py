@@ -68,7 +68,13 @@ class StorageUnitUsage(Schema):
 			return cleaned if cleaned else None
 
 		return clean_dict(data)
-
+	
+	@post_load
+	def object_deserialization(self, data, **kwargs):
+		if 'meta' in data:
+			del data['meta']
+		return StorageUnitUsageDTO(**data)
+	
 	meta = fields.DocumentMeta()
 
 	class Meta:

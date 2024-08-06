@@ -100,7 +100,7 @@ class StorageUnitUsageSchemaTest(unittest.TestCase):
 			deserialized_storage_unit_usage = schema.load(data)
 			pp = pprint.PrettyPrinter(indent=0)
 			pp.pprint(deserialized_storage_unit_usage)
-			self.assertIsInstance(deserialized_storage_unit_usage, dict)
+			self.assertIsInstance(deserialized_storage_unit_usage, StorageUnitUsageDTO)
 
 		except ValidationError as e:
 			self.fail(f"Validation failed with error: {e.messages}")
