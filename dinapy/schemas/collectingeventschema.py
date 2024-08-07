@@ -107,13 +107,11 @@ class CollectingEventSchema(Schema):
 		strict = True
 		
 	@post_dump
-	def remove_none_values(self, data, **kwargs):
-		def clean_dict(d):
-			if not isinstance(d, dict):
-				return d
-			return {k: clean_dict(v) for k, v in d.items() if v is not None}
-
-		return clean_dict(data)
+	def remove_skip_values(self, data, **kwargs):
+		return {
+			key: value for key, value in data.items()
+			if value is not None
+		}
 
 	def load(self, data, many=None, partial=None):
 		if 'relationships' in data['data']:

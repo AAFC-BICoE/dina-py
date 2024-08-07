@@ -1,7 +1,7 @@
 # This file holds schemas for serializing and deserializing StorageUnitUsage entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-from marshmallow import post_load,pre_load
+from marshmallow import post_load,pre_load,post_dump
 
 from dinapy.entities.StorageUnitUsage import StorageUnitUsageDTO
 
@@ -68,6 +68,13 @@ class StorageUnitUsage(Schema):
 			return cleaned if cleaned else None
 
 		return clean_dict(data)
+	
+	@post_dump
+	def remove_skip_values(self, data, **kwargs):
+		return {
+			key: value for key, value in data.items()
+			if value is not None
+		}
 	
 	@post_load
 	def object_deserialization(self, data, **kwargs):

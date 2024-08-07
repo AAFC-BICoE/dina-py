@@ -330,6 +330,15 @@ class MaterialSampleSchemaTest(unittest.TestCase):
 		except ValidationError as e:
 			self.fail(f"Validation failed with error: {e.messages}")
 
+	def test_serialize_materialsample(self):
+		schema = MaterialSampleSchema()
+		material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").materialSampleName("test").materialSampleType("WHOLE_ORGANISM")\
+		.build()
+		material_sample = MaterialSampleDTOBuilder().attributes(material_sample_attributes).build()
+		serialized_material_sample = schema.dump(material_sample)
+		print(serialized_material_sample)
+		self.assertIsInstance(serialized_material_sample, dict)
+
 	def test_valid_materialsample_schema(self):
 		# Create a schema instance and validate the data
 		schema = MaterialSampleSchema()
@@ -479,8 +488,8 @@ class MaterialSampleSchemaTest(unittest.TestCase):
 		# Create a schema instance and attempt to validate the invalid data
 		schema = MaterialSampleSchema()
 		with self.assertRaises(ValidationError):
-			schema.load(invalid_data)
-
+			test = schema.load(invalid_data)
+			print(test)
 
 if __name__ == "__main__":
 	unittest.main()

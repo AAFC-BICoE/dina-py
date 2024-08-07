@@ -1,7 +1,7 @@
 # This file holds schemas for serializing and deserializing Material Sample entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-from marshmallow import post_dump,post_load
+from marshmallow import post_dump,post_load,pre_dump
 import os
 import sys
 
@@ -14,82 +14,82 @@ class CollectingEvent(Schema):
 	class Meta:
 		type_ = 'collecting-event'
 class Organism(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'organism'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'organism'
 
 class Assemblages(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'assemblages'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'assemblages'
 
 class Projects(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'projects'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'projects'
 
 class PreparationProtocol(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'preparation-protocol'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'preparation-protocol'
 
 class Attachment(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'attachment'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'attachment'
 
 class PreparedBy(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'prepared-by'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'prepared-by'
 
 class ParentMaterialSample(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'parent-material-sample'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'parent-material-sample'
 
 class PreparationMethod(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'preparation-method'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'preparation-method'
 
 class PreparationType(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'preparation-type'
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'preparation-type'
 
 class Collection(Schema):
-    id = fields.Str(dump_only=True, allow_none=True)
-    type = fields.Str(allow_none=True)
-    
-    class Meta:
-        type_ = 'collection'
-        
+	id = fields.Str(dump_only=True, allow_none=True)
+	type = fields.Str(allow_none=True)
+	
+	class Meta:
+		type_ = 'collection'
+		
 class StorageUnit(Schema):
 	id = fields.Str(dump_only=True,allow_none=True)
 	type = fields.Str(allow_none=True)
 	
 	class Meta:
 		type_ = 'storage-unit'
-            
+			
 class MaterialSampleSchema(Schema):
 	'''Schema for a Material Sample used for serializing and deserializing JSON.'''
 	id = fields.Str(load_only=True)
@@ -126,16 +126,13 @@ class MaterialSampleSchema(Schema):
 	isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
 	restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
 	sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
-	
-	@post_dump
-	def remove_none_values(self, data, **kwargs):
-		def clean_dict(d):
-			if not isinstance(d, dict):
-				return d
-			cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
-			return cleaned if cleaned else None
 
-		return clean_dict(data)
+	@post_dump
+	def remove_skip_values(self, data, **kwargs):
+		return {
+			key: value for key, value in data.items()
+			if value is not None
+		}
 
 	def load(self, data, many=None, partial=None):
 		if 'relationships' in data['data']:
@@ -145,7 +142,6 @@ class MaterialSampleSchema(Schema):
 					relationship_data['data'] = None  # Or set to appropriate default
 		return super().load(data)
 	
-	@post_load
 	def remove_none_values(self, data, **kwargs):
 		def clean_dict(d):
 			if not isinstance(d, dict):
@@ -155,11 +151,15 @@ class MaterialSampleSchema(Schema):
 
 		return clean_dict(data)
 	
-	@post_load
 	def object_deserialization(self, data, **kwargs):
 		if 'meta' in data:
 			del data['meta']
 		return MaterialSampleDTO(**data)
+	
+	@post_load
+	def run_post_load_routine(self,data,**kwargs):
+		self.remove_none_values(data,**kwargs)
+		self.object_deserialization(data,**kwargs)  
 
 	collection = fields.Relationship(
 	self_url="/api/v1/material-sample/{id}/relationships/collection",
@@ -171,7 +171,7 @@ class MaterialSampleSchema(Schema):
 	attribute="relationships.collection",
 	type_="collection"
 	)
-      
+	  
 	collectingEvent = fields.Relationship(
 	self_url="/api/v1/material-sample/{id}/relationships/collectingEvent",
 	self_url_kwargs={"id": "<id>"},
