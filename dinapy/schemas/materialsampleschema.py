@@ -6,6 +6,7 @@ import os
 import sys
 
 from dinapy.entities.MaterialSample import MaterialSampleDTO
+from .customFields import SkipUndefinedField
 
 class CollectingEvent(Schema):
 	id = fields.Str(dump_only=True,allow_none=True)
@@ -93,74 +94,70 @@ class StorageUnit(Schema):
 class MaterialSampleSchema(Schema):
 	'''Schema for a Material Sample used for serializing and deserializing JSON.'''
 	id = fields.Str(load_only=True)
-	version = fields.Int(allow_none=True, attribute="attributes.version")
-	group = fields.Str(required=True, attribute="attributes.group")
-	createdOn = fields.DateTime(load_only=True, attribute="attributes.createdOn")
-	createdBy = fields.Str(load_only=True, attribute="attributes.createdBy")
-	dwcCatalogNumber = fields.Str(allow_none=True, attribute="attributes.dwcCatalogNumber")
-	dwcOtherCatalogNumbers = fields.List(fields.Str(), allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
-	materialSampleName = fields.Str(allow_none=True, attribute="attributes.materialSampleName")
-	materialSampleType = fields.Str(allow_none=True, attribute="attributes.materialSampleType")
-	materialSampleChildren = fields.List(fields.Str(), allow_none=True, attribute="attributes.materialSampleChildren")
-	preparationDate = fields.Str(allow_none=True, attribute="attributes.preparationDate")
-	preservationType = fields.Str(allow_none=True, attribute="attributes.preservationType")
-	preparationFixative = fields.Str(allow_none=True, attribute="attributes.preparationFixative")
-	preparationMaterials = fields.Str(allow_none=True, attribute="attributes.preparationMaterials")
-	preparationSubstrate = fields.Str(allow_none=True, attribute="attributes.preparationSubstrate")
-	managedAttributes = fields.Dict(required=False, attribute="attributes.managedAttributes")
-	preparationManagedAttributes = fields.Dict(attribute="attributes.preparationManagedAttributes")
-	extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
-	preparationRemarks = fields.Str(allow_none=True, attribute="attributes.preparationRemarks")
-	dwcDegreeOfEstablishment = fields.Str(allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
-	barcode = fields.Str(allow_none=True, attribute="attributes.barcode")
-	publiclyReleasable = fields.Str(allow_none=True, attribute="attributes.publiclyReleasable")
-	notPubliclyReleasableReason = fields.Str(allow_none=True, attribute="attributes.notPubliclyReleasableReason")
-	tags = fields.Str(allow_none=True, attribute="attributes.tags")
-	materialSampleState = fields.Str(allow_none=True, attribute="attributes.materialSampleState")
-	materialSampleRemarks = fields.Str(allow_none=True, attribute="attributes.materialSampleRemarks")
-	stateChangedOn = fields.Str(allow_none=True, attribute="attributes.stateChangedOn")
-	stateChangeRemarks = fields.Str(allow_none=True, attribute="attributes.stateChangeRemarks")
-	associations = fields.List(fields.Str(), allow_none=True, attribute="attributes.associations")
-	allowDuplicateName = fields.Bool(required=True, attribute="attributes.allowDuplicateName")
-	restrictionFieldsExtension = fields.Dict(allow_none=True, attribute="attributes.restrictionFieldsExtension")
-	isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
-	restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
-	sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
+	version = SkipUndefinedField(fields.Int,allow_none=True, attribute="attributes.version")
+	group = SkipUndefinedField(fields.Str,required=True, attribute="attributes.group")
+	createdOn = SkipUndefinedField(fields.DateTime,load_only=True, attribute="attributes.createdOn")
+	createdBy = SkipUndefinedField(fields.Str,load_only=True, attribute="attributes.createdBy")
+	dwcCatalogNumber = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcCatalogNumber")
+	dwcOtherCatalogNumbers = SkipUndefinedField(fields.List,fields.Str,allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
+	materialSampleName = SkipUndefinedField(fields.Str, attribute="attributes.materialSampleName")
+	materialSampleType = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleType")
+	materialSampleChildren = SkipUndefinedField(fields.List, fields.Str, allow_none=True, attribute="attributes.materialSampleChildren")
+	preparationDate = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationDate")
+	preservationType = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preservationType")
+	preparationFixative = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationFixative")
+	preparationMaterials = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationMaterials")
+	preparationSubstrate = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationSubstrate")
+	managedAttributes = SkipUndefinedField(fields.Dict, required=False, attribute="attributes.managedAttributes")
+	preparationManagedAttributes = SkipUndefinedField(fields.Dict, attribute="attributes.preparationManagedAttributes")
+	extensionValues = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.extensionValues")
+	preparationRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationRemarks")
+	dwcDegreeOfEstablishment = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
+	barcode = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.barcode")
+	publiclyReleasable = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.publiclyReleasable")
+	notPubliclyReleasableReason = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.notPubliclyReleasableReason")
+	tags = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.tags")
+	materialSampleState = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleState")
+	materialSampleRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleRemarks")
+	stateChangedOn = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.stateChangedOn")
+	stateChangeRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.stateChangeRemarks")
+	associations = SkipUndefinedField(fields.List,fields.Str, allow_none=True, attribute="attributes.associations")
+	allowDuplicateName = SkipUndefinedField(fields.Bool, required=True, attribute="attributes.allowDuplicateName")
+	restrictionFieldsExtension = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.restrictionFieldsExtension")
+	isRestricted = SkipUndefinedField(fields.Bool, required=True, attribute="attributes.isRestricted")
+	restrictionRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.restrictionRemarks")
+	sourceSet = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.sourceSet")
 
 	@post_dump
-	def remove_skip_values(self, data, **kwargs):
-		return {
-			key: value for key, value in data.items()
-			if value is not None
-		}
+	def remove_skipped_fields(self, data, many, **kwargs):
+		# Remove fields with the special marker value
+		skip_marker = SkipUndefinedField(fields.Field).SKIP_MARKER
 
-	def load(self, data, many=None, partial=None):
-		if 'relationships' in data['data']:
-			for relationship_name, relationship_data in data['data']['relationships'].items():
-				if 'data' not in relationship_data:
-					# Handle missing data for the relationship
-					relationship_data['data'] = None  # Or set to appropriate default
-		return super().load(data)
+		return {key: value for key, value in data.items() if value}
 	
-	def remove_none_values(self, data, **kwargs):
-		def clean_dict(d):
-			if not isinstance(d, dict):
-				return d
-			cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
-			return cleaned if cleaned else None
+	# def load(self, data, many=None, partial=None):
+	# 	if 'relationships' in data['data']:
+	# 		for relationship_name, relationship_data in data['data']['relationships'].items():
+	# 			if 'data' not in relationship_data:
+	# 				del(data['data']['relationships'][relationship_name])
+	# 				# Handle missing data for the relationship
+	# 				# relationship_data['data'] = None  # Or set to appropriate default
+	# 	return super().load(data)
+	
 
-		return clean_dict(data)
+	@post_load
+	def set_none_to_undefined(self, data, **kwargs):
+		for attr in data.attributes:
+			if data.attributes[attr] is None:
+				data.attributes[attr] = 'undefined'
+		return data
 	
+	@post_load
 	def object_deserialization(self, data, **kwargs):
 		if 'meta' in data:
 			del data['meta']
 		return MaterialSampleDTO(**data)
 	
-	@post_load
-	def run_post_load_routine(self,data,**kwargs):
-		self.remove_none_values(data,**kwargs)
-		self.object_deserialization(data,**kwargs)  
-
 	collection = fields.Relationship(
 	self_url="/api/v1/material-sample/{id}/relationships/collection",
 	self_url_kwargs={"id": "<id>"},
@@ -282,10 +279,10 @@ class MaterialSampleSchema(Schema):
 	)
 
 	storageUnit = fields.Relationship(
-	self_url="/api/v1/material-sample/{id}/relationships/storageUnit",
-	self_url_kwargs={"id": "<id>"},
-	related_url="/api/v1/material-sample/{id}/storageUnit",
-	related_url_kwargs={"id": "<id>"},
+	# self_url="/api/v1/material-sample/{id}/relationships/storageUnit",
+	# self_url_kwargs={"id": "<id>"},
+	# related_url="/api/v1/material-sample/{id}/storageUnit",
+	# related_url_kwargs={"id": "<id>"},
 	allow_none=True,
 	include_resource_linkage=True,
 	attribute="relationships.storageUnit",

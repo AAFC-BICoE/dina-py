@@ -1,5 +1,5 @@
 class MaterialSampleDTO:
-	def __init__(self, id = None, type = None, attributes = None, relationships = None):
+	def __init__(self, id = None, type = 'material-sample', attributes = None, relationships = 'undefined'):
 		self.id = id
 		self.type = type
 		self.attributes = attributes
@@ -10,7 +10,7 @@ class MaterialSampleDTO:
 
 	def get_type(self):
 		return self.type
-		
+
 class MaterialSampleDTOBuilder:
 	def __init__(self):
 		self._id = None
@@ -34,9 +34,8 @@ class MaterialSampleDTOBuilder:
 		return MaterialSampleDTO(self._id, self._type, self._attributes, self._relationships)
 
 
-
 class MaterialSampleAttributesDTO:
-	def __init__(self, version=None, group=None, createdOn=None, createdBy=None, dwcCatalogNumber=None, dwcOtherCatalogNumbers=None, materialSampleName=None, materialSampleType=None, materialSampleChildren=None, preparationDate=None, preservationType=None, preparationFixative=None, preparationMaterials=None, preparationSubstrate=None, managedAttributes={}, preparationManagedAttributes={}, extensionValues=None, preparationRemarks=None, dwcDegreeOfEstablishment=None, barcode=None, publiclyReleasable=None, notPubliclyReleasableReason=None, tags=None, materialSampleState=None, materialSampleRemarks=None, stateChangedOn=None, stateChangeRemarks=None, associations=None, allowDuplicateName=False, restrictionFieldsExtension=None, isRestricted=False, restrictionRemarks=None, sourceSet=None):
+	def __init__(self, version='undefined', group='undefined', createdOn='undefined', createdBy='undefined', dwcCatalogNumber='undefined', dwcOtherCatalogNumbers='undefined', materialSampleName='undefined', materialSampleType='undefined', materialSampleChildren='undefined', preparationDate='undefined', preservationType='undefined', preparationFixative='undefined', preparationMaterials='undefined', preparationSubstrate='undefined', managedAttributes={}, preparationManagedAttributes={}, extensionValues='undefined', preparationRemarks='undefined', dwcDegreeOfEstablishment='undefined', barcode='undefined', publiclyReleasable='undefined', notPubliclyReleasableReason='undefined', tags='undefined', materialSampleState='undefined', materialSampleRemarks='undefined', stateChangedOn='undefined', stateChangeRemarks='undefined', associations='undefined', allowDuplicateName=False, restrictionFieldsExtension='undefined', isRestricted=False, restrictionRemarks='undefined', sourceSet='undefined'):
 		self.version = version
 		self.group = group
 		self.createdOn = createdOn
@@ -70,42 +69,42 @@ class MaterialSampleAttributesDTO:
 		self.isRestricted = isRestricted
 		self.restrictionRemarks = restrictionRemarks
 		self.sourceSet = sourceSet
-
+	
 class MaterialSampleAttributesDTOBuilder:
 	def __init__(self):
-		self._version = None
-		self._group = None
-		self._createdOn = None
-		self._createdBy = None
-		self._dwcCatalogNumber = None
-		self._dwcOtherCatalogNumbers = None
-		self._materialSampleName = None
-		self._materialSampleType = None
-		self._materialSampleChildren = None
-		self._preparationDate = None
-		self._preservationType = None
-		self._preparationFixative = None
-		self._preparationMaterials = None
-		self._preparationSubstrate = None
-		self._managedAttributes = None
-		self._preparationManagedAttributes = None
-		self._extensionValues = None
-		self._preparationRemarks = None
-		self._dwcDegreeOfEstablishment = None
-		self._barcode = None
-		self._publiclyReleasable = None
-		self._notPubliclyReleasableReason = None
-		self._tags = None
-		self._materialSampleState = None
-		self._materialSampleRemarks = None
-		self._stateChangedOn = None
-		self._stateChangeRemarks = None
-		self._associations = None
-		self._allowDuplicateName = None
-		self._restrictionFieldsExtension = None
-		self._isRestricted = None
-		self._restrictionRemarks = None
-		self._sourceSet = None
+		self._version = 'undefined'
+		self._group = 'undefined'
+		self._createdOn = 'undefined'
+		self._createdBy = 'undefined'
+		self._dwcCatalogNumber = 'undefined'
+		self._dwcOtherCatalogNumbers = 'undefined'
+		self._materialSampleName = 'undefined'
+		self._materialSampleType = 'undefined'
+		self._materialSampleChildren = 'undefined'
+		self._preparationDate = 'undefined'
+		self._preservationType = 'undefined'
+		self._preparationFixative = 'undefined'
+		self._preparationMaterials = 'undefined'
+		self._preparationSubstrate = 'undefined'
+		self._managedAttributes = 'undefined'
+		self._preparationManagedAttributes = 'undefined'
+		self._extensionValues = 'undefined'
+		self._preparationRemarks = 'undefined'
+		self._dwcDegreeOfEstablishment = 'undefined'
+		self._barcode = 'undefined'
+		self._publiclyReleasable = 'undefined'
+		self._notPubliclyReleasableReason = 'undefined'
+		self._tags = 'undefined'
+		self._materialSampleState = 'undefined'
+		self._materialSampleRemarks = 'undefined'
+		self._stateChangedOn = 'undefined'
+		self._stateChangeRemarks = 'undefined'
+		self._associations = 'undefined'
+		self._allowDuplicateName = 'undefined'
+		self._restrictionFieldsExtension = 'undefined'
+		self._isRestricted = 'undefined'
+		self._restrictionRemarks = 'undefined'
+		self._sourceSet = 'undefined'
 	def version(self, version):
 		self._version = version
 		return self

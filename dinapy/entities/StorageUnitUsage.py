@@ -50,13 +50,13 @@ class StorageUnitUsageAttributesDTO:
 
 class StorageUnitUsageAttributesDTOBuilder:
 	def __init__(self):
-		self._usageType = None
-		self._wellRow = None
-		self._wellColumn = None
-		self._cellNumber = None
-		self._storageUnitName = None
-		self._createdOn = None
-		self._createdBy = None
+		self._usageType = 'undefined'
+		self._wellRow = 'undefined'
+		self._wellColumn = 'undefined'
+		self._cellNumber = 'undefined'
+		self._storageUnitName = 'undefined'
+		self._createdOn = 'undefined'
+		self._createdBy = 'undefined'
 
 	def set_usageType(self, usageType):
 		self._usageType = usageType

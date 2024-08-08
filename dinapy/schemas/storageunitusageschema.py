@@ -1,10 +1,12 @@
 # This file holds schemas for serializing and deserializing StorageUnitUsage entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-from marshmallow import post_load,pre_load,post_dump
+from marshmallow import post_load,pre_load,post_dump,ValidationError
 
 from dinapy.entities.StorageUnitUsage import StorageUnitUsageDTO
+from .customFields import SkipUndefinedField
 
+	
 class StorageUnitTypeSchema(Schema):
 	id = fields.Str(dump_only=True,allow_none=True)
 	type = fields.Str(allow_none=True)
@@ -21,13 +23,13 @@ class StorageUnitSchema(Schema):
 	
 class StorageUnitUsage(Schema):
 	id = fields.Str(load_only=True)
-	usageType = fields.Str(required=True,attribute="attributes.usageType")
-	wellRow = fields.Str(required=True,attribute="attributes.wellRow")
-	wellColumn = fields.Int(required=True,attribute="attributes.wellColumn")
-	cellNumber = fields.Int(load_only=True,attribute="attributes.cellNumber")
-	storageUnitName = fields.Str(required=True,attribute="attributes.storageUnitName")
-	createdOn = fields.DateTime(load_only=True,attribute="attributes.createdOn")
-	createdBy = fields.Str(load_only=True,attribute="attributes.createdBy")
+	usageType = SkipUndefinedField(fields.Str,attribute="attributes.usageType")
+	wellRow = SkipUndefinedField(fields.Str,required=True,attribute="attributes.wellRow")
+	wellColumn = SkipUndefinedField(fields.Int,required=True,attribute="attributes.wellColumn")
+	cellNumber = SkipUndefinedField(fields.Int, load_only=True,attribute="attributes.cellNumber")
+	storageUnitName = SkipUndefinedField(fields.Str, required=True,attribute="attributes.storageUnitName")
+	createdOn = SkipUndefinedField(fields.DateTime, load_only=True,attribute="attributes.createdOn")
+	createdBy = SkipUndefinedField(fields.Str, load_only=True,attribute="attributes.createdBy")
 
 	storageUnit = fields.Relationship(
 		self_url="/api/v1/storage-unit-usage/{id}/relationships/storageUnit",
@@ -51,31 +53,26 @@ class StorageUnitUsage(Schema):
 		type_="storage-unit-type"
 	)
 
-	def load(self, data, many=None, partial=None):
-		if 'relationships' in data['data']:
-			for relationship_name, relationship_data in data['data']['relationships'].items():
-				if 'data' not in relationship_data:
-					# Handle missing data for the relationship
-					relationship_data['data'] = None  # Or set to appropriate default
-		return super().load(data)
+	# def load(self, data, many=None, partial=None):
+	# 	if 'relationships' in data['data']:
+	# 		for relationship_name, relationship_data in data['data']['relationships'].items():
+	# 			if 'data' not in relationship_data:
+	# 				# Handle missing data for the relationship
+	# 				relationship_data['data'] = None  # Or set to appropriate default
+	# 	return super().load(data)
 	
 	@post_load
-	def remove_none_values(self, data, **kwargs):
-		def clean_dict(d):
-			if not isinstance(d, dict):
-				return d
-			cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
-			return cleaned if cleaned else None
-
-		return clean_dict(data)
+	def set_none_to_undefined(self, data, **kwargs):
+		for attr in data.attributes:
+			if data.attributes[attr] is None:
+				data.attributes[attr] = 'undefined'
+		return data
 	
 	@post_dump
-	def remove_skip_values(self, data, **kwargs):
-		return {
-			key: value for key, value in data.items()
-			if value is not None
-		}
-	
+	def remove_skipped_fields(self, data, many, **kwargs):
+		# Remove fields with the special marker value
+		return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
+
 	@post_load
 	def object_deserialization(self, data, **kwargs):
 		if 'meta' in data:

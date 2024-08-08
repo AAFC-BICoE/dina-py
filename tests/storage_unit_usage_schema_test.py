@@ -31,8 +31,7 @@ class StorageUnitUsageSchemaTest(unittest.TestCase):
 		attributes = StorageUnitUsageAttributesDTOBuilder()\
 			.set_wellColumn(1)\
 			.set_wellRow("A")\
-			.set_usageType("material-sample")\
-			.set_storageUnitName('test')\
+			.set_storageUnitName(None)\
 			.build()
 		
 		dto = StorageUnitUsageDTOBuilder()\
@@ -42,13 +41,10 @@ class StorageUnitUsageSchemaTest(unittest.TestCase):
 		
 		schema = StorageUnitUsage()
 
-		try:
-			serialized_storage_unit_usage = schema.dump(dto)
-			pp = pprint.PrettyPrinter(indent=0)
-			pp.pprint(serialized_storage_unit_usage)
-			self.assertIsInstance(serialized_storage_unit_usage, dict)
-		except ValidationError as e:
-			self.fail(f"Validation failed with error: {e.messages}")
+		serialized_storage_unit_usage = schema.dump(dto)
+		pp = pprint.PrettyPrinter(indent=0)
+		pp.pprint(serialized_storage_unit_usage)
+		self.assertIsInstance(serialized_storage_unit_usage, dict)
 
 
 	def test_deserialization(self):
@@ -67,7 +63,7 @@ class StorageUnitUsageSchemaTest(unittest.TestCase):
 					"cellNumber": 1,
 					"storageUnitName": "Nazir-test",
 					"createdOn": "2024-06-18T21:24:12.320912Z",
-					"createdBy": "elkayssin"
+					"createdBy": 'elkayssin'
 				},
 				"relationships": {
 					"storageUnitType": {
@@ -96,14 +92,12 @@ class StorageUnitUsageSchemaTest(unittest.TestCase):
 
 		schema = StorageUnitUsage()
 
-		try:
-			deserialized_storage_unit_usage = schema.load(data)
-			pp = pprint.PrettyPrinter(indent=0)
-			pp.pprint(deserialized_storage_unit_usage)
-			self.assertIsInstance(deserialized_storage_unit_usage, StorageUnitUsageDTO)
+		deserialized_storage_unit_usage = schema.load(data)
+		serialized = schema.dump(deserialized_storage_unit_usage)
+		pp = pprint.PrettyPrinter(indent=0)
+		pp.pprint(deserialized_storage_unit_usage)
+		self.assertIsInstance(deserialized_storage_unit_usage, StorageUnitUsageDTO)
 
-		except ValidationError as e:
-			self.fail(f"Validation failed with error: {e.messages}")
 
 if __name__ == "__main__":
     unittest.main()

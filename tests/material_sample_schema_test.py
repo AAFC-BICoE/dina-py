@@ -344,6 +344,7 @@ class MaterialSampleSchemaTest(unittest.TestCase):
 		schema = MaterialSampleSchema()
 		try:
 			result = schema.load(VALID_MATERIAL_SAMPLE_DATA)
+			result2 = schema.dump(result)
 			pp = pprint.PrettyPrinter(indent=0)
 			pp.pprint(result)
 			self.assertIsInstance(result, MaterialSampleDTO)
