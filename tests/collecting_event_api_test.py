@@ -23,18 +23,20 @@ def main():
 	collecting_event = CollectingEventDTOBuilder().attributes(collecting_event_attributes).build()
 	collecting_event_schema = CollectingEventSchema()
 
-	
-	serialized_collecting_event = collecting_event_schema.dump(collecting_event)
-	
-	#response = dina_collecting_event_api.get_entity("cce513a7-0797-4d6e-ae88-34043e552434")
 	list = get_dina_records_by_field(dina_collecting_event_api,"group","aafc")
 
-	print(list)
-	#print(response.status_code)
+	id = list[0]["id"]
 
-	# deserialized_collecting_event = collecting_event_schema.load(response.json())
+	serialized_collecting_event = collecting_event_schema.dump(collecting_event)
 
-	# print(deserialized_collecting_event)
+	response = dina_collecting_event_api.update_entity(id,serialized_collecting_event)
+
+	print(response.status_code)
+
+	deserialized_collecting_event = collecting_event_schema.load(response.json())
+
+	print(deserialized_collecting_event)
+	
 
 if __name__ == '__main__':
 	main()

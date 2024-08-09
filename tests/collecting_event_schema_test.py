@@ -180,13 +180,15 @@ VALID_COLLECTING_EVENT_DATA = {
 
 
 class CollectingEventSchemaTest(unittest.TestCase):
-	def test_deserialize_collecting_event(self):
+	def test_deserialize_serialize_collecting_event(self):
 		# Create a schema instance and validate the data
 		schema = CollectingEventSchema()
 		try:
 			result = schema.load(VALID_COLLECTING_EVENT_DATA)
+			result2 = schema.dump(result)
 			pp = pprint.PrettyPrinter(indent=0)
 			pp.pprint(result)
+			pp.pprint(result2)
 			self.assertIsInstance(result, CollectingEventDTO)
 		except ValidationError as e:
 			self.fail(f"Validation failed with error: {e.messages}")

@@ -5,19 +5,13 @@ from marshmallow import post_load,pre_load,post_dump,ValidationError
 
 from dinapy.entities.StorageUnitUsage import StorageUnitUsageDTO
 from .customFields import SkipUndefinedField
-
+from .BaseSchema import *
 	
-class StorageUnitTypeSchema(Schema):
-	id = fields.Str(dump_only=True,allow_none=True)
-	type = fields.Str(allow_none=True)
-	
+class StorageUnitTypeSchema(BaseSchema):
 	class Meta:
 		type_ = 'storage-unit-type'
 
-class StorageUnitSchema(Schema):
-	id = fields.Str(dump_only=True,allow_none=True)
-	type = fields.Str(allow_none=True)
-	
+class StorageUnitSchema(BaseSchema):
 	class Meta:
 		type_ = 'storage-unit'
 	
@@ -31,35 +25,8 @@ class StorageUnitUsage(Schema):
 	createdOn = SkipUndefinedField(fields.DateTime, load_only=True,attribute="attributes.createdOn")
 	createdBy = SkipUndefinedField(fields.Str, load_only=True,attribute="attributes.createdBy")
 
-	storageUnit = fields.Relationship(
-		self_url="/api/v1/storage-unit-usage/{id}/relationships/storageUnit",
-		self_url_kwargs={"id": "<id>"},
-		related_url="/api/v1/storage-unit-usage/{id}/storageUnit",
-		related_url_kwargs={"id": "<id>"},
-		allow_none=True,
-		include_resource_linkage=True,
-		attribute="relationships.storageUnit",
-		type_="storage-unit"
-	)
-
-	storageUnitType = fields.Relationship(
-		self_url="/api/v1/storage-unit-usage/{id}/relationships/storageUnitType",
-		self_url_kwargs={"id": "<id>"},
-		related_url="/api/v1/storage-unit-usage/{id}/storageUnitType",
-		related_url_kwargs={"id": "<id>"},
-		allow_none=True,
-		include_resource_linkage=True,
-		attribute="relationships.storageUnitType",
-		type_="storage-unit-type"
-	)
-
-	# def load(self, data, many=None, partial=None):
-	# 	if 'relationships' in data['data']:
-	# 		for relationship_name, relationship_data in data['data']['relationships'].items():
-	# 			if 'data' not in relationship_data:
-	# 				# Handle missing data for the relationship
-	# 				relationship_data['data'] = None  # Or set to appropriate default
-	# 	return super().load(data)
+	storageUnit = create_relationship("storageUnit")
+	storageUnitType = create_relationship("storageUnitType")
 	
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):
