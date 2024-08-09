@@ -32,7 +32,7 @@ class CollectingEventSchema(Schema):
 	dwcVerbatimLatitude = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimLatitude")
 	dwcVerbatimLongitude = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimLongitude")
 	otherRecordNumbers = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.otherRecordNumbers")
-	publiclyReleasable = SkipUndefinedField(fields.Str,allow_none=True,attribute="attributes.publiclyReleasable")
+	publiclyReleasable = SkipUndefinedField(fields.Bool,allow_none=True,attribute="attributes.publiclyReleasable")
 	group = SkipUndefinedField(fields.Str,attribute="attributes.group")
 	createdBy = SkipUndefinedField(fields.Str,attribute="attributes.createdBy")
 	createdOn = SkipUndefinedField(fields.DateTime,attribute="attributes.createdOn")

@@ -1,5 +1,5 @@
 class CollectingEventDTO:
-	def __init__(self, id = None, type = None, attributes = None, relationships = None):
+	def __init__(self, id = None, type = 'collecting-event', attributes = None, relationships = 'undefined'):
 		self.id = id
 		self.type = type
 		self.attributes = attributes
