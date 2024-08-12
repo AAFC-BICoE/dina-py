@@ -1,27 +1,4 @@
-# This file contains tests relating to CollectingEventAPI.
-# Currently only contains tests for the CollectingEventSchema (serialization and deserialization tests).
-# API mock call tests should be added.
-
-import unittest
-import pprint
-
-
-
-import sys
-import os
-
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
-# Add the root directory of the project to the Python path
-
-# Now you can import modules from the dinaapi package
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
-from marshmallow.exceptions import ValidationError
-from dinapy.entities.CollectingEvent import *
-
-KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
-
-VALID_COLLECTING_EVENT_DATA = {
+MOCK_VALID_COLLECTING_EVENT_DATA = {
 	"data": {
 		"id": "f08516e5-add2-4baa-89bc-5b8abd0ec8ba",
 		"type": "collecting-event",
@@ -177,32 +154,135 @@ VALID_COLLECTING_EVENT_DATA = {
 		"moduleVersion": "0.84"
 	}
 }
-
-
-class CollectingEventSchemaTest(unittest.TestCase):
-	def test_deserialize_serialize_collecting_event(self):
-		# Create a schema instance and validate the data
-		schema = CollectingEventSchema()
-		try:
-			result = schema.load(VALID_COLLECTING_EVENT_DATA)
-			result2 = schema.dump(result)
-			pp = pprint.PrettyPrinter(indent=0)
-			pp.pprint(result)
-			pp.pprint(result2)
-			self.assertIsInstance(result, CollectingEventDTO)
-		except ValidationError as e:
-			self.fail(f"Validation failed with error: {e.messages}")
-
-	def test_serialize_collecting_event(self):
-		schema = CollectingEventSchema()
-		collecting_event_attributes = CollectingEventAttributesDTOBuilder().group("aafc").build()
-		collecting_event = CollectingEventDTOBuilder().attributes(collecting_event_attributes).build()
-		try:
-			serialized_collecting_event = schema.dump(collecting_event)
-			pp = pprint.PrettyPrinter(indent=0)
-			pp.pprint(serialized_collecting_event)
-			self.assertIsInstance(serialized_collecting_event, dict)
-		except ValidationError as e:
-			self.fail(f"Validation failed with error: {e.messages}")
-if __name__ == "__main__":
-	unittest.main()
+MOCK_MATERIAL_SAMPLE = {
+    "data": {
+        "id": "019137c0-2027-7bcf-ac92-3844dd80466e",
+        "type": "material-sample",
+        "links": {
+            "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e"
+        },
+        "attributes": {
+            "version": 2,
+            "group": "aafc",
+            "createdOn": "2024-08-09T15:27:04.476752Z",
+            "createdBy": "dina-admin",
+            "dwcCatalogNumber": None,
+            "dwcOtherCatalogNumbers": None,
+            "materialSampleName": None,
+            "materialSampleType": None,
+            "materialSampleChildren": [],
+            "preparationDate": None,
+            "preservationType": None,
+            "preparationFixative": None,
+            "preparationMaterials": None,
+            "preparationSubstrate": None,
+            "managedAttributes": {},
+            "preparationManagedAttributes": {},
+            "extensionValues": {},
+            "preparationRemarks": None,
+            "dwcDegreeOfEstablishment": None,
+            "barcode": None,
+            "publiclyReleasable": True,
+            "notPubliclyReleasableReason": None,
+            "tags": None,
+            "materialSampleState": None,
+            "materialSampleRemarks": None,
+            "stateChangedOn": None,
+            "stateChangeRemarks": None,
+            "associations": [],
+            "allowDuplicateName": False,
+            "restrictionFieldsExtension": None,
+            "isRestricted": False,
+            "restrictionRemarks": None,
+            "sourceSet": None
+        },
+        "relationships": {
+            "parentMaterialSample": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/parentMaterialSample",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/parentMaterialSample"
+                }
+            },
+            "collectingEvent": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/collectingEvent",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/collectingEvent"
+                }
+            },
+            "preparationMethod": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/preparationMethod",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/preparationMethod"
+                }
+            },
+            "storageUnit": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/storageUnit",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/storageUnit"
+                }
+            },
+            "projects": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/projects",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/projects"
+                }
+            },
+            "preparedBy": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/preparedBy",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/preparedBy"
+                }
+            },
+            "organism": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/organism",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/organism"
+                }
+            },
+            "attachment": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/attachment",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/attachment"
+                }
+            },
+            "collection": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/collection",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/collection"
+                }
+            },
+            "preparationProtocol": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/preparationProtocol",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/preparationProtocol"
+                }
+            },
+            "preparationType": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/preparationType",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/preparationType"
+                }
+            },
+            "assemblages": {
+                "links": {
+                    "self": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/relationships/assemblages",
+                    "related": "/api/v1/material-sample/019137c0-2027-7bcf-ac92-3844dd80466e/assemblages"
+                }
+            }
+        }
+    },
+    "meta": {
+        "totalResourceCount": 1,
+        "external": [
+            {
+                "href": "agent/api/v1/person",
+                "type": "person"
+            },
+            {
+                "href": "objectstore/api/v1/metadata",
+                "type": "metadata"
+            }
+        ],
+        "moduleVersion": "0.85"
+    }
+}

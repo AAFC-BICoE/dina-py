@@ -1,115 +1,104 @@
-# This file holds schemas for serializing and deserializing Person entities
+# This file holds schemas for serializing and deserializing CollectingEvent entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow import post_load
 from marshmallow_jsonapi import Schema, fields
-from .attributesschema import AttributesSchema
-from marshmallow.exceptions import ValidationError
+from dinapy.schemas.materialsampleschema import *
+from dinapy.entities.CollectingEvent import *
+from .customFields import SkipUndefinedField
+from .BaseSchema import *
 
+class Protocol(BaseSchema):
+
+	class Meta:
+		type_ = 'protocol'
+	
 class CollectingEventSchema(Schema):
-    '''Schema for a Collecting Event used for serializing and deserializing JSON.'''
-    id = fields.Str(dump_only=False)
-    #type = fields.Str()
-    #self_link = fields.Nested("links.self")
-    version = fields.Int(attribute="attributes.version")
-    notPubliclyReleasableReason = fields.Str(allow_none=True, attribute="attributes.notPubliclyReleasableReason")
-    dwcMaximumDepthInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMaximumDepthInMeters")
-    dwcCountry = fields.Str(allow_none=True, attribute="attributes.dwcCountry")
-    dwcMinimumElevationInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMinimumElevationInMeters")
-    dwcCountryCode = fields.Str(allow_none=True, attribute="attributes.dwcCountryCode")
-    dwcFieldNumber = fields.Str(allow_none=True, attribute="attributes.dwcFieldNumber")
-    dwcRecordNumber = fields.Str(allow_none=True, attribute="attributes.dwcRecordNumber")
-    dwcVerbatimDepth = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimDepth")
-    dwcMinimumDepthInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMinimumDepthInMeters")
-    dwcMaximumElevationInMeters = fields.Float(allow_none=True, attribute="attributes.dwcMaximumElevationInMeters")
-    dwcStateProvince = fields.Str(allow_none=True, attribute="attributes.dwcStateProvince")
-    dwcVerbatimCoordinateSystem = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimCoordinateSystem")
-    dwcVerbatimElevation = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimElevation")
-    dwcVerbatimLatitude = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimLatitude")
-    dwcVerbatimLongitude = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimLongitude")
-    otherRecordNumbers = fields.Str(allow_none=True, attribute="attributes.otherRecordNumbers")
-    publiclyReleasable = fields.Str(allow_none=True,attrubute="attributes.publiclyReleasable")
-    group = fields.Str(attribute="attributes.group")
-    createdBy = fields.Str(attribute="attributes.createdBy")
-    createdOn = fields.DateTime(attribute="attributes.createdOn")
-    geoReferenceAssertions = fields.List(fields.Dict(), allow_none=True, required=False, attribute="attributes.geoReferenceAssertions")
-    geographicPlaceNameSource = fields.Str(allow_none=True, attribute="attributes.geographicPlaceNameSource")
-    geographicPlaceNameSourceDetail = fields.Str(allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
-    habitat = fields.Str(allow_none=True, attribute="attributes.habitat")
-    eventGeom = fields.Dict(allow_none=True, attribute="attributes.eventGeom")
-    extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
-    dwcVerbatimCoordinates = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimCoordinates")
-    dwcRecordedBy = fields.Str(allow_none=True, attribute="attributes.dwcRecordedBy")
-    dwcVerbatimSRS = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimSRS")
-    startEventDateTime = fields.Str(allow_none=True, attribute="attributes.startEventDateTime")
-    substrate = fields.Str(allow_none=True, attribute="attributes.substrate")
-    tags = fields.List(fields.Str(), allow_none=True, required=False, attribute="attributes.tags")
-    endEventDateTime = fields.DateTime(allow_none=True, attribute="attributes.endEventDateTime")
-    verbatimEventDateTime = fields.DateTime(allow_none=True, attribute="attributes.verbatimEventDateTime")
-    dwcVerbatimLocality = fields.Str(allow_none=True, attribute="attributes.dwcVerbatimLocality")
-    host = fields.Str(allow_none=True, attribute="attributes.host")
-    managedAttributes = fields.Dict(attribute="attributes.managedAttributes")
-    remarks = fields.Str(allow_none=True, attribute="attributes.remarks")
-    collectionMethod = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/collectionMethod",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/collectionMethod",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collectionMethod",
-    )
+	'''Schema for a Collecting Event used for serializing and deserializing JSON.'''
+	id = fields.Str(load_only=True)
+	version = SkipUndefinedField(fields.Int,attribute="attributes.version")
+	notPubliclyReleasableReason = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.notPubliclyReleasableReason")
+	dwcMaximumDepthInMeters = SkipUndefinedField(fields.Float,allow_none=True, attribute="attributes.dwcMaximumDepthInMeters")
+	dwcCountry = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcCountry")
+	dwcMinimumElevationInMeters = SkipUndefinedField(fields.Float,allow_none=True, attribute="attributes.dwcMinimumElevationInMeters")
+	dwcCountryCode = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcCountryCode")
+	dwcFieldNumber = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcFieldNumber")
+	dwcRecordNumber = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcRecordNumber")
+	dwcVerbatimDepth = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimDepth")
+	dwcMinimumDepthInMeters = SkipUndefinedField(fields.Float,allow_none=True, attribute="attributes.dwcMinimumDepthInMeters")
+	dwcMaximumElevationInMeters = SkipUndefinedField(fields.Float,allow_none=True, attribute="attributes.dwcMaximumElevationInMeters")
+	dwcStateProvince = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcStateProvince")
+	dwcVerbatimCoordinateSystem = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimCoordinateSystem")
+	dwcVerbatimElevation = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimElevation")
+	dwcVerbatimLatitude = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimLatitude")
+	dwcVerbatimLongitude = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimLongitude")
+	otherRecordNumbers = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.otherRecordNumbers")
+	publiclyReleasable = SkipUndefinedField(fields.Bool,allow_none=True,attribute="attributes.publiclyReleasable")
+	group = SkipUndefinedField(fields.Str,attribute="attributes.group")
+	createdBy = SkipUndefinedField(fields.Str,attribute="attributes.createdBy")
+	createdOn = SkipUndefinedField(fields.DateTime,attribute="attributes.createdOn")
+	geoReferenceAssertions = SkipUndefinedField(fields.List,fields.Dict(), allow_none=True, required=False, attribute="attributes.geoReferenceAssertions")
+	geographicPlaceNameSource = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.geographicPlaceNameSource")
+	geographicPlaceNameSourceDetail = SkipUndefinedField(fields.Str,allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
+	habitat = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.habitat")
+	eventGeom = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.eventGeom")
+	extensionValues = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.extensionValues")
+	dwcVerbatimCoordinates = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimCoordinates")
+	dwcRecordedBy = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcRecordedBy")
+	dwcVerbatimSRS = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimSRS")
+	startEventDateTime = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.startEventDateTime")
+	substrate = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.substrate")
+	tags = SkipUndefinedField(fields.List,fields.Str(), allow_none=True, required=False, attribute="attributes.tags")
+	endEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.endEventDateTime")
+	verbatimEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.verbatimEventDateTime")
+	dwcVerbatimLocality = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimLocality")
+	host = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.host")
+	managedAttributes = SkipUndefinedField(fields.Dict,attribute="attributes.managedAttributes")
+	remarks = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.remarks")
 
-    protocol = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/protocol",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/protocol",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="protocol",
-    )
+	collectionMethod = create_relationship("collectionMethod")
+	protocol = create_relationship("protocol")
+	collectors = create_relationship("collectors")
+	attachment = create_relationship("attachment")
 
-    collectors = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/collectors",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/collectors",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collectors",
-    )
+	meta = fields.DocumentMeta()
 
-    attachment = fields.Relationship(
-    self_url="/api/v1/collecting-event/{id}/relationships/attachment",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/collecting-event/{id}/attachment",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="attachment",
-    )
+	class Meta:
+		type_ = "collecting-event"
+		#self_url = "/api/v1/collecting-event/{id}" or None
+		#self_url_kwargs = {"id": "<id>"}
+		strict = True
 
-    meta = fields.DocumentMeta()
-        
-    class Meta:
-        type_ = "collecting-event"
-        #self_url = "/api/v1/collecting-event/{id}" or None
-        #self_url_kwargs = {"id": "<id>"}
-        strict = True
-    
-    def get_url(self, obj, **kwargs):
-        if obj.id is not None:
-            return super().get_url(obj, **kwargs)
-        else:
-            return None
-    
-    @post_load
-    def remove_none_values(self, data, **kwargs):
-        def clean_dict(d):
-            if not isinstance(d, dict):
-                return d
-            cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
-            return cleaned if cleaned else None
+	@post_dump
+	def remove_skipped_fields(self, data, many, **kwargs):
 
-        return clean_dict(data)
+		return {key: value for key, value in data.items() if value}
+	
+	@post_dump
+	def remove_meta(self, data, many, **kwargs):
+		if 'meta' in data:
+			del(data['meta'])
+		return data
+	
+	@post_load
+	def set_none_to_undefined(self, data, **kwargs):
+		for attr in data.attributes:
+			if data.attributes[attr] is None:
+				data.attributes[attr] = 'undefined'
+		return data
+	
+	
+	@post_load
+	def object_deserialization(self, data, **kwargs):
+		if 'meta' in data:
+			del data['meta']
+		return CollectingEventDTO(**data)
 
-        
+	def dump(self, obj, many=None, *args, **kwargs):
+		data = super().dump(obj, many=many, *args, **kwargs)
+		if 'meta' in data:
+			del data['meta']
+		return data
+
 # {
 #     "data": {
 #         "id": "f08516e5-add2-4baa-89bc-5b8abd0ec8ba",
