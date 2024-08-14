@@ -94,9 +94,7 @@ class MaterialSampleSchema(Schema):
 	@post_dump
 	def remove_skipped_fields(self, data, many, **kwargs):
 		# Remove fields with the special marker value
-		skip_marker = SkipUndefinedField(fields.Field).SKIP_MARKER
-
-		return {key: value for key, value in data.items() if value}
+		return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
 	
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):

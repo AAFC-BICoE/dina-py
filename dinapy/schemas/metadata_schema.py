@@ -1,100 +1,141 @@
 # This file holds schemas for serializing and deserializing Metadata entities
 # Using the JSON API format. It utilizes the marshmallow_jsonapi library.
-from marshmallow import post_load, validate
+from marshmallow import post_dump, post_load, validate
 from marshmallow_jsonapi import Schema, fields
+
+from dinapy.entities.Metadata import MetadataDTO
+from dinapy.schemas.BaseSchema import BaseSchema, create_relationship
+from dinapy.schemas.customFields import SkipUndefinedField
+
+
+class AcMetadataCreator(BaseSchema):
+    class Meta:
+        type_ = "person"
+
+
+class Derivatives(BaseSchema):
+    class Meta:
+        type_ = "derivative"
+
+
+class DcCreator(BaseSchema):
+    class Meta:
+        type_ = "person"
 
 
 class MetadataSchema(Schema):
     """Schema for a Metadata used for serializing and deserializing JSON."""
 
-    id = fields.Str(dump_only=False)
-    # type = fields.Str()
-    # self_link = fields.Nested("links.self")
-    version = fields.Int(attribute="attributes.version")
-    createdBy = fields.Str(attribute="attributes.createdBy")
-    createdOn = fields.DateTime(attribute="attributes.createdOn")
-    bucket = fields.Str(attribute="attributes.bucket")
-    fileIdentifier = fields.UUID(attribute="attributes.fileIdentifier", allow_none=True)
-    fileExtension = fields.Str(attribute="attributes.fileExtension", allow_none=True)
-    resourceExternalURL = fields.Str(
-        attribute="attributes.resourceExternalURL", allow_none=True
+    id = fields.Str(load_only=True, )
+    createdOn = SkipUndefinedField(
+        fields.DateTime, load_only=True, attribute="attributes.createdOn"
     )
-    dcFormat = fields.Str(attribute="attributes.dcFormat", allow_none=True)
-    dcType = fields.Str(
+    createdBy = SkipUndefinedField(
+        fields.Str, load_only=True, attribute="attributes.createdBy"
+    )
+    bucket = SkipUndefinedField(
+        fields.Str, required=True, attribute="attributes.bucket"
+    )
+    fileIdentifier = SkipUndefinedField(
+        fields.UUID, attribute="attributes.fileIdentifier", allow_none=True
+    )
+    fileExtension = SkipUndefinedField(
+        fields.Str, attribute="attributes.fileExtension", allow_none=True
+    )
+    resourceExternalURL = SkipUndefinedField(
+        fields.Str, attribute="attributes.resourceExternalURL", allow_none=True
+    )
+    dcFormat = SkipUndefinedField(
+        fields.Str, attribute="attributes.dcFormat", allow_none=True
+    )
+    dcType = SkipUndefinedField(
+        fields.Str,
         validate=validate.OneOf(
             ["IMAGE", "MOVING_IMAGE", "SOUND", "TEXT", "DATASET", "UNDETERMINED"]
         ),
         allow_none=True,
+        attribute="attributes.dcType"
     )
-    acCaption = fields.Str(attribute="attributes.acCaption", allow_none=True)
-    acDigitizationDate = fields.DateTime(attribute="attributes.acDigitizationDate", allow_none=True)
-    xmpMetadataDate = fields.DateTime(attribute="attributes.xmpMetadataDate", allow_none=True)
-    xmpRightsWebStatement = fields.Str(attribute="attributes.xmpRightsWebStatement", allow_none=True)
-    dcRights = fields.Str(attribute="attributes.dcRights", allow_none=True)
-    xmpRightsOwner = fields.Str(attribute="attributes.xmpRightsOwner", allow_none=True)
-    xmpRightsUsageTerms = fields.Str(attribute="attributes.xmpRightsUsageTerms", allow_none=True)
-    orientation = fields.Int(attribute="attributes.orientation", allow_none=True)
-    originalFilename = fields.Str(attribute="attributes.originalFilename")
-    acHashFunction = fields.Str(attribute="attributes.acHashFunction", allow_none=True)
-    acHashValue = fields.Str(attribute="attributes.acHashValue", allow_none=True)
-    acTags = fields.List(fields.Str(), attribute="attributes.acTags", allow_none=True)
-    publiclyReleasable = fields.Bool(attribute="attributes.publiclyReleasable", allow_none=True)
-    notPubliclyReleasableReason = fields.Str(
-        attribute="attributes.notPubliclyReleasableReason", allow_none=True
+
+    acCaption = SkipUndefinedField(
+        fields.Str, attribute="attributes.acCaption", allow_none=True
     )
-    acSubtype = fields.Str(attribute="attributes.acSubtype", allow_none=True)
-    group = fields.Str(attribute="attributes.group", required=True)
-    managedAttributes = fields.Dict(attribute="attributes.managedAttributes", allow_none=True)
+    acDigitizationDate = SkipUndefinedField(
+        fields.DateTime, attribute="attributes.acDigitizationDate", allow_none=True
+    )
+    xmpMetadataDate = SkipUndefinedField(
+        fields.DateTime, attribute="attributes.xmpMetadataDate", allow_none=True
+    )
+    xmpRightsWebStatement = SkipUndefinedField(
+        fields.Str, attribute="attributes.xmpRightsWebStatement", allow_none=True
+    )
+    dcRights = SkipUndefinedField(
+        fields.Str, attribute="attributes.dcRights", allow_none=True
+    )
+    xmpRightsOwner = SkipUndefinedField(
+        fields.Str, attribute="attributes.xmpRightsOwner", allow_none=True
+    )
+    xmpRightsUsageTerms = SkipUndefinedField(
+        fields.Str, attribute="attributes.xmpRightsUsageTerms", allow_none=True
+    )
+    orientation = SkipUndefinedField(
+        fields.Int, attribute="attributes.orientation", allow_none=True
+    )
+    originalFilename = SkipUndefinedField(
+        fields.Str, attribute="attributes.originalFilename"
+    )
+    acHashFunction = SkipUndefinedField(
+        fields.Str, attribute="attributes.acHashFunction", allow_none=True
+    )
+    acHashValue = SkipUndefinedField(
+        fields.Str, attribute="attributes.acHashValue", allow_none=True
+    )
+    acTags = SkipUndefinedField(
+        fields.List, fields.Str, attribute="attributes.acTags", allow_none=True
+    )
+    publiclyReleasable = SkipUndefinedField(
+        fields.Bool, attribute="attributes.publiclyReleasable", allow_none=True
+    )
+    notPubliclyReleasableReason = SkipUndefinedField(
+        fields.Str, attribute="attributes.notPubliclyReleasableReason", allow_none=True
+    )
+    acSubtype = SkipUndefinedField(
+        fields.Str, attribute="attributes.acSubtype", allow_none=True
+    )
+    group = SkipUndefinedField(fields.Str, required=True, attribute="attributes.group")
+    managedAttributes = SkipUndefinedField(
+        fields.Dict, required=False, attribute="attributes.managedAttributes"
+    )
 
     # Relationships
-    acMetadataCreator = fields.Relationship(
-        self_url="/api/v1/metadata/{id}/relationships/acMetadataCreator",
-        self_url_kwargs={"id": "<id>"},
-        related_url="/api/v1/metadata/{id}/acMetadataCreator",
-        related_url_kwargs={"id": "<id>"},
-        type_="person",
-    )
+    acMetadataCreator = create_relationship("person", "acMetadataCreator")
 
-    derivatives = fields.Relationship(
-        self_url="/api/v1/metadata/{id}/relationships/derivatives",
-        self_url_kwargs={"id": "<id>"},
-        related_url="/api/v1/metadata/{id}/derivatives",
-        related_url_kwargs={"id": "<id>"},
-        type_="derivative",
-        many=True,
-    )
+    derivatives = create_relationship("derivatives")
 
-    dcCreator = fields.Relationship(
-        self_url="/api/v1/metadata/{id}/relationships/dcCreator",
-        self_url_kwargs={"id": "<id>"},
-        related_url="/api/v1/metadata/{id}/dcCreator",
-        related_url_kwargs={"id": "<id>"},
-        type_="person",
-    )
+    dcCreator = create_relationship("person", "dcCreator")
+
+    @post_load
+    def set_none_to_undefined(self, data, **kwargs):
+        for attr in data.attributes:
+            if data.attributes[attr] is None:
+                data.attributes[attr] = 'undefined'
+        return data
+        
+    @post_dump
+    def remove_skipped_fields(self, data, many, **kwargs):
+        # Remove fields with the special marker value
+        return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
+
+    @post_load
+    def object_deserialization(self, data, **kwargs):
+        if 'meta' in data:
+            del data['meta']
+        return MetadataDTO(**data)
 
     meta = fields.DocumentMeta()
 
     class Meta:
         type_ = "metadata"
-        # self_url = "/api/v1/metadata/{id}" or None
-        # self_url_kwargs = {"id": "<id>"}
-        strict = True
-
-    def get_url(self, obj, **kwargs):
-        if obj.id is not None:
-            return super().get_url(obj, **kwargs)
-        else:
-            return None
-
-    @post_load
-    def remove_none_values(self, data, **kwargs):
-        def clean_dict(d):
-            if not isinstance(d, dict):
-                return d
-            cleaned = {k: clean_dict(v) for k, v in d.items() if v is not None}
-            return cleaned if cleaned else None
-
-        return clean_dict(data)
 
 
 # {
