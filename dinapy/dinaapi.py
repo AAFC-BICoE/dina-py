@@ -6,6 +6,7 @@ import os
 import requests
 import yaml
 import logging
+import json
 
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
@@ -181,13 +182,10 @@ class DinaAPI:
         Returns:
                 requests.Response: The response object containing the API response.
 
-        Raises:
-                requests.exceptions.RequestException: If there is an error during the HTTP request.
-
         """
         self.refresh_token()
         try:
-            response = self.session.post(full_url, json=json_data, params=params)
+            response = self.session.post(full_url, json=json_data, headers= self.session.headers, verify=self.configs["secure"])
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception

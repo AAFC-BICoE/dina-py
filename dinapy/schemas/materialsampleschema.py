@@ -1,177 +1,135 @@
-# This file holds schemas for serializing and deserializing Person entities
+# This file holds schemas for serializing and deserializing Material Sample entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-import os
-import sys
+from marshmallow import post_dump,post_load,pre_dump
 
-from .attributesschema import AttributesSchema
+from dinapy.entities.MaterialSample import MaterialSampleDTO
+from .customFields import SkipUndefinedField
+from .BaseSchema import *
+
+class CollectingEvent(BaseSchema):
+	class Meta:
+		type_ = 'collecting-event'
+class Organism(BaseSchema):
+	class Meta:
+		type_ = 'organism'
+
+class Assemblages(BaseSchema):
+	class Meta:
+		type_ = 'assemblages'
+
+class Projects(BaseSchema):
+	class Meta:
+		type_ = 'projects'
+
+class PreparationProtocol(BaseSchema):
+	class Meta:
+		type_ = 'preparation-protocol'
+
+class Attachment(BaseSchema):
+	class Meta:
+		type_ = 'attachment'
+
+class PreparedBy(BaseSchema):
+	class Meta:
+		type_ = 'prepared-by'
+
+class ParentMaterialSample(BaseSchema):	
+	class Meta:
+		type_ = 'parent-material-sample'
+
+class PreparationMethod(BaseSchema):	
+	class Meta:
+		type_ = 'preparation-method'
+
+class PreparationType(BaseSchema):
+	class Meta:
+		type_ = 'preparation-type'
+
+class Collection(BaseSchema):
+	class Meta:
+		type_ = 'collection'
+		
+class StorageUnit(BaseSchema):
+	class Meta:
+		type_ = 'storage-unit'
 
 class MaterialSampleSchema(Schema):
-    '''Schema for a Material Sample used for serializing and deserializing JSON.'''
-    id = fields.Str(dump_only=False)
-    #type = fields.Str()
-    version = fields.Int(allow_none=True, attribute="attributes.version")
-    group = fields.Str(required=True, attribute="attributes.group")
-    createdOn = fields.Str(required=True,allow_none=True, attribute="attributes.createdOn")
-    createdBy = fields.Str(required=True,allow_none=True, attribute="attributes.createdBy")
-    dwcCatalogNumber = fields.Str(allow_none=True, attribute="attributes.dwcCatalogNumber")
-    dwcOtherCatalogNumbers = fields.List(fields.Str(), allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
-    materialSampleName = fields.Str(allow_none=True, attribute="attributes.materialSampleName")
-    materialSampleType = fields.Str(allow_none=True, attribute="attributes.materialSampleType")
-    materialSampleChildren = fields.List(fields.Str(), allow_none=True, attribute="attributes.materialSampleChildren")
-    preparationDate = fields.Str(allow_none=True, attribute="attributes.preparationDate")
-    preservationType = fields.Str(allow_none=True, attribute="attributes.preservationType")
-    preparationFixative = fields.Str(allow_none=True, attribute="attributes.preparationFixative")
-    preparationMaterials = fields.Str(allow_none=True, attribute="attributes.preparationMaterials")
-    preparationSubstrate = fields.Str(allow_none=True, attribute="attributes.preparationSubstrate")
-    managedAttributes = fields.Dict(required=False, attribute="attributes.managedAttributes")
-    preparationManagedAttributes = fields.Dict(attribute="attributes.preparationManagedAttributes")
-    extensionValues = fields.Dict(allow_none=True, attribute="attributes.extensionValues")
-    preparationRemarks = fields.Str(allow_none=True, attribute="attributes.preparationRemarks")
-    dwcDegreeOfEstablishment = fields.Str(allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
-    barcode = fields.Str(allow_none=True, attribute="attributes.barcode")
-    publiclyReleasable = fields.Str(allow_none=True, attribute="attributes.publiclyReleasable")
-    notPubliclyReleasableReason = fields.Str(allow_none=True, attribute="attributes.notPubliclyReleasableReason")
-    tags = fields.Str(allow_none=True, attribute="attributes.tags")
-    materialSampleState = fields.Str(allow_none=True, attribute="attributes.materialSampleState")
-    materialSampleRemarks = fields.Str(allow_none=True, attribute="attributes.materialSampleRemarks")
-    stateChangedOn = fields.Str(allow_none=True, attribute="attributes.stateChangedOn")
-    stateChangeRemarks = fields.Str(allow_none=True, attribute="attributes.stateChangeRemarks")
-    associations = fields.List(fields.Str(), allow_none=True, attribute="attributes.associations")
-    allowDuplicateName = fields.Bool(required=True, attribute="attributes.allowDuplicateName")
-    restrictionFieldsExtension = fields.Dict(allow_none=True, attribute="attributes.restrictionFieldsExtension")
-    isRestricted = fields.Bool(required=True, attribute="attributes.isRestricted")
-    restrictionRemarks = fields.Str(allow_none=True, attribute="attributes.restrictionRemarks")
-    sourceSet = fields.Str(allow_none=True, attribute="attributes.sourceSet")
-    
+	'''Schema for a Material Sample used for serializing and deserializing JSON.'''
+	id = fields.Str(load_only=True)
+	version = SkipUndefinedField(fields.Int,allow_none=True, attribute="attributes.version")
+	group = SkipUndefinedField(fields.Str,required=True, attribute="attributes.group")
+	createdOn = SkipUndefinedField(fields.DateTime,load_only=True, attribute="attributes.createdOn")
+	createdBy = SkipUndefinedField(fields.Str,load_only=True, attribute="attributes.createdBy")
+	dwcCatalogNumber = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcCatalogNumber")
+	dwcOtherCatalogNumbers = SkipUndefinedField(fields.List,fields.Str,allow_none=True, attribute="attributes.dwcOtherCatalogNumbers")
+	materialSampleName = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleName")
+	materialSampleType = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleType")
+	materialSampleChildren = SkipUndefinedField(fields.List, fields.Str, allow_none=True, attribute="attributes.materialSampleChildren")
+	preparationDate = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationDate")
+	preservationType = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preservationType")
+	preparationFixative = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationFixative")
+	preparationMaterials = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationMaterials")
+	preparationSubstrate = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationSubstrate")
+	managedAttributes = SkipUndefinedField(fields.Dict, required=False, attribute="attributes.managedAttributes")
+	preparationManagedAttributes = SkipUndefinedField(fields.Dict, attribute="attributes.preparationManagedAttributes")
+	extensionValues = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.extensionValues")
+	preparationRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.preparationRemarks")
+	dwcDegreeOfEstablishment = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.dwcDegreeOfEstablishment")
+	barcode = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.barcode")
+	publiclyReleasable = SkipUndefinedField(fields.Bool, allow_none=True, attribute="attributes.publiclyReleasable")
+	notPubliclyReleasableReason = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.notPubliclyReleasableReason")
+	tags = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.tags")
+	materialSampleState = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleState")
+	materialSampleRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.materialSampleRemarks")
+	stateChangedOn = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.stateChangedOn")
+	stateChangeRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.stateChangeRemarks")
+	associations = SkipUndefinedField(fields.List,fields.Str, allow_none=True, attribute="attributes.associations")
+	allowDuplicateName = SkipUndefinedField(fields.Bool, required=True, attribute="attributes.allowDuplicateName")
+	restrictionFieldsExtension = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.restrictionFieldsExtension")
+	isRestricted = SkipUndefinedField(fields.Bool, required=True, attribute="attributes.isRestricted")
+	restrictionRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.restrictionRemarks")
+	sourceSet = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.sourceSet")
 
-    collectingEvent = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/collectingEvent",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/collectingEvent",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collectingEvent",
-    allow_none=True,
-    )
+	@post_dump
+	def remove_skipped_fields(self, data, many, **kwargs):
+		# Remove fields with the special marker value
+		skip_marker = SkipUndefinedField(fields.Field).SKIP_MARKER
 
-    collection = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/collection",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/collection",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="collection",
-    allow_none=True,
-    )
+		return {key: value for key, value in data.items() if value}
+	
+	@post_load
+	def set_none_to_undefined(self, data, **kwargs):
+		for attr in data.attributes:
+			if data.attributes[attr] is None:
+				data.attributes[attr] = 'undefined'
+		return data
+	
+	@post_load
+	def object_deserialization(self, data, **kwargs):
+		if 'meta' in data:
+			del data['meta']
+		return MaterialSampleDTO(**data)
+	
+	collection = create_relationship("collection")
+	collectingEvent = create_relationship("collectingEvent")
+	preparationType = create_relationship("preparationType")
+	preparationMethod = create_relationship("preparationMethod")
+	parentMaterialSample = create_relationship("parentMaterialSample")
+	preparedBy = create_relationship("preparedBy")
+	attachment = create_relationship("attachment")
+	preparationProtocol = create_relationship("preparationProtocol")
+	projects = create_relationship("projects")
+	assemblages = create_relationship("assemblages")
+	organism = create_relationship("organism")
+	storageUnit = create_relationship("storageUnit")
+	
+	meta = fields.DocumentMeta()
+	
+	class Meta:
+		type_ = "material-sample"
 
-    preparationType = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparationType",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparationType",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparationType",
-    allow_none=True,
-    )
-
-    preparationMethod = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparationMethod",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparationMethod",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparationMethod",
-    allow_none=True,
-    )
-
-    parentMaterialSample = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/parentMaterialSample",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/parentMaterialSample",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="parentMaterialSample",
-    allow_none=True,
-    )
-
-    preparedBy = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparedBy",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparedBy",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparedBy",
-    )
-
-    attachment = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/attachment",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/attachment",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="attachment",
-    )
-
-    preparationProtocol = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/preparationProtocol",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/preparationProtocol",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="preparationProtocol",
-    allow_none=True,
-    )
-
-    projects = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/projects",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/projects",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="projects",
-    allow_none=True,
-    )
-
-    assemblages = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/assemblages",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/assemblages",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="assemblages",
-    allow_none=True,
-    )
-
-    organism = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/organism",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/organism",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="organism",
-    allow_none=True,
-    )
-
-    storageUnit = fields.Relationship(
-    self_url="/api/v1/material-sample/{id}/relationships/storageUnit",
-    self_url_kwargs={"id": "<id>"},
-    related_url="/api/v1/material-sample/{id}/storageUnit",
-    related_url_kwargs={"id": "<id>"},
-    many=True,
-    type_="storageUnit",
-    allow_none=True,
-    )
-
-    meta = fields.DocumentMeta()
-    
-    class Meta:
-        type_ = "material-sample"
-        #self_url = "/api/v1/material-sample/{id}"
-        #self_url_kwargs = {"id": "<id>"}
-        strict = True
-
-        
+		
 # GET response for MaterialSample
 # {
 #     "data": {
