@@ -1,4 +1,4 @@
-url: https://dina-dev2.biodiversity.agr.gc.ca/auth/ 
+url: https://dina-dev2.biodiversity.agr.gc.ca
 keycloak_username: "dina-admin"
 keycloak_password: "dina-admin"
 

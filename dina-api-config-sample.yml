@@ -4,7 +4,6 @@ objectstore-api:
     attributes:
       acSubtype: "OBJECT SUBTYPE 1"
       dcType: "IMAGE"
-      managedAttributes: { legacy_barcode: "123" }
       orientation: 1
       xmpRightsOwner: "Government of Canada"
       xmpRightsUsageTerms: ""

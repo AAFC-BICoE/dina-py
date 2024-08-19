@@ -11,6 +11,7 @@ class CollectingEventDTO:
 	def get_type(self):
 		return self.type
 
+
 class CollectingEventDTOBuilder:
 	def __init__(self):
 		self._id = None
@@ -71,6 +72,7 @@ class CollectingEventAttributesDTO:
 		self.host = host
 		self.managedAttributes = managedAttributes
 		self.remarks = remarks
+
 
 class CollectingEventAttributesDTOBuilder:
 	def __init__(self):

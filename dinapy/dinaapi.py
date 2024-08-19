@@ -80,6 +80,8 @@ class DinaAPI:
                     # Set keycloak user
                     os.environ["keycloak_username"] = self.configs["keycloak_username"]
                     os.environ["keycloak_password"] = self.configs["keycloak_password"]
+                if (self.configs["url"]):
+                    self.base_url = f'{self.configs["url"]}/api/'
         except FileNotFoundError:
             logging.error(f"Configuration file not found: {config_path}")
             raise
@@ -93,7 +95,7 @@ class DinaAPI:
         Creates a Keycloak token based on configurations and environment variables.
         """
         self.keycloak = KeycloakOpenID(
-            server_url=self.configs["url"],
+            server_url=f'{self.configs["url"]}/auth/',
             client_id=self.configs["client_id"],
             realm_name=self.configs["realm_name"],
             client_secret_key=None,
