@@ -90,7 +90,6 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
         schema = SplitConfiguration()
 
         deserialized_split_configuration = schema.load(data)
-        serialized = schema.dump(deserialized_split_configuration)
         pp = pprint.PrettyPrinter(indent=0)
         pp.pprint(deserialized_split_configuration)
         self.assertIsInstance(deserialized_split_configuration, SplitConfigurationDTO)

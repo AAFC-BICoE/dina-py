@@ -6,6 +6,7 @@ from marshmallow import post_load,post_dump
 from enum import Enum
 from dinapy.entities.SplitConfiguration import SplitConfigurationDTO
 from .customFields import SkipUndefinedField
+from .validateEnums import ValidateEnums
 from .BaseSchema import *
 
 class Strategy(Enum):
@@ -25,15 +26,15 @@ class Separator(Enum):
 class SplitConfiguration(Schema):
 	id = fields.Str(load_only=True)
 
-	createdOn = SkipUndefinedField(fields.DateTime, load_only=True, attribute="attributes.createdOn")
-	createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
-	group = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.group")
-	name = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.name")
-	strategy = SkipUndefinedField(fields.Enum(Strategy), load_only=True, attribute="attributes.strategy")
-	conditionalOnMaterialSampleTypes = SkipUndefinedField(fields.List, fields.Str, load_only=True, attribute="attributes.conditionalOnMaterialSampleTypes")
-	characterType = SkipUndefinedField(fields.Enum(CharacterType), load_only=True, attribute="attributes.characterType")
-	separator = SkipUndefinedField(fields.Enum(Separator), load_only=True, attribute="attributes.separator")
-	materialSampleTypeCreatedBySplit = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.materialSampleTypeCreatedBySplit")
+	createdOn = SkipUndefinedField(fields.DateTime, allow_none=True, load_only=True, attribute="attributes.createdOn")
+	createdBy = SkipUndefinedField(fields.Str, allow_none=True, load_only=True, attribute="attributes.createdBy")
+	group = SkipUndefinedField(fields.Str, allow_none=True, load_only=True, attribute="attributes.group")
+	name = SkipUndefinedField(fields.Str, allow_none=True, load_only=True, attribute="attributes.name")
+	strategy = SkipUndefinedField(fields.Str, validate=ValidateEnums(Strategy), allow_none=True, load_only=True, attribute="attributes.strategy")
+	conditionalOnMaterialSampleTypes = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, load_only=True, attribute="attributes.conditionalOnMaterialSampleTypes")
+	characterType = SkipUndefinedField(fields.Str, validate=ValidateEnums(CharacterType), allow_none=True, load_only=True, attribute="attributes.characterType")
+	separator = SkipUndefinedField(fields.Str, validate=ValidateEnums(Separator), allow_none=True, load_only=True, attribute="attributes.separator")
+	materialSampleTypeCreatedBySplit = SkipUndefinedField(fields.Str, allow_none=True, load_only=True, attribute="attributes.materialSampleTypeCreatedBySplit")
 
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):
@@ -57,3 +58,25 @@ class SplitConfiguration(Schema):
 
 	class Meta:
 		type_ = 'split-configuration'
+		
+# {
+#   "data": {
+#     "id": "01918f0d-4261-770d-8fce-e240799cceb8",
+#     "type": "split-configuration",
+#     "attributes": {
+#       "createdOn": "2024-08-26T14:18:17.030325Z",
+#       "createdBy": "dina-admin",
+#       "group": "aafc",
+#       "name": "test-split-configuration",
+#       "strategy": "DIRECT_PARENT",
+#       "conditionalOnMaterialSampleTypes": ["WHOLE_ORGANISM"],
+#       "characterType": "LOWER_LETTER",
+#       "separator": "SPACE",
+#       "materialSampleTypeCreatedBySplit": "WHOLE_ORGANISM"
+#     }
+#   },
+#   "meta": {
+#     "totalResourceCount": 1,
+#     "moduleVersion": "0.94"
+#   }
+# }
