@@ -11,6 +11,7 @@ class SplitConfigurationDTO:
 	def get_type(self):
 		return self.type
 
+
 class SplitConfigurationDTOBuilder:
 	def __init__(self):
 		self._id = None
@@ -18,24 +19,17 @@ class SplitConfigurationDTOBuilder:
 		self._attributes = None
 		self._relationships = None
 
-	def set_id(self, id):
-		self._id = id
-		return self
-
-	def set_type(self, type):
-		self._type = type
-		return self
-
-	def set_attributes(self, attributes):
+	def attributes(self, attributes):
 		self._attributes = attributes
 		return self
 	
-	def set_relationships(self, relationships):
+	def relationships(self, relationships):
 		self._relationships = relationships
 		return self
 
 	def build(self):
 		return SplitConfigurationDTO(self._id, self._type, self._attributes, self._relationships)
+
 
 class SplitConfigurationAttributesDTO:
 	def __init__(
@@ -60,17 +54,18 @@ class SplitConfigurationAttributesDTO:
 		self.separator = separator
 		self.materialSampleTypeCreatedBySplit = materialSampleTypeCreatedBySplit
 
+
 class SplitConfigurationAttributesDTOBuilder:
 	def __init__(self):
-		self._createdOn = 'undefined'
-		self._createdBy = 'undefined'
-		self._group = 'undefined'
-		self._name = 'undefined'
-		self._strategy = 'undefined'
-		self._conditionalOnMaterialSampleTypes = 'undefined'
-		self._characterType = 'undefined'
-		self._separator = 'undefined'
-		self._materialSampleTypeCreatedBySplit = 'undefined'
+		self._createdOn = None
+		self._createdBy = None
+		self._group = None
+		self._name = None
+		self._strategy = None
+		self._conditionalOnMaterialSampleTypes = None
+		self._characterType = None
+		self._separator = None
+		self._materialSampleTypeCreatedBySplit = None
 
 	def set_createdOn(self, createdOn):
 		self._createdOn = createdOn

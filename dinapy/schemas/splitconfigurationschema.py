@@ -24,17 +24,17 @@ class Separator(Enum):
 		SPACE = 'SPACE'
 
 class SplitConfigurationSchema(Schema):
-	id = fields.Str(load_only=True)
+	id = fields.Str(dump_only=False)
 
-	createdOn = SkipUndefinedField(fields.DateTime, load_only=True, attribute="attributes.createdOn")
-	createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
-	group = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.group")
-	name = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.name")
-	strategy = SkipUndefinedField(fields.Str, validate=ValidateEnums(Strategy), load_only=True, attribute="attributes.strategy")
-	conditionalOnMaterialSampleTypes = SkipUndefinedField(fields.List, fields.Str(), load_only=True, attribute="attributes.conditionalOnMaterialSampleTypes")
-	characterType = SkipUndefinedField(fields.Str, validate=ValidateEnums(CharacterType), load_only=True, attribute="attributes.characterType")
-	separator = SkipUndefinedField(fields.Str, validate=ValidateEnums(Separator), load_only=True, attribute="attributes.separator")
-	materialSampleTypeCreatedBySplit = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.materialSampleTypeCreatedBySplit")
+	createdOn = fields.DateTime(allow_none=True, attribute="attributes.createdOn")
+	createdBy = fields.Str(allow_none=True, attribute="attributes.createdBy")
+	group = fields.Str(allow_none=True, attribute="attributes.group")
+	name = fields.Str(attribute="attributes.name")
+	strategy = fields.Str(attribute="attributes.strategy", validate=ValidateEnums(Strategy))
+	conditionalOnMaterialSampleTypes = fields.List(fields.Str(), attribute="attributes.conditionalOnMaterialSampleTypes")
+	characterType = fields.Str(attribute="attributes.characterType", validate=ValidateEnums(CharacterType))
+	separator = fields.Str(attribute="attributes.separator", validate=ValidateEnums(Separator))
+	materialSampleTypeCreatedBySplit = fields.Str(attribute="attributes.materialSampleTypeCreatedBySplit")
 
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):

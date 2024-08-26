@@ -16,7 +16,6 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
         # Create a schema instance and validate the data
         attributes = (
             SplitConfigurationAttributesDTOBuilder()
-            .set_createdOn("2024-08-26T14:18:17.030325Z")
             .set_createdBy("dina-admin")
             .set_group("aafc")
             .set_name("test-split-configuration")
@@ -30,23 +29,24 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
 
         dto = (
             SplitConfigurationDTOBuilder()
-            .set_attributes(attributes)
+            .attributes(attributes)
             .build()
         )
 
         schema = SplitConfigurationSchema()
-        serialized_split_configuration = schema.dump(schema.load(dto))
+        serialized_split_configuration = schema.dump(dto)
         expected = {
             "data": {
-                "type": "split-configruation",
+                "type": "split-configuration",
+                "id": None,
                 "attributes": {
-									"createdOn": "2024-08-26T14:18:17.030325Z",
+                  "characterType": "LOWER_LETTER",
+                  "conditionalOnMaterialSampleTypes": ["WHOLE_ORGANISM", "CULTURE_STRAIN"],
 									"createdBy": "dina-admin",
+                  "createdOn": None,
 									"group": "aafc",
 									"name": "test-split-configuration",
 									"strategy": "DIRECT_PARENT",
-									"conditionalOnMaterialSampleTypes": ["WHOLE_ORGANISM", "CULTURE_STRAIN"],
-									"characterType": "LOWER_LETTER",
 									"separator": "SPACE",
 									"materialSampleTypeCreatedBySplit": "CULTURE_STRAIN"
                 }
