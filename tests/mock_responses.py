@@ -286,3 +286,24 @@ MOCK_MATERIAL_SAMPLE = {
         "moduleVersion": "0.85"
     }
 }
+MOCK_SPLIT_CONFIGURATION = {
+  "data": {
+    "id": "01918f0d-4261-770d-8fce-e240799cceb8",
+    "type": "split-configuration",
+    "attributes": {
+      "createdOn": "2024-08-26T14:18:17.030325Z",
+      "createdBy": "dina-admin",
+      "group": "aafc",
+      "name": "test-split-configuration",
+      "strategy": "DIRECT_PARENT",
+      "conditionalOnMaterialSampleTypes": ["WHOLE_ORGANISM"],
+      "characterType": "LOWER_LETTER",
+      "separator": "SPACE",
+      "materialSampleTypeCreatedBySplit": "WHOLE_ORGANISM"
+    }
+  },
+  "meta": {
+    "totalResourceCount": 1,
+    "moduleVersion": "0.94"
+  }
+}

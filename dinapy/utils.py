@@ -46,7 +46,7 @@ def get_dina_records_by_params(api,params):
     counter = 1
     offset = 0
     data = []
-    RECORD_COUNT = api.get_entity_by_param().json()["meta"]["totalResourceCount"]
+    RECORD_COUNT = api.get_entity_by_param(params).json()["meta"]["totalResourceCount"]
     while len(collected_ids) < RECORD_COUNT:
         print(len(collected_ids))
         params = {"sort": "-createdOn","page[limit]": step, "page[offset]": offset}

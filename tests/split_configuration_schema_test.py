@@ -7,15 +7,9 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from dinapy.entities.SplitConfiguration import *
-from dinapy.entities.Relationships import *
-from dinapy.apis.collectionapi.splitconfigurationapi import SplitConfigurationAPI
-from dinapy.schemas.splitconfigurationschema import SplitConfiguration
+from dinapy.schemas.splitconfigurationschema import SplitConfigurationSchema
 
 from dinapy.utils import *
-from dinapy.utils import *
-
-os.environ["keycloak_username"] = "dina-admin"
-os.environ["keycloak_password"] = "dina-admin"
 
 class SplitConfigurationSchemaTest(unittest.TestCase):
     def test_serialization(self):
@@ -40,9 +34,8 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
             .build()
         )
 
-        schema = SplitConfiguration()
-
-        serialized_split_configuration = schema.dump(dto)
+        schema = SplitConfigurationSchema()
+        serialized_split_configuration = schema.dump(schema.load(dto))
         expected = {
             "data": {
                 "type": "split-configruation",
@@ -87,7 +80,7 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
             "meta": {"totalResourceCount": 1, "moduleVersion": "0.91"},
         }
 
-        schema = SplitConfiguration()
+        schema = SplitConfigurationSchema()
 
         deserialized_split_configuration = schema.load(data)
         pp = pprint.PrettyPrinter(indent=0)
