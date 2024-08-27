@@ -24,8 +24,7 @@ C:\Users\<your_account>\dina-py> <venv_name>\Scripts\activate.bat
 ```
 * Make a copy of **keycloak-config-sample.yml** and rename to **keycloak-config.yml** in the root of dina-py directory, open **keycloak-config.yml** using Notepad
 * In **keycloak-config.yml**, change **url, keycloak_username, keycloak_password** as needed
-* * Make a copy of **dina-api-config-sample.yml** and rename to **dina-api-config.yml** in the root of dina-py directory, open **dina-api-config.yml** using Notepad
-* In **keycloak-config.yml**, change **url, keycloak_username, keycloak_password** as needed
+* Make a copy of **dina-api-config-sample.yml** and rename to **dina-api-config.yml** in the root of dina-py directory, open **dina-api-config.yml** using Notepad
 * From the dina-py directory's root, create a folder <object_upload_dir> containing the files to be uploaded
 * From the dina-py directory's root, run the following command to upload all contents in <object_upload_dir>:
 ```py
