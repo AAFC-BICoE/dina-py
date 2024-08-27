@@ -14,9 +14,9 @@ class FormTemplateSchema(Schema):
 	createdOn = SkipUndefinedField(fields.DateTime, attribute="attributes.createdOn")
 	group = SkipUndefinedField(fields.Str, attribute="attributes.group")
 	name = SkipUndefinedField(fields.Str, attribute="attributes.name")
-	restrictToCreatedBy = SkipUndefinedField(fields.Bool, allow_none=True, attribute="attributes.restrictToCreatedBy")
-	viewConfiguration = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.viewConfiguration")
-	components = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.components")
+	restrictToCreatedBy = SkipUndefinedField(fields.Bool, attribute="attributes.restrictToCreatedBy")
+	viewConfiguration = SkipUndefinedField(fields.Dict, attribute="attributes.viewConfiguration")
+	components = SkipUndefinedField(fields.Dict, attribute="attributes.components")
 
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):

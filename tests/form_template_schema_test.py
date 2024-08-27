@@ -107,6 +107,7 @@ class FormTemplateSchemaTest(unittest.TestCase):
 				attributes = (
 						FormTemplateAttributesDTOBuilder()
 						.set_restrictToCreatedBy(False)
+						.set_group(None)
 						.build()
 				)
 
@@ -122,7 +123,8 @@ class FormTemplateSchemaTest(unittest.TestCase):
 						"data": {
 								"type": "form-template",
 								"attributes": {
-									"restrictToCreatedBy": False
+									"restrictToCreatedBy": False,
+									"group": None
 								}
 						}
 				}

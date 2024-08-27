@@ -1,6 +1,6 @@
 def SkipUndefinedField(base_field_class, *args, **kwargs):
 	class CustomField(base_field_class):
-		SKIP_MARKER = False
+		SKIP_MARKER = "//SKIP_FIELD_MARKER//"
 
 		def __init__(self, *args, **kwargs):
 			super(CustomField, self).__init__(*args, **kwargs)
