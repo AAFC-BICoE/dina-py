@@ -3,25 +3,9 @@
 from marshmallow_jsonapi import Schema, fields
 from marshmallow import post_load,post_dump
 
-from enum import Enum
 from dinapy.entities.SplitConfiguration import SplitConfigurationDTO
 from .customFields import SkipUndefinedField
-from .validateEnums import ValidateEnums
 from .BaseSchema import *
-
-class Strategy(Enum):
-		TYPE_BASED = 'TYPE_BASED'
-		DIRECT_PARENT = 'DIRECT_PARENT'
-
-class CharacterType(Enum):
-		NUMBER = 'NUMBER'
-		LOWER_LETTER = 'LOWER_LETTER'
-		UPPER_LETTER = 'UPPER_LETTER'
-
-class Separator(Enum):
-		DASH = 'DASH'
-		UNDERSCORE = 'UNDERSCORE'
-		SPACE = 'SPACE'
 
 class SplitConfigurationSchema(Schema):
 	id = fields.Str(load_only=True)
@@ -30,10 +14,10 @@ class SplitConfigurationSchema(Schema):
 	createdOn = SkipUndefinedField(fields.DateTime, attribute="attributes.createdOn")
 	group = SkipUndefinedField(fields.Str, attribute="attributes.group")
 	name = SkipUndefinedField(fields.Str, attribute="attributes.name")
-	strategy = SkipUndefinedField(fields.Str, validate=ValidateEnums(Strategy), attribute="attributes.strategy")
-	conditionalOnMaterialSampleTypes = SkipUndefinedField(fields.List,fields.Str(), allow_none=True, required=False, attribute="attributes.conditionalOnMaterialSampleTypes")
-	characterType = SkipUndefinedField(fields.Str, validate=ValidateEnums(CharacterType), attribute="attributes.characterType")
-	separator = SkipUndefinedField(fields.Str, validate=ValidateEnums(Separator), attribute="attributes.separator")
+	strategy = SkipUndefinedField(fields.Str, attribute="attributes.strategy")
+	conditionalOnMaterialSampleTypes = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, required=False, attribute="attributes.conditionalOnMaterialSampleTypes")
+	characterType = SkipUndefinedField(fields.Str, attribute="attributes.characterType")
+	separator = SkipUndefinedField(fields.Str, attribute="attributes.separator")
 	materialSampleTypeCreatedBySplit = SkipUndefinedField(fields.Str, attribute="attributes.materialSampleTypeCreatedBySplit")
 
 	@post_load
