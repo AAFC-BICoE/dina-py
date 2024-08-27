@@ -1,7 +1,7 @@
 # This file holds schemas for serializing and deserializing SplitConfiguration entities
 # using the JSON API format. It utilizes the marshmallow_jsonapi library.
 from marshmallow_jsonapi import Schema, fields
-from marshmallow import post_load,pre_load,post_dump,ValidationError
+from marshmallow import post_load,post_dump
 
 from enum import Enum
 from dinapy.entities.SplitConfiguration import SplitConfigurationDTO
@@ -24,17 +24,17 @@ class Separator(Enum):
 		SPACE = 'SPACE'
 
 class SplitConfigurationSchema(Schema):
-	id = fields.Str(dump_only=False)
+	id = fields.Str(load_only=True)
 
-	createdOn = fields.DateTime(allow_none=True, attribute="attributes.createdOn")
-	createdBy = fields.Str(allow_none=True, attribute="attributes.createdBy")
-	group = fields.Str(allow_none=True, attribute="attributes.group")
-	name = fields.Str(attribute="attributes.name")
-	strategy = fields.Str(attribute="attributes.strategy", validate=ValidateEnums(Strategy))
-	conditionalOnMaterialSampleTypes = fields.List(fields.Str(), attribute="attributes.conditionalOnMaterialSampleTypes")
-	characterType = fields.Str(attribute="attributes.characterType", validate=ValidateEnums(CharacterType))
-	separator = fields.Str(attribute="attributes.separator", validate=ValidateEnums(Separator))
-	materialSampleTypeCreatedBySplit = fields.Str(attribute="attributes.materialSampleTypeCreatedBySplit")
+	createdBy = SkipUndefinedField(fields.Str, attribute="attributes.createdBy")
+	createdOn = SkipUndefinedField(fields.DateTime, attribute="attributes.createdOn")
+	group = SkipUndefinedField(fields.Str, attribute="attributes.group")
+	name = SkipUndefinedField(fields.Str, attribute="attributes.name")
+	strategy = SkipUndefinedField(fields.Str, validate=ValidateEnums(Strategy), attribute="attributes.strategy")
+	conditionalOnMaterialSampleTypes = SkipUndefinedField(fields.List,fields.Str(), allow_none=True, required=False, attribute="attributes.conditionalOnMaterialSampleTypes")
+	characterType = SkipUndefinedField(fields.Str, validate=ValidateEnums(CharacterType), attribute="attributes.characterType")
+	separator = SkipUndefinedField(fields.Str, validate=ValidateEnums(Separator), attribute="attributes.separator")
+	materialSampleTypeCreatedBySplit = SkipUndefinedField(fields.Str, attribute="attributes.materialSampleTypeCreatedBySplit")
 
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):

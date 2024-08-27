@@ -38,17 +38,46 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
         expected = {
             "data": {
                 "type": "split-configuration",
-                "id": None,
                 "attributes": {
                   "characterType": "LOWER_LETTER",
                   "conditionalOnMaterialSampleTypes": ["WHOLE_ORGANISM", "CULTURE_STRAIN"],
 									"createdBy": "dina-admin",
-                  "createdOn": None,
 									"group": "aafc",
 									"name": "test-split-configuration",
 									"strategy": "DIRECT_PARENT",
 									"separator": "SPACE",
 									"materialSampleTypeCreatedBySplit": "CULTURE_STRAIN"
+                }
+            }
+        }
+        pp = pprint.PrettyPrinter(indent=0)
+        pp.pprint(serialized_split_configuration)
+        self.assertIsInstance(serialized_split_configuration, dict)
+        self.assertDictEqual(serialized_split_configuration, expected)
+
+    def test_undefined_vs_null_serialization(self):
+        # Pretend we are just updating one of the fields.
+        attributes = (
+            SplitConfigurationAttributesDTOBuilder()
+            .set_separator("SPACE")
+            .set_characterType(None)
+            .build()
+        )
+
+        dto = (
+            SplitConfigurationDTOBuilder()
+            .attributes(attributes)
+            .build()
+        )
+
+        schema = SplitConfigurationSchema()
+        serialized_split_configuration = schema.dump(dto)
+        expected = {
+            "data": {
+                "type": "split-configuration",
+                "attributes": {
+                  "characterType": None,
+									"separator": "SPACE"
                 }
             }
         }

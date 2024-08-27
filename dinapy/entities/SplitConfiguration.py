@@ -57,15 +57,15 @@ class SplitConfigurationAttributesDTO:
 
 class SplitConfigurationAttributesDTOBuilder:
 	def __init__(self):
-		self._createdOn = None
-		self._createdBy = None
-		self._group = None
-		self._name = None
-		self._strategy = None
-		self._conditionalOnMaterialSampleTypes = None
-		self._characterType = None
-		self._separator = None
-		self._materialSampleTypeCreatedBySplit = None
+		self._createdOn = 'undefined'
+		self._createdBy = 'undefined'
+		self._group = 'undefined'
+		self._name = 'undefined'
+		self._strategy = 'undefined'
+		self._conditionalOnMaterialSampleTypes = 'undefined'
+		self._characterType = 'undefined'
+		self._separator = 'undefined'
+		self._materialSampleTypeCreatedBySplit = 'undefined'
 
 	def set_createdOn(self, createdOn):
 		self._createdOn = createdOn

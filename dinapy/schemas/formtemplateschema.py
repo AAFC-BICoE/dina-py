@@ -7,16 +7,16 @@ from dinapy.entities.FormTemplate import FormTemplateDTO
 from .customFields import SkipUndefinedField
 from .BaseSchema import *
 
-class FormTemplate(Schema):
+class FormTemplateSchema(Schema):
 	id = fields.Str(load_only=True)
 
-	createdOn = SkipUndefinedField(fields.DateTime, load_only=True, attribute="attributes.createdOn")
-	createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
-	group = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.group")
-	name = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.name")
-	restrictToCreatedBy = SkipUndefinedField(fields.Bool, load_only=True, attribute="attributes.restrictToCreatedBy")
-	viewConfiguration = SkipUndefinedField(fields.Dict, load_only=True, attribute="attributes.viewConfiguration")
-	components = SkipUndefinedField(fields.Dict, load_only=True, attribute="attributes.components")
+	createdBy = SkipUndefinedField(fields.Str, attribute="attributes.createdBy")
+	createdOn = SkipUndefinedField(fields.DateTime, attribute="attributes.createdOn")
+	group = SkipUndefinedField(fields.Str, attribute="attributes.group")
+	name = SkipUndefinedField(fields.Str, attribute="attributes.name")
+	restrictToCreatedBy = SkipUndefinedField(fields.Bool, allow_none=True, attribute="attributes.restrictToCreatedBy")
+	viewConfiguration = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.viewConfiguration")
+	components = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.components")
 
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):
