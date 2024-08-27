@@ -19,11 +19,11 @@ class SplitConfigurationDTOBuilder:
 		self._attributes = None
 		self._relationships = None
 
-	def attributes(self, attributes):
+	def set_attributes(self, attributes):
 		self._attributes = attributes
 		return self
 	
-	def relationships(self, relationships):
+	def set_relationships(self, relationships):
 		self._relationships = relationships
 		return self
 

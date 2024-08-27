@@ -29,7 +29,7 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
 
         dto = (
             SplitConfigurationDTOBuilder()
-            .attributes(attributes)
+            .set_attributes(attributes)
             .build()
         )
 
@@ -66,7 +66,7 @@ class SplitConfigurationSchemaTest(unittest.TestCase):
 
         dto = (
             SplitConfigurationDTOBuilder()
-            .attributes(attributes)
+            .set_attributes(attributes)
             .build()
         )
 

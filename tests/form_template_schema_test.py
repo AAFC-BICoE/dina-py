@@ -135,7 +135,6 @@ class FormTemplateSchemaTest(unittest.TestCase):
 				data = {
 						"data": {
 								"type": "form-template",
-								"id": None,
 								"attributes": {
 										"createdBy": "dina-admin",
 										"group": "aafc",
