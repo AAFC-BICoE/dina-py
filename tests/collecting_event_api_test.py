@@ -8,22 +8,23 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from dinapy.apis.collectionapi.collectingeventapi import CollectingEventAPI
+from dinapy.apis.collectionapi.collectionapi import CollectionModuleApi
 from dinapy.entities.CollectingEvent import CollectingEventDTOBuilder, CollectingEventAttributesDTOBuilder
 from dinapy.schemas.collectingeventschema import CollectingEventSchema
 from mock_responses import *
 
 class TestCollectingEventAPI(unittest.TestCase):
 
-	@patch('dinapy.apis.collectionapi.collectingeventapi.CollectingEventAPI.update_entity')
-	def test_update_collecting_event(self, mock_update_entity):
+	@patch('dinapy.apis.collectionapi.collectionapi.CollectionModuleApi')
+	def test_update_collecting_event(self, MockCollectionModuleApi):
 
 		mock_response = MagicMock()
 		mock_response.status_code = 200
 		mock_response.json.return_value = MOCK_VALID_COLLECTING_EVENT_DATA
-		
-		mock_update_entity.return_value = mock_response
+		MockCollectionModuleApi.return_value.update_entity.return_value = mock_response
 
-		dina_collecting_event_api = CollectingEventAPI()
+		dina_collecting_event_api = MockCollectionModuleApi.return_value
+
 		collecting_event_attributes = CollectingEventAttributesDTOBuilder().group("aafc").build()
 		collecting_event = CollectingEventDTOBuilder().attributes(collecting_event_attributes).build()
 		collecting_event_schema = CollectingEventSchema()

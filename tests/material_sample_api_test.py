@@ -8,28 +8,30 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
+from dinapy.apis.collectionapi.collectionapi import CollectionModuleApi
+
 from dinapy.entities.MaterialSample import MaterialSampleAttributesDTOBuilder, MaterialSampleDTOBuilder
 from dinapy.schemas.materialsampleschema import MaterialSampleSchema
 from mock_responses import *
 
 class TestMaterialSampleAPI(unittest.TestCase):
 
-	@patch('dinapy.apis.collectionapi.materialsampleapi.MaterialSampleAPI.update_entity')
-	def test_update_material_sample(self, mock_update_entity):
+	@patch('dinapy.apis.collectionapi.collectionapi.CollectionModuleApi')
+	def test_update_material_sample(self,MockCollectionModuleApi):
 
 		mock_response = MagicMock()
 		mock_response.status_code = 200
 		mock_response.json.return_value = MOCK_MATERIAL_SAMPLE
-		mock_update_entity.return_value = mock_response
+		MockCollectionModuleApi.return_value.update_entity.return_value = mock_response
 
-		dina_material_sample_api = MaterialSampleAPI()
+		collection_module_api = MockCollectionModuleApi.return_value
 		material_sample_schema = MaterialSampleSchema()
 
 		material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").createdBy("dina-admin").build()
 		material_sample = MaterialSampleDTOBuilder().id(id).attributes(material_sample_attributes).build()
 		serialized_material_sample = material_sample_schema.dump(material_sample)
 
-		response = dina_material_sample_api.update_entity(id, serialized_material_sample)
+		response = collection_module_api.update_entity(id, serialized_material_sample)
 
 		self.assertEqual(response.status_code, 200)
 		deserialized_material_sample = material_sample_schema.load(response.json())
