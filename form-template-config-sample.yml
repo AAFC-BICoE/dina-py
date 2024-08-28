@@ -1,0 +1,21 @@
+attributes:
+  name: form_template_test
+  group: aafc
+  restrictToCreatedBy: False
+  viewConfiguration: {"type": "material-sample-form-template"}
+  components:
+    - gridSizeX: null
+      name: show-parent-attributes-component
+      order: "0"
+      sections:
+        - gridPositionX: null
+          gridPositionY: null
+          items:
+            - defaultValue: []
+              gridPositionX: null
+              gridPositionY: null
+              name: parentAttributes
+              visible: True
+          name: parent-attributes-section
+          visible: True
+      visible: False
