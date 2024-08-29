@@ -85,8 +85,8 @@ class CollectingEventSchema(Schema):
 
 	@post_dump
 	def remove_skipped_fields(self, data, many, **kwargs):
-
-		return {key: value for key, value in data.items() if value}
+		# Remove fields with the special marker value
+		return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
 	
 	@post_dump
 	def remove_meta(self, data, many, **kwargs):
@@ -100,8 +100,7 @@ class CollectingEventSchema(Schema):
 			if data.attributes[attr] is None:
 				data.attributes[attr] = 'undefined'
 		return data
-	
-	
+
 	@post_load
 	def object_deserialization(self, data, **kwargs):
 		if 'meta' in data:

@@ -203,9 +203,19 @@ class CollectingEventSchemaTest(unittest.TestCase):
 		collecting_event = CollectingEventDTOBuilder().attributes(collecting_event_attributes).build()
 		try:
 			serialized_collecting_event = schema.dump(collecting_event)
+			expected = {
+        "data": {
+          "type": "collecting-event",
+          "attributes": {
+            "group": "aafc"
+          }
+        }
+      }
+
 			pp = pprint.PrettyPrinter(indent=0)
 			pp.pprint(serialized_collecting_event)
 			self.assertIsInstance(serialized_collecting_event, dict)
+			self.assertDictEqual(serialized_collecting_event, expected)
 		except ValidationError as e:
 			self.fail(f"Validation failed with error: {e.messages}")
 if __name__ == "__main__":
