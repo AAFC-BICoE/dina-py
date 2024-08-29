@@ -126,14 +126,6 @@ Sample usage of DINA_API_CLIENT:
 (.venv) C:\Users\<your_account>\dina-py> python .\dinapy\client\dina_api_client.py -upload_file '<object_upload_dir>/<file_name>'
 ```
 
-## How to extend functionality 
-
-* To extend functionality, create subclasses from DinaAPI and extend the base_url attribute with the full URL for the API call required
-* Then create new methods for GET, POST, PATCH, etc. and use the base DinaAPI request functions.
-    * Have the methods return objects of the entity class in the future
-* Create a Schema using Marshmallow JSON-API for the entity and use it for serialization and deserialization.
-* Try to create tests.
-
 ## Example API Usage
 
 In code:
