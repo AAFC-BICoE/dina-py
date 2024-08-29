@@ -108,11 +108,11 @@ class MetadataSchema(Schema):
     )
 
     # Relationships
-    acMetadataCreator = create_relationship("person", "acMetadataCreator")
+    acMetadataCreator = create_relationship("metadata","person", "acMetadataCreator")
 
-    derivatives = create_relationship("derivatives")
+    derivatives = create_relationship("metadata","derivatives")
 
-    dcCreator = create_relationship("person", "dcCreator")
+    dcCreator = create_relationship("metadata","person", "dcCreator")
 
     @post_load
     def set_none_to_undefined(self, data, **kwargs):
