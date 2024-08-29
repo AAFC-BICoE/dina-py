@@ -11,6 +11,21 @@ class Protocol(BaseSchema):
 
 	class Meta:
 		type_ = 'protocol'
+
+class CollectionMethod(BaseSchema):
+
+	class Meta:
+		type_ = 'collection-method'
+
+class Collectors(BaseSchema):
+
+	class Meta:
+		type_ = 'collectors'
+
+class Attachment(BaseSchema):
+
+	class Meta:
+		type_ = 'attachment'
 	
 class CollectingEventSchema(Schema):
 	'''Schema for a Collecting Event used for serializing and deserializing JSON.'''
@@ -55,10 +70,10 @@ class CollectingEventSchema(Schema):
 	managedAttributes = SkipUndefinedField(fields.Dict,attribute="attributes.managedAttributes")
 	remarks = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.remarks")
 
-	collectionMethod = create_relationship("collectionMethod")
-	protocol = create_relationship("protocol")
-	collectors = create_relationship("collectors")
-	attachment = create_relationship("attachment")
+	collectionMethod = create_relationship("collecting-event","collectionMethod")
+	protocol = create_relationship("collecting-event","protocol")
+	collectors = create_relationship("collecting-event","collectors")
+	attachment = create_relationship("collecting-event","attachment")
 
 	meta = fields.DocumentMeta()
 
