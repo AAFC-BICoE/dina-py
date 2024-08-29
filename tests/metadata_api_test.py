@@ -2,6 +2,9 @@ import sys
 import os
 from pathlib import Path
 import yaml
+# Add the root directory of the project to the Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 # Add the root directory of the project to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
