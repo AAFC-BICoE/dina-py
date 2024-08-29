@@ -4,22 +4,84 @@ Python access to the DINA API
 
 ## Current Features
 
-* JSON-API serializer and deserializer with Marshmallow JSON-API
-* GET request for a Person (PersonAPI)
+#### JSON-API serializer and deserializer with Marshmallow JSON-API
+- Currently supported schemas:
+    - Collecting Event
+    - Storage Unit Usage
+    - Person
+    - Material Sample
+    - Metadata
+    - Storage Unit
+    - Form Template
+    - Split Configuration
+#### DINA APIs
+- Currently supported APIs:
+    - Agent API
+        - Person
+    - Collection API
+        - CollectingEvent
+        - StorageUnit
+        - StorageUnitUsage
+        - FormTemplate
+        - SplitConfiguration
+        - MaterialSample
+        - Organism
+    - Object Store API
+        - Metadata
+        - UploadFile
+    - SeqDB API
+        - PCR Batch
+        - PCR Batch Item
+        - SEQ Reaction
+  
+#### DINA_API_CLIENT
+#### Currently supported operations:
+   **upload_file:**
+   - metavar="<file_path> : (str) = Path to the file to be uploaded.",
+   - help="Upload a file to Object Store. Argument: file_path"
+     
+   **upload_dir:**
+   - metavar="<dir_path> : (str) = Path to the directory to be uploaded.",
+   - help="Upload all files in a directory to Object Store",
+   
+   **verbose:**
+   - help="Verbosity of logs. Primarily for debugging.",
+   - action="store_true",
+
+   **create_metadatas:**
+   - metavar="<dir_path> : (str) = Path to the directory to be uploaded.",
+   - help="Upload all files in a directory to Object Store and create metadatas according to constants defined in ./dina-api-config.yml",
+
+   **create_form_template:**
+   - metavar="<file_path> : (str) = Path to the file to be parsed and created.",
+   - help="Create a form template according to specs defined in a yaml file such as ./form-template-sample.yml",
+
+   **create_split_configuration:**
+   - metavar="<file_path> : (str) = Path to the file to be parsed and created.",
+   - help="Create a split configuration according to specs defined in a yaml file such as ./split-configuration-sample.yml",
+
+#### TEST COVERAGE
+- APIs (Unit Test with Magic Mock):
+    - Collection API
+        - Collecting Event
+        - Managed Attributes
+        - Material Sample
+        - Organism
+    - Object Store API
+        - Metadata
+    - Agent API
+        - Person
+- Schemas:
+   - Collecting Event
+   - Form Template
+   - Managed Attribute
+   - Material Sample
+   - Metadata
+   - Person
+   - Split Configuration
+   - Storage Unit Usage
 
 ## Installation Instructions
-
-### Dina-scripts usage
-
-From inside of the dina-scripts docker container, the dina-py library can be installed using the 
-GitHub branch you wish to install:
-
-```bash
-pip install "https://github.com/AAFC-BICoE/dina-py/archive/refs/heads/dev.zip"
-```
-
-Running the command above will install the `dev` branch. Any branch name can be used.
-
 ### Local Install
 
 Before installing, it's recommended to use a virtual environment in python but not required. create 
@@ -30,17 +92,11 @@ sudo apt install python3.10-venv
 python3 -m venv env
 source env/bin/activate
 ```
-
-Install the library and all required dependencies:
+From inside of the dina-py root folder, install the library and all required dependencies:
 
 ```bash
-python3 -m pip install .
-```
-
-Then it can be imported using:
-
-```py
-from dinapy.api.agentapi.personapi import PersonAPI
+pip install -e .
+pip install -r requirements.txt
 ```
 
 The username and password are set via environment variables. This can be done via the command line:
@@ -57,6 +113,19 @@ os.environ["keycloak_username"] = "username"
 os.environ["keycloak_password"] = "password"
 ```
 
+* Make a copy of **keycloak-config-sample.yml** and rename to **keycloak-config.yml** in the root of dina-py directory, open **keycloak-config.yml** using Notepad
+* In **keycloak-config.yml**, change **url, keycloak_username, keycloak_password** as needed
+* Make a copy of **dina-api-config-sample.yml** and rename to **dina-api-config.yml** in the root of dina-py directory, open **dina-api-config.yml** using Notepad
+
+Sample usage of DINA_API_CLIENT:
+```py
+(.venv) C:\Users\<your_account>\dina-py> python .\dinapy\client\dina_api_client.py -upload_dir '<object_upload_dir>'
+```
+* Or run the following command to upload a specific file:
+```py
+(.venv) C:\Users\<your_account>\dina-py> python .\dinapy\client\dina_api_client.py -upload_file '<object_upload_dir>/<file_name>'
+```
+
 ## How to extend functionality 
 
 * To extend functionality, create subclasses from DinaAPI and extend the base_url attribute with the full URL for the API call required
@@ -69,88 +138,22 @@ os.environ["keycloak_password"] = "password"
 
 In code:
 ```py
-from dinapy.api.agentapi.personapi import PersonAPI
 
-// GET request
-pAPI = PersonAPI("keycloak config path")
-person = pAPI.find("my uuid") // returns deserialized JSON as dict
+def test_create_delete_entity(self):
+   schema = MaterialSampleSchema()
+   material_sample_api = MaterialSampleAPI()
+   try:
+      material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").materialSampleName("test").materialSampleType("WHOLE_ORGANISM")\
+      .build()
+      material_sample = MaterialSampleDTOBuilder().attributes(material_sample_attributes).build()
+      serialized_material_sample = schema.dump(material_sample)
+      pp = pprint.PrettyPrinter(indent=0)
+      pp.pprint(serialized_material_sample)
+      response = material_sample_api.create_entity(serialized_material_sample)
+      id = response.json()['data']['id']
+      if response.status_code == 201:
+         response = material_sample_api.remove_entity(id)
+         self.assertEqual(response.status_code,204)
+   except ValidationError as e:
+      self.fail(f"Validation failed with error: {e.messages}")
 
-serialized_data = person_schema.dump(person) // serialize dict back to valid JSON
-```
-
-Deserialized data:
-```json
-    {
-        "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-        "attributes": {
-            "displayName": "testBob",
-            "email": "bob.builder@agr.gc.ca",
-            "createdBy": "cnc-su",
-            "createdOn": datetime.datetime(
-                2023, 2, 20, 16, 18, 10, 688627, tzinfo=datetime.timezone.utc
-            ),
-            "givenNames": "Bob",
-            "familyNames": "Builder",
-            "aliases": ["Yes we can"],
-            "webpage": None,
-            "remarks": None,
-        },
-        "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
-    }
-```
-
-Serialized Data:
-```json
-{
-    "data": {
-        "type": "person",
-        "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-        "attributes": {
-            "displayName": "testBob",
-            "email": "bob.builder@agr.gc.ca",
-            "createdBy": "cnc-su",
-            "createdOn": "2023-02-20T16:18:10.688627+00:00",
-            "givenNames": "Bob",
-            "familyNames": "Builder",
-            "aliases": ["Yes we can"],
-            "webpage": None,
-            "remarks": None,
-        },
-        "relationships": {
-            "identifiers": {
-                "links": {
-                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/identifiers",
-                    "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/identifiers",
-                }
-            },
-            "organizations": {
-                "links": {
-                    "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/organizations",
-                    "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/organizations",
-                }
-            },
-        },
-        "links": {"self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"},
-    },
-    "links": {"self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"},
-    "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
-}
-```
-
-## Notes
-
-* Only the find() method for PersonAPI has been tested to work. The other requests (POST, PATCH, DELETE) have not been tested and should be re-implemented or modified.
-* Furthermore, the PersonSchema serializes and deserialized correctly in the context of the find() method.
-* Keycloak username and password must be set as environmental variables (keycloak_username and keycloak_password). Can be set using os.environ if needed.
-
-## Todo
-
-* Develop models in order to have an object returned rather than a dict for the request return types.
-* A way to re-use tokens when making different API calls.
-* Implement and test the other request types for Person.
-* Add support for other Dina entities.
-
-## Tests
-
-* 2 tests only, both for PersonSchema, testing deserialization only
-* Can run tests directly from test file
