@@ -71,10 +71,9 @@ def create_parser():
     parser.add_argument(
         "-create_split_configuration",
         metavar="<file_path> : (str) = Path to the file to be parsed and created.",
-        help="Create a form template according to specs defined in a yaml file such as ./form-template-sample.yml",
+        help="Create a split configuration according to specs defined in a yaml file such as ./split-configuration-sample.yml",
     )
     return parser
-
 
 def upload_file(args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path):
     response_json: dict = dina_api_client.upload_file_api.upload(GROUP, path.as_posix())
