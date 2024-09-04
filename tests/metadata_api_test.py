@@ -8,17 +8,6 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from dinapy.client.dina_api_client import DinaApiClient, create_metadatas
-from dinapy.client.utils import get_field_from_config
-from dinapy.entities.Metadata import (
-    MetadataAttributesDTO,
-    MetadataAttributesDTOBuilder,
-    MetadataDTO,
-    MetadataDTOBuilder,
-)
-
-from dinapy.entities.Relationships import RelationshipDTO
-from dinapy.schemas.metadata_schema import MetadataSchema
-from dinapy.utils import get_dina_records_by_field
 
 os.environ["keycloak_username"] = "dina-admin"
 os.environ["keycloak_password"] = "dina-admin"

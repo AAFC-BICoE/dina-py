@@ -1,11 +1,13 @@
 import argparse
+from datetime import datetime
+import os
 import yaml
 from dinapy.apis.objectstoreapi.metadata_api import MetadataAPI
 from dinapy.apis.objectstoreapi.uploadfileapi import UploadFileAPI
 from pathlib import Path
 
 from dinapy.client.utils import get_field_from_config
-from dinapy.entities.Metadata import MetadataAttributesDTOBuilder, MetadataDTOBuilder
+from dinapy.entities.Metadata import MetadataDTOBuilder
 from dinapy.entities.Relationships import RelationshipDTO
 from dinapy.schemas.metadata_schema import MetadataSchema
 
@@ -110,12 +112,22 @@ def create_metadatas(dina_api_client: DinaApiClient, pathlist, dina_api_config, 
             .add_relationship("dcCreator", "person", dcCreator.get("data").get("id"))
             .build()
         )
+        
+        # Get the creation time as a float
+        acDigitizationDate = os.path.getctime(path)
 
+        # Naive datetime object
+        naiveAcDigitizationDate = datetime.fromtimestamp(acDigitizationDate)
+        
+        # Convert to local time with timezone info
+        localizedAcDigitizationDate = naiveAcDigitizationDate.astimezone()
+        
         attributes = (
             dina_api_config.get("objectstore-api").get("metadata").get("attributes")
         )
         attributes["bucket"] = upload_file_response.get("bucket")
         attributes["fileIdentifier"] = upload_file_response.get("uuid")
+        attributes["acDigitizationDate"] = localizedAcDigitizationDate
 
         dto = (
             MetadataDTOBuilder()
