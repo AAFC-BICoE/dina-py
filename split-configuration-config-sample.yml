@@ -1,0 +1,8 @@
+attributes:
+  name: split_configuration_test
+  group: aafc
+  strategy: "DIRECT_PARENT"
+  conditionalOnMaterialSampleTypes: ["WHOLE_ORGANISM"]
+  characterType: "LOWER_LETTER"
+  separator: "SPACE"
+  materialSampleTypeCreatedBySplit: "WHOLE_ORGANISM"

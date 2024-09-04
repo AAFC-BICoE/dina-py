@@ -32,7 +32,7 @@ class CollectingEventDTOBuilder:
 
 
 class CollectingEventAttributesDTO:
-	def __init__(self, version=None, notPubliclyReleasableReason=None, dwcMaximumDepthInMeters=None, dwcCountry=None, dwcMinimumElevationInMeters=None, dwcCountryCode=None, dwcFieldNumber=None, dwcRecordNumber=None, dwcVerbatimDepth=None, dwcMinimumDepthInMeters=None, dwcMaximumElevationInMeters=None, dwcStateProvince=None, dwcVerbatimCoordinateSystem=None, dwcVerbatimElevation=None, dwcVerbatimLatitude=None, dwcVerbatimLongitude=None, otherRecordNumbers=None, publiclyReleasable=None, group=None, createdBy=None, createdOn=None, geoReferenceAssertions=None, geographicPlaceNameSource=None, geographicPlaceNameSourceDetail=None, habitat=None, eventGeom=None, extensionValues=None, dwcVerbatimCoordinates=None, dwcRecordedBy=None, dwcVerbatimSRS=None, startEventDateTime=None, substrate=None, tags=None, endEventDateTime=None, verbatimEventDateTime=None, dwcVerbatimLocality=None, host=None, managedAttributes={}, remarks=None):
+	def __init__(self, version='undefined', notPubliclyReleasableReason='undefined', dwcMaximumDepthInMeters='undefined', dwcCountry='undefined', dwcMinimumElevationInMeters='undefined', dwcCountryCode='undefined', dwcFieldNumber='undefined', dwcRecordNumber='undefined', dwcVerbatimDepth='undefined', dwcMinimumDepthInMeters='undefined', dwcMaximumElevationInMeters='undefined', dwcStateProvince='undefined', dwcVerbatimCoordinateSystem='undefined', dwcVerbatimElevation='undefined', dwcVerbatimLatitude='undefined', dwcVerbatimLongitude='undefined', otherRecordNumbers='undefined', publiclyReleasable='undefined', group='undefined', createdBy='undefined', createdOn='undefined', geoReferenceAssertions='undefined', geographicPlaceNameSource='undefined', geographicPlaceNameSourceDetail='undefined', habitat='undefined', eventGeom='undefined', extensionValues='undefined', dwcVerbatimCoordinates='undefined', dwcRecordedBy='undefined', dwcVerbatimSRS='undefined', startEventDateTime='undefined', substrate='undefined', tags='undefined', endEventDateTime='undefined', verbatimEventDateTime='undefined', dwcVerbatimLocality='undefined', host='undefined', managedAttributes={}, remarks='undefined'):
 		self.version = version
 		self.notPubliclyReleasableReason = notPubliclyReleasableReason
 		self.dwcMaximumDepthInMeters = dwcMaximumDepthInMeters
@@ -76,45 +76,45 @@ class CollectingEventAttributesDTO:
 
 class CollectingEventAttributesDTOBuilder:
 	def __init__(self):
-		self._version = None
-		self._notPubliclyReleasableReason = None
-		self._dwcMaximumDepthInMeters = None
-		self._dwcCountry = None
-		self._dwcMinimumElevationInMeters = None
-		self._dwcCountryCode = None
-		self._dwcFieldNumber = None
-		self._dwcRecordNumber = None
-		self._dwcVerbatimDepth = None
-		self._dwcMinimumDepthInMeters = None
-		self._dwcMaximumElevationInMeters = None
-		self._dwcStateProvince = None
-		self._dwcVerbatimCoordinateSystem = None
-		self._dwcVerbatimElevation = None
-		self._dwcVerbatimLatitude = None
-		self._dwcVerbatimLongitude = None
-		self._otherRecordNumbers = None
-		self._publiclyReleasable = None
-		self._group = None
-		self._createdBy = None
-		self._createdOn = None
-		self._geoReferenceAssertions = None
-		self._geographicPlaceNameSource = None
-		self._geographicPlaceNameSourceDetail = None
-		self._habitat = None
-		self._eventGeom = None
-		self._extensionValues = None
-		self._dwcVerbatimCoordinates = None
-		self._dwcRecordedBy = None
-		self._dwcVerbatimSRS = None
-		self._startEventDateTime = None
-		self._substrate = None
-		self._tags = None
-		self._endEventDateTime = None
-		self._verbatimEventDateTime = None
-		self._dwcVerbatimLocality = None
-		self._host = None
-		self._managedAttributes = None
-		self._remarks = None
+		self._version = 'undefined'
+		self._notPubliclyReleasableReason = 'undefined'
+		self._dwcMaximumDepthInMeters = 'undefined'
+		self._dwcCountry = 'undefined'
+		self._dwcMinimumElevationInMeters = 'undefined'
+		self._dwcCountryCode = 'undefined'
+		self._dwcFieldNumber = 'undefined'
+		self._dwcRecordNumber = 'undefined'
+		self._dwcVerbatimDepth = 'undefined'
+		self._dwcMinimumDepthInMeters = 'undefined'
+		self._dwcMaximumElevationInMeters = 'undefined'
+		self._dwcStateProvince = 'undefined'
+		self._dwcVerbatimCoordinateSystem = 'undefined'
+		self._dwcVerbatimElevation = 'undefined'
+		self._dwcVerbatimLatitude = 'undefined'
+		self._dwcVerbatimLongitude = 'undefined'
+		self._otherRecordNumbers = 'undefined'
+		self._publiclyReleasable = 'undefined'
+		self._group = 'undefined'
+		self._createdBy = 'undefined'
+		self._createdOn = 'undefined'
+		self._geoReferenceAssertions = 'undefined'
+		self._geographicPlaceNameSource = 'undefined'
+		self._geographicPlaceNameSourceDetail = 'undefined'
+		self._habitat = 'undefined'
+		self._eventGeom = 'undefined'
+		self._extensionValues = 'undefined'
+		self._dwcVerbatimCoordinates = 'undefined'
+		self._dwcRecordedBy = 'undefined'
+		self._dwcVerbatimSRS = 'undefined'
+		self._startEventDateTime = 'undefined'
+		self._substrate = 'undefined'
+		self._tags = 'undefined'
+		self._endEventDateTime = 'undefined'
+		self._verbatimEventDateTime = 'undefined'
+		self._dwcVerbatimLocality = 'undefined'
+		self._host = 'undefined'
+		self._managedAttributes = 'undefined'
+		self._remarks = 'undefined'
 	def version(self, version):
 		self._version = version
 		return self

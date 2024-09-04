@@ -140,7 +140,11 @@ VALID_COLLECTING_EVENT_DATA = {
 				"links": {
 					"self": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/relationships/collectionMethod",
 					"related": "/api/v1/collecting-event/f08516e5-add2-4baa-89bc-5b8abd0ec8ba/collectionMethod"
-				}
+				},
+				"data": {
+					"id": "01902d3a-0ec1-7a57-8284-f4ba3aff1664",
+					"type": "collection-method",
+				},
 			},
 			"protocol": {
 				"links": {
@@ -199,9 +203,19 @@ class CollectingEventSchemaTest(unittest.TestCase):
 		collecting_event = CollectingEventDTOBuilder().attributes(collecting_event_attributes).build()
 		try:
 			serialized_collecting_event = schema.dump(collecting_event)
+			expected = {
+        "data": {
+          "type": "collecting-event",
+          "attributes": {
+            "group": "aafc"
+          }
+        }
+      }
+
 			pp = pprint.PrettyPrinter(indent=0)
 			pp.pprint(serialized_collecting_event)
 			self.assertIsInstance(serialized_collecting_event, dict)
+			self.assertDictEqual(serialized_collecting_event, expected)
 		except ValidationError as e:
 			self.fail(f"Validation failed with error: {e.messages}")
 if __name__ == "__main__":
