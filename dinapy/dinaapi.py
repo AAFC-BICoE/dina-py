@@ -227,6 +227,7 @@ class DinaAPI:
                 files=file,
                 params=params,
                 headers={"Accept": None, "Content-Type": None},
+                verify=self.configs["secure"]
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:

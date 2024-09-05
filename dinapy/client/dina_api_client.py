@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime
 import os
+from requests import HTTPError
 import yaml
 import os,sys
 import json
@@ -196,9 +197,12 @@ def create_metadatas(dina_api_client: DinaApiClient, pathlist, dina_api_config, 
 
         serialized_metadata = schema.dump(dto)
 
-        response = dina_api_client.metadata_api.create_entity(serialized_metadata)
-        print(response.json())
-
+        try:
+          response = dina_api_client.metadata_api.create_entity(serialized_metadata)
+          print(response.json())
+        except HTTPError as e:
+          print(e.response.json())
+          print(serialized_metadata)
 
 def main():
     # Initialize argparse
