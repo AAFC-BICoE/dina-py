@@ -71,7 +71,7 @@ class DinaAPI:
 
         """
         try:
-            with open(config_path, "r") as config_file:
+            with open(config_path, "r", encoding="utf-8") as config_file:
                 self.configs = yaml.safe_load(config_file)
                 if (
                     self.configs["keycloak_username"]
