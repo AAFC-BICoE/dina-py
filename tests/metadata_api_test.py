@@ -22,9 +22,7 @@ def main():
     with open(DINA_API_CONFIG_TEST_PATH, "r", encoding="utf-8") as dina_api_config_file:
         dina_api_config: dict = yaml.safe_load(dina_api_config_file)
         group = dina_api_config["group"]
-        dina_api_client.metadata_api.create_metadatas(
-            dina_api_client.upload_file_api, pathlist, dina_api_config, group
-        )
+        dina_api_client.objectstore_module_api.create_metadatas(pathlist, dina_api_config, group)
 
 
 if __name__ == "__main__":

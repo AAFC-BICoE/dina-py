@@ -2,8 +2,7 @@ import argparse
 import yaml
 import os
 import sys
-from dinapy.apis.objectstoreapi.metadata_api import MetadataAPI
-from dinapy.apis.objectstoreapi.uploadfileapi import UploadFileAPI
+from dinapy.apis.objectstoreapi.objectstore_module_api import ObjectStoreModuleApi
 from dinapy.apis.collectionapi.formtemplateapi import FormTemplateAPI
 from dinapy.apis.collectionapi.splitconfigurationapi import SplitConfigurationAPI
 from pathlib import Path
@@ -17,9 +16,9 @@ from dinapy.entities.SplitConfiguration import (
 )
 from dinapy.schemas.splitconfigurationschema import SplitConfigurationSchema
 from dinapy.schemas.formtemplateschema import FormTemplateSchema
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
-
 
 
 DINA_API_CONFIG_PATH = "./dina-api-config.yml"
@@ -31,8 +30,7 @@ class DinaApiClient:
     """
 
     def __init__(self, config_path: str = None, base_url: str = None) -> None:
-        self.upload_file_api = UploadFileAPI(config_path, base_url)
-        self.metadata_api = MetadataAPI(config_path, base_url)
+        self.objectstore_module_api = ObjectStoreModuleApi(config_path, base_url)
         self.form_template_api = FormTemplateAPI(config_path, base_url)
         self.split_configuration_api = SplitConfigurationAPI(config_path, base_url)
 
@@ -81,7 +79,7 @@ def create_parser():
 def upload_file(
     args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path, group
 ):
-    response_json: dict = dina_api_client.upload_file_api.upload(group, path.as_posix())
+    response_json: dict = dina_api_client.objectstore_module_api.upload(group, path.as_posix())
     log_response: dict = {
         "originalFilename": response_json.get("originalFilename"),
         "uuid": response_json.get("uuid"),
@@ -181,9 +179,7 @@ def main():
             upload_file(args, dina_api_client, path)
     elif args.create_metadatas:
         pathlist = Path(args.create_metadatas).rglob("*.*")
-        dina_api_client.metadata_api.create_metadatas(
-            dina_api_client.upload_file_api, pathlist, dina_api_config, group
-        )
+        dina_api_client.objectstore_module_api.create_metadatas(pathlist, dina_api_config, group)
     elif args.create_form_template:
         path = Path(args.create_form_template)
         create_form_template(dina_api_client, path)
