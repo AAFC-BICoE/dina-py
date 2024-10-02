@@ -32,6 +32,9 @@ class DinaAPI:
 
     """
 
+    # Class-level field. class level are shared across all instances of the class. This means they belong to the class itself, not to any individual instance
+    token = None
+
     def __init__(self, config_path: str = None, base_url: str = None):
         """Creates basic web services based on the provided config path or a default path.
 
@@ -51,7 +54,7 @@ class DinaAPI:
         logging.captureWarnings(True)
 
         self.configs = None
-        self.token = None
+
         self.keycloak = None
 
         self.session = requests.Session()
@@ -80,7 +83,7 @@ class DinaAPI:
                     # Set keycloak user
                     os.environ["keycloak_username"] = self.configs["keycloak_username"]
                     os.environ["keycloak_password"] = self.configs["keycloak_password"]
-                if (self.configs["url"]):
+                if self.configs["url"]:
                     self.base_url = f'{self.configs["url"]}/api/'
         except FileNotFoundError:
             logging.error(f"Configuration file not found: {config_path}")
@@ -89,7 +92,7 @@ class DinaAPI:
             logging.error("Error in configuration file. Cannot execute.")
             logging.error(exc)
             raise
-
+        
     def set_keycloak(self):
         """
         Creates a Keycloak token based on configurations and environment variables.
@@ -101,12 +104,13 @@ class DinaAPI:
             client_secret_key=None,
             verify=self.configs["secure"],
         )
-        print(f'User: {os.environ.get("keycloak_username")}')
-        self.generate_token()
-
+        if not DinaAPI.token:
+            print(f'User: {os.environ.get("keycloak_username")}')
+            self.generate_token()
+    
     def generate_token(self):
         try:
-            self.token = self.keycloak.token(
+            DinaAPI.token = self.keycloak.token(
                 os.environ.get("keycloak_username"),
                 os.environ.get("keycloak_password"),
             )
@@ -122,7 +126,9 @@ class DinaAPI:
         Check if the token still valid or if it needs to be regenerated.
         """
         try:
-            self.keycloak.userinfo(self.token["access_token"])
+            # Set the bearer token in the header.
+            self.set_req_header()
+            self.keycloak.userinfo(DinaAPI.token["access_token"])
         except KeycloakAuthenticationError as e:
             self.generate_token()
 
@@ -137,7 +143,7 @@ class DinaAPI:
             {
                 "Accept": "application/vnd.api+json",
                 "Content-Type": "application/vnd.api+json",
-                "Authorization": f"bearer {self.token['access_token']}",
+                "Authorization": f"bearer {DinaAPI.token['access_token']}",
             }
         )
 
@@ -185,7 +191,12 @@ class DinaAPI:
         """
         self.refresh_token()
         try:
-            response = self.session.post(full_url, json=json_data, headers= self.session.headers, verify=self.configs["secure"])
+            response = self.session.post(
+                full_url,
+                json=json_data,
+                headers=self.session.headers,
+                verify=self.configs["secure"],
+            )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
@@ -227,7 +238,7 @@ class DinaAPI:
                 files=file,
                 params=params,
                 headers={"Accept": None, "Content-Type": None},
-                verify=self.configs["secure"]
+                verify=self.configs["secure"],
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
