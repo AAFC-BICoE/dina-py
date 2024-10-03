@@ -2,7 +2,8 @@ import argparse
 import yaml
 import os
 import sys
-from dinapy.apis.objectstoreapi.objectstore_module_api import ObjectStoreModuleApi
+from dinapy.apis.dina_export_api.dina_export_api import DinaExportApi
+from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreApi
 from dinapy.apis.collectionapi.formtemplateapi import FormTemplateAPI
 from dinapy.apis.collectionapi.splitconfigurationapi import SplitConfigurationAPI
 from pathlib import Path
@@ -30,9 +31,10 @@ class DinaApiClient:
     """
 
     def __init__(self, config_path: str = None, base_url: str = None) -> None:
-        self.objectstore_module_api = ObjectStoreModuleApi(config_path, base_url)
+        self.objectstore_module_api = ObjectStoreApi(config_path, base_url)
         self.form_template_api = FormTemplateAPI(config_path, base_url)
         self.split_configuration_api = SplitConfigurationAPI(config_path, base_url)
+        self.dina_export_api = DinaExportApi(config_path, base_url)
 
 
 def create_parser():
