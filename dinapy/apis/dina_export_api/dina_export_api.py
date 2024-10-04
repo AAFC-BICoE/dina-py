@@ -127,7 +127,7 @@ class DinaExportApi(DinaAPI):
         if data_export_status == "COMPLETED":
             data_export_name = data_export_response_json["data"]["attributes"]["name"]
             dina_export_download_response = self.get_req_dina(
-                f"{self.base_url}/file/{data_export_response_json["data"]["id"]}",
+                f"{self.base_url}/file/{data_export_response_json['data']['id']}",
                 {"type": "DATA_EXPORT"},
             )
             if dina_export_download_response.status_code == 200:
