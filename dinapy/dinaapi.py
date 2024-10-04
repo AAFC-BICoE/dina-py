@@ -147,7 +147,7 @@ class DinaAPI:
             }
         )
 
-    def get_req_dina(self, full_url: str, params: dict = None) -> requests.Response:
+    def get_req_dina(self, full_url: str, params: dict = None, stream = bool) -> requests.Response:
         """Base method for a GET request to DINA.
 
         Args:
@@ -164,7 +164,7 @@ class DinaAPI:
         self.refresh_token()
         try:
             response = self.session.get(
-                full_url, params=params, verify=self.configs["secure"]
+                full_url, params=params, verify=self.configs["secure"], stream=stream
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
