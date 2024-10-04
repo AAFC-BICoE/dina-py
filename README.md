@@ -17,22 +17,23 @@ Python access to the DINA API
 #### DINA APIs
 - Currently supported APIs:
     - Agent API
-        - Person
+      - Person
     - Collection API
-        - CollectingEvent
-        - StorageUnit
-        - StorageUnitUsage
-        - FormTemplate
-        - SplitConfiguration
-        - MaterialSample
-        - Organism
+      - CollectingEvent
+      - StorageUnit
+      - StorageUnitUsage
+      - FormTemplate
+      - SplitConfiguration
+      - MaterialSample
+      - Organism
     - Object Store API
-        - Metadata
-        - UploadFile
+      - Any Object Store API endpoint using ObjectStoreApi's CRUD methods 
     - SeqDB API
-        - PCR Batch
-        - PCR Batch Item
-        - SEQ Reaction
+      - PCR Batch
+      - PCR Batch Item
+      - SEQ Reaction
+    - Export API
+      - Any Export API endpoint using DinaExportApi's CRUD methods 
   
 #### DINA_API_CLIENT
 #### Currently supported operations:
@@ -63,14 +64,17 @@ Python access to the DINA API
 #### TEST COVERAGE
 - APIs (Unit Test with Magic Mock):
     - Collection API
-        - Collecting Event
-        - Managed Attributes
-        - Material Sample
-        - Organism
+      - Collecting Event
+      - Managed Attributes
+      - Material Sample
+      - Organism
     - Object Store API
-        - Metadata
+      - Metadata
+      - Object Export
     - Agent API
-        - Person
+      - Person
+    - Export API
+      - Data Export
 - Schemas:
    - Collecting Event
    - Form Template
@@ -148,4 +152,3 @@ def test_create_delete_entity(self):
          self.assertEqual(response.status_code,204)
    except ValidationError as e:
       self.fail(f"Validation failed with error: {e.messages}")
-
