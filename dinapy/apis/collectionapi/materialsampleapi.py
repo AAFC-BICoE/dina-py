@@ -1,6 +1,3 @@
-# This file contains the UploadFileAPI class used for uploading files to the Object Store API.
-import logging
-
 from .collectionapi import CollectionModuleApi
 
 class MaterialSampleAPI(CollectionModuleApi):
