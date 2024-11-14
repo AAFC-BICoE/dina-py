@@ -38,12 +38,13 @@ class MolecularAnalysisRunDTOBuilder:
 		return MolecularAnalysisRunDTO(self._id, self._type, self._attributes, self._relationships)
 
 class MolecularAnalysisRunAttributesDTO:
-	def __init__(self, createdBy=None, createdOn=None, group=None, name=None, sequenceNumber=None):
+	def __init__(self, createdBy=None, createdOn=None, group=None, name=None, sequenceNumber=None, remarks=None):
 		self.createdBy = createdBy
 		self.createdOn = createdOn
 		self.group = group
 		self.name = name
 		self.sequenceNumber = sequenceNumber
+		self.remarks = remarks
 	
 class MolecularAnalysisRunAttributesDTOBuilder:
 	def __init__(self):
@@ -52,6 +53,7 @@ class MolecularAnalysisRunAttributesDTOBuilder:
 		self._group = 'undefined'
 		self._name = 'undefined'
 		self._sequenceNumber = 'undefined'
+		self._remarks = 'undefined'
 
 	def set_createdBy(self, createdBy):
 		self._createdBy = createdBy
@@ -73,5 +75,16 @@ class MolecularAnalysisRunAttributesDTOBuilder:
 		self._sequenceNumber = sequenceNumber
 		return self
 	
+	def set_remarks(self, remarks):
+		self._remarks = remarks
+		return self
+	
 	def build(self):
-		return MolecularAnalysisRunAttributesDTO(self._createdBy, self._createdOn, self._group, self._name, self._sequenceNumber)
+		return MolecularAnalysisRunAttributesDTO(
+			self._createdBy, 
+			self._createdOn, 
+			self._group, 
+			self._name, 
+			self._sequenceNumber,
+			self._remarks
+		)
