@@ -13,6 +13,7 @@ class MolecularAnalysisRunSchema(Schema):
     createdOn = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdOn")
     group = SkipUndefinedField(fields.Str, required=True, attribute="attributes.group")
     name = SkipUndefinedField(fields.Str, attribute="attributes.name")
+    sequenceNumber = SkipUndefinedField(fields.Str, attribute="attributes.sequenceNumber")
 
     @post_load
     def set_none_to_undefined(self, data, **kwargs):
@@ -36,4 +37,3 @@ class MolecularAnalysisRunSchema(Schema):
 
     class Meta:
         type_ = 'molecular-analysis-run'
-    
