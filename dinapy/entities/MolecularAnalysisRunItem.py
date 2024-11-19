@@ -38,14 +38,18 @@ class MolecularAnalysisRunItemDTOBuilder:
 		return MolecularAnalysisRunItemDTO(self._id, self._type, self._attributes, self._relationships)
 
 class MolecularAnalysisRunItemAttributesDTO:
-	def __init__(self, createdBy=None, createdOn=None):
+	def __init__(self, createdBy=None, createdOn=None, remarks=None, usageType=None):
 		self.createdBy = createdBy
 		self.createdOn = createdOn
+		self.remarks = remarks
+		self.usageType = usageType
 	
 class MolecularAnalysisRunItemAttributesDTOBuilder:
 	def __init__(self):
 		self._createdBy = 'undefined'
 		self._createdOn = 'undefined'
+		self.remarks = 'undefined'
+		self.usageType = 'undefined'
 
 	def set_createdBy(self, createdBy):
 		self._createdBy = createdBy
@@ -54,7 +58,15 @@ class MolecularAnalysisRunItemAttributesDTOBuilder:
 	def set_createdOn(self, createdOn):
 		self._createdOn = createdOn
 		return self
+		
+	def set_createdOn(self, remarks):
+		self._remarks = remarks
+		return self
+
+	def set_createdOn(self, usageType):
+		self._usageType = usageType
+		return self
 	
 	def build(self):
-		return MolecularAnalysisRunItemAttributesDTO(self._createdBy, self._createdOn)
+		return MolecularAnalysisRunItemAttributesDTO(self._createdBy, self._createdOn, self._remarks, self._usageType)
 	
