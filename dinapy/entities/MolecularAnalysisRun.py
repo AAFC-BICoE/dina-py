@@ -84,7 +84,5 @@ class MolecularAnalysisRunAttributesDTOBuilder:
 			self._createdBy, 
 			self._createdOn, 
 			self._group, 
-			self._name, 
-			self._sequenceNumber,
-			self._remarks
+			self._name
 		)
