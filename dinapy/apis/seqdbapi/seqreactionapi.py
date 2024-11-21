@@ -2,7 +2,7 @@
 
 from .seqdbapi import SeqDBApi	
 
-class SeqReactionAPI(SeqDBApi):
+class SeqReactionApi(SeqDBApi):
 
   def __init__(self, config_path: str = None, base_url: str = None) -> None:
     """
