@@ -7,10 +7,6 @@ from dinapy.entities.MolecularAnalysisRun import MolecularAnalysisRunDTO
 from .customFields import SkipUndefinedField
 from .BaseSchema import *
 
-class Attachment(BaseSchema):
-	class Meta:
-		type_ = 'attachment'
-
 class MolecularAnalysisRunSchema(Schema):
     id = fields.Str(load_only=True)
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")

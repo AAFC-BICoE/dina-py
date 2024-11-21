@@ -19,7 +19,7 @@ class MolecularAnalysisRunItemSchema(Schema):
     id = fields.Str(load_only=True)
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdOn")
-    usageType = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.remarks")
+    usageType = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.usageType")
 
     run = create_relationship("molecular-analysis-run-item", "run")
     result = create_relationship("molecular-analysis-run-item", "result")

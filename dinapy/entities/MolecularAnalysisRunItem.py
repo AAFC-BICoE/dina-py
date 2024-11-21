@@ -57,7 +57,7 @@ class MolecularAnalysisRunItemAttributesDTOBuilder:
 		self._createdOn = createdOn
 		return self
 
-	def set_createdOn(self, usageType):
+	def set_usageType(self, usageType):
 		self._usageType = usageType
 		return self
 	
