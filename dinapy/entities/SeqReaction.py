@@ -47,7 +47,7 @@ class SeqReactionAttributesDTOBuilder:
 	def __init__(self):
 		self._createdBy = 'undefined'
 		self._createdOn = 'undefined'
-		self.group = 'undefined'
+		self._group = 'undefined'
 
 	def set_createdBy(self, createdBy):
 		self._createdBy = createdBy
@@ -62,7 +62,7 @@ class SeqReactionAttributesDTOBuilder:
 		return self
 	
 	def build(self):
-		return SeqReactionDTO(
+		return SeqReactionAttributesDTO(
 			self._createdBy, 
 			self._createdOn, 
 			self._group

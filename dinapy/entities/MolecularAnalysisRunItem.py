@@ -47,7 +47,7 @@ class MolecularAnalysisRunItemAttributesDTOBuilder:
 	def __init__(self):
 		self._createdBy = 'undefined'
 		self._createdOn = 'undefined'
-		self.usageType = 'undefined'
+		self._usageType = 'undefined'
 
 	def set_createdBy(self, createdBy):
 		self._createdBy = createdBy
