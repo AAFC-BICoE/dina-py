@@ -28,9 +28,11 @@ os.environ["keycloak_password"] = "dina-admin"
 
 def main():
     # Create a Molecular Analysis Run
+    MOCK_RUN_NAME = "test run"
+
     molecular_analysis_run_api = MolecularAnalysisRunApi()
     molecular_analysis_run_attributes = MolecularAnalysisRunAttributesDTOBuilder(
-        ).set_createdBy("dina-admin").set_name("test run").set_group("aafc").build()
+        ).set_createdBy("dina-admin").set_name(MOCK_RUN_NAME).set_group("aafc").build()
     molecular_analysis_run = MolecularAnalysisRunDTOBuilder(
         ).set_attributes(molecular_analysis_run_attributes).build()
     molecular_analysis_run_schema = MolecularAnalysisRunSchema()
@@ -44,6 +46,7 @@ def main():
     # test MARun 2 UUID in dev2
     # marun2 = "05997165-27de-4d7e-a8aa-d059913bec3b"
 
+    # Create Relationship linking to created Molecular Analysis Run
     run_to_item_relationship = (
         RelationshipDTO.Builder()
             .add_relationship(
@@ -56,6 +59,7 @@ def main():
 
     # Create 10 Molecular Analysis Run Items and Seq Reactions to link
     for i in range(10):
+        # Create Molecular Analysis Run Item
         molecular_analysis_run_item_api = MolecularAnalysisRunItemApi()
         molecular_analysis_run_item_attributes = MolecularAnalysisRunItemAttributesDTOBuilder(
             ).set_createdBy("dina-admin").set_usageType("seq-reaction").build()
@@ -69,6 +73,7 @@ def main():
         item_id = item_response.json()['data']['id']
         print("Run Item " + str(i) + ": " + item_id)
 
+        # Create Relationship linking to created Molecular Analysis Run Item
         item_to_seqr_relationship = (
             RelationshipDTO.Builder()
                 .add_relationship(
@@ -79,6 +84,7 @@ def main():
             .build()
         )
 
+        # Create Seq Reaction
         seq_reaction_api = SeqReactionApi()
         seq_reaction_attributes = SeqReactionAttributesDTOBuilder(
             ).set_createdBy("dina-admin").set_group("aafc").build()
