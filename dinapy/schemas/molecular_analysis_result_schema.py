@@ -11,7 +11,7 @@ class Attachment(BaseSchema):
     class Meta:
         type_ = 'attacment'
 
-class MolecularAnalysisRunSchema(Schema):
+class MolecularAnalysisResultSchema(Schema):
     id = fields.Str(load_only=True)
     group = SkipUndefinedField(fields.Str, required=True, attribute="attributes.group")
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
