@@ -43,9 +43,6 @@ def main():
     run_id = run_response.json()['data']['id']
     print("Run: " + run_id + "\n")
 
-    # test MARun 2 UUID in dev2
-    # marun2 = "05997165-27de-4d7e-a8aa-d059913bec3b"
-
     # Create Relationship linking to created Molecular Analysis Run
     run_to_item_relationship = (
         RelationshipDTO.Builder()
@@ -100,3 +97,36 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# test MARun 3 UUIDs in dev2
+# Run: acd740e0-7e7d-4ad7-9751-1754d1c54458
+
+# Run Item 0: 09b5abcf-76ba-4fda-b60e-6e1f6c159233
+# Seq Reaction 0: 9fc86d73-95b9-4450-9018-778635f21f1c
+
+# Run Item 1: 90a5aab1-3e36-4d5b-af2d-acf102687141
+# Seq Reaction 1: 0473959d-4d3c-4072-bc9c-f7e49d3c8724
+
+# Run Item 2: a51405be-93fa-451a-add6-d9859451aa91
+# Seq Reaction 2: 7a446380-2f7d-47cf-8369-c70aa820b695
+
+# Run Item 3: 7ca10b2b-4fb9-4ff0-a0ef-9fa236ad64d8
+# Seq Reaction 3: 75657297-cff2-4b44-8413-973cbc7b7d8e
+
+# Run Item 4: d9935ce2-7360-4792-a60e-26213d0ea9a9
+# Seq Reaction 4: 2cbb1a4c-1c58-4ab4-ab1f-849b5d325f52
+
+# Run Item 5: c0521a5e-fbfa-4b2a-ae74-55a3d358a97c
+# Seq Reaction 5: 47821630-4399-4394-8909-949c45662eb9
+
+# Run Item 6: e3efe617-25a0-4258-9890-8a9ff4e0d0d3
+# Seq Reaction 6: 65c18431-52fe-4951-b595-be9e1784b092
+
+# Run Item 7: 34bd329b-c12f-4dc8-8369-e983ecd78948
+# Seq Reaction 7: 8b905db5-ba27-43fe-a731-c1973b5d30e3
+
+# Run Item 8: 719a790d-0ef4-416c-b2d1-c0a55e0108a1
+# Seq Reaction 8: 5fc3f435-2f19-420c-89bc-6409ce480f0d
+
+# Run Item 9: 82a9c526-2a33-4b5f-a02f-e61f5099d88e
+# Seq Reaction 9: 187b987d-dc00-4fe4-b4e5-f40ece95ad57
