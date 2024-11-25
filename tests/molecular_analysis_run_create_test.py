@@ -9,17 +9,21 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Molecular Analysis Run Imports
-from dinapy.apis.seqdbapi.molecularanalysisrunapi import MolecularAnalysisRunApi
+from dinapy.apis.seqdbapi.molecular_analysis_run_api import MolecularAnalysisRunApi
 from dinapy.entities.MolecularAnalysisRun import MolecularAnalysisRunDTOBuilder, MolecularAnalysisRunAttributesDTOBuilder
-from dinapy.schemas.molecularanalysisrunschema import MolecularAnalysisRunSchema
+from dinapy.schemas.molecular_analysis_run_schema import MolecularAnalysisRunSchema
 # Molecular Analysis Run Item Imports
-from dinapy.apis.seqdbapi.molecularanalysisrunitemapi import MolecularAnalysisRunItemApi
+from dinapy.apis.seqdbapi.molecular_analysis_run_item_api import MolecularAnalysisRunItemApi
 from dinapy.entities.MolecularAnalysisRunItem import MolecularAnalysisRunItemDTOBuilder, MolecularAnalysisRunItemAttributesDTOBuilder
-from dinapy.schemas.molecularanalysisrunitemschema import MolecularAnalysisRunItemSchema
+from dinapy.schemas.molecular_analysis_run_item_schema import MolecularAnalysisRunItemSchema
 # Seq Reaction Imports
 from dinapy.apis.seqdbapi.seqreactionapi import SeqReactionApi
 from dinapy.entities.SeqReaction import SeqReactionDTOBuilder, SeqReactionAttributesDTOBuilder
 from dinapy.schemas.seqreactionschema import SeqReactionSchema
+# Molecular Analysis Result Imports
+from dinapy.apis.seqdbapi.molecular_analysis_result_api import MolecularAnalysisResultApi
+from dinapy.entities.MolecularAnalysisResult import MolecularAnalysisResultDTOBuilder, MolecularAnalysisResultAttributesDTOBuilder
+from dinapy.schemas.molecular_analysis_result_schema import MolecularAnalysisResultSchema
 
 from dinapy.entities.Relationships import RelationshipDTO
 
@@ -28,7 +32,7 @@ os.environ["keycloak_password"] = "dina-admin"
 
 def main():
     # Create a Molecular Analysis Run
-    MOCK_RUN_NAME = "test run"
+    MOCK_RUN_NAME = "test run with results"
 
     molecular_analysis_run_api = MolecularAnalysisRunApi()
     molecular_analysis_run_attributes = MolecularAnalysisRunAttributesDTOBuilder(
@@ -43,25 +47,44 @@ def main():
     run_id = run_response.json()['data']['id']
     print("Run: " + run_id + "\n")
 
-    # Create Relationship linking to created Molecular Analysis Run
-    run_to_item_relationship = (
-        RelationshipDTO.Builder()
-            .add_relationship(
-                "molecular-analysis-run",   # Relationship Name
-                "run",                      # Type
-                run_id                      # UUID
-        )
-        .build()
-    )
-
-    # Create 10 Molecular Analysis Run Items and Seq Reactions to link
+    # Create 10 Molecular Analysis Results, Molecular Analysis Run Items, and Seq Reactions
     for i in range(10):
+        # Create a Molecular Analysis Result
+        molecular_analysis_result_api = MolecularAnalysisResultApi()
+        molecular_analysis_result_attributes = MolecularAnalysisResultAttributesDTOBuilder(
+            ).set_createdBy("dina-admin").set_group("aafc").build()
+        molecular_analysis_result = MolecularAnalysisResultDTOBuilder(
+            ).set_attributes(molecular_analysis_result_attributes).build()
+        molecular_analysis_result_schema = MolecularAnalysisResultSchema()
+
+        serialized_molecular_analysis_result = molecular_analysis_result_schema.dump(molecular_analysis_result)
+
+        result_response = molecular_analysis_result_api.create_entity(serialized_molecular_analysis_result)
+        result_id = result_response.json()['data']['id']
+        print("Result " + str(i) + ": " + result_id)
+
+        # Create Relationships for each Run Item
+        run_item_relationships = (
+            RelationshipDTO.Builder()
+                .add_relationship(
+                    "molecular-analysis-run",   # Relationship Name
+                    "run",                      # Type
+                    run_id                      # UUID
+                )
+                .add_relationship(
+                    "molecular-analysis-result",    # Relationship Name
+                    "result",                       # Type
+                    result_id                       # UUID
+                )
+            .build()
+        )
+
         # Create Molecular Analysis Run Item
         molecular_analysis_run_item_api = MolecularAnalysisRunItemApi()
         molecular_analysis_run_item_attributes = MolecularAnalysisRunItemAttributesDTOBuilder(
             ).set_createdBy("dina-admin").set_usageType("seq-reaction").build()
         molecular_analysis_run_item = MolecularAnalysisRunItemDTOBuilder(
-            ).set_attributes(molecular_analysis_run_item_attributes).set_relationships(run_to_item_relationship).build()
+            ).set_attributes(molecular_analysis_run_item_attributes).set_relationships(run_item_relationships).build()
         molecular_analysis_run_item_schema = MolecularAnalysisRunItemSchema()
 
         serialized_molecular_analysis_run_item = molecular_analysis_run_item_schema.dump(molecular_analysis_run_item)
@@ -70,7 +93,7 @@ def main():
         item_id = item_response.json()['data']['id']
         print("Run Item " + str(i) + ": " + item_id)
 
-        # Create Relationship linking to created Molecular Analysis Run Item
+        # Create Relationships for each Seq Reaction
         item_to_seqr_relationship = (
             RelationshipDTO.Builder()
                 .add_relationship(
@@ -98,35 +121,45 @@ def main():
 if __name__ == "__main__":
     main()
 
-# test MARun 3 UUIDs in dev2
-# Run: acd740e0-7e7d-4ad7-9751-1754d1c54458
+# test run with results UUIDs in dev2
+# Run: d35d3e13-49d8-47eb-9536-a6ee7abc7db0
 
-# Run Item 0: 09b5abcf-76ba-4fda-b60e-6e1f6c159233
-# Seq Reaction 0: 9fc86d73-95b9-4450-9018-778635f21f1c
+# Result 0: 82bdd6c4-50d7-4717-833b-792dac8c62b8
+# Run Item 0: 0142a2c5-a950-4962-8856-445c7f5770d9
+# Seq Reaction 0: 177a9363-4a4b-4f80-a736-bb1cfefcd9b5
 
-# Run Item 1: 90a5aab1-3e36-4d5b-af2d-acf102687141
-# Seq Reaction 1: 0473959d-4d3c-4072-bc9c-f7e49d3c8724
+# Result 1: c89e1368-8038-4f46-b37b-bdf1fdc5f9be
+# Run Item 1: 0a46b4ea-61ef-40b8-9b41-013195fd30a6
+# Seq Reaction 1: 0546827d-708f-4ac1-b3bf-386782048ca3
 
-# Run Item 2: a51405be-93fa-451a-add6-d9859451aa91
-# Seq Reaction 2: 7a446380-2f7d-47cf-8369-c70aa820b695
+# Result 2: 12f6dcf4-173f-41cc-9a6c-43203633eb7f
+# Run Item 2: 851b0e91-cbd5-41bb-8b13-6dff96f9faba
+# Seq Reaction 2: 32daf295-eff5-4628-a314-a5d36af8645d
 
-# Run Item 3: 7ca10b2b-4fb9-4ff0-a0ef-9fa236ad64d8
-# Seq Reaction 3: 75657297-cff2-4b44-8413-973cbc7b7d8e
+# Result 3: 6fd4b045-5c18-4182-a56b-ad4858efc9f2
+# Run Item 3: 69b1f2b6-62aa-4e48-82d7-c6b71d1a9dd4
+# Seq Reaction 3: 3776bab6-ae16-40ef-8c5e-c387c048c5b2
 
-# Run Item 4: d9935ce2-7360-4792-a60e-26213d0ea9a9
-# Seq Reaction 4: 2cbb1a4c-1c58-4ab4-ab1f-849b5d325f52
+# Result 4: 69a9ee8c-9c99-46e9-9dda-c96c55066dc4
+# Run Item 4: 9d9441bf-eab3-4a34-96aa-0f9f7b11b290
+# Seq Reaction 4: 139ab393-717a-4541-bd09-9b4fd104e89c
 
-# Run Item 5: c0521a5e-fbfa-4b2a-ae74-55a3d358a97c
-# Seq Reaction 5: 47821630-4399-4394-8909-949c45662eb9
+# Result 5: 73018b50-1d3b-435e-a506-a8e97d965414
+# Run Item 5: 3fbb1a06-5cf1-4181-b96e-c7d9e4fb2ec5
+# Seq Reaction 5: e7fe25da-52dd-43c5-8c33-eb30fca46cbc
 
-# Run Item 6: e3efe617-25a0-4258-9890-8a9ff4e0d0d3
-# Seq Reaction 6: 65c18431-52fe-4951-b595-be9e1784b092
+# Result 6: c8b62dbe-9420-442b-aee3-b870165a0c13
+# Run Item 6: 415fe61a-1920-4dd5-a264-9cba1f83602d
+# Seq Reaction 6: 14590fa1-4649-4109-b19f-0c573faa7da6
 
-# Run Item 7: 34bd329b-c12f-4dc8-8369-e983ecd78948
-# Seq Reaction 7: 8b905db5-ba27-43fe-a731-c1973b5d30e3
+# Result 7: 814c9c79-0b58-4534-9459-aa20ba580e26
+# Run Item 7: d5301681-3e4e-4206-9daf-23b8072ade70
+# Seq Reaction 7: 80350e98-ab86-48cb-89c2-89197cb3d4a7
 
-# Run Item 8: 719a790d-0ef4-416c-b2d1-c0a55e0108a1
-# Seq Reaction 8: 5fc3f435-2f19-420c-89bc-6409ce480f0d
+# Result 8: c448cf1c-72a2-4fa9-b9f6-278abbcd9d55
+# Run Item 8: 9eea0be4-7109-4743-a72e-e2b8738e130d
+# Seq Reaction 8: c9e94405-5884-499a-9cfb-6aea683ef5a9
 
-# Run Item 9: 82a9c526-2a33-4b5f-a02f-e61f5099d88e
-# Seq Reaction 9: 187b987d-dc00-4fe4-b4e5-f40ece95ad57
+# Result 9: 018fe165-12f0-417d-895b-39f84222b26d
+# Run Item 9: 71f8e269-7483-4f88-9bc0-d5651d476c04
+# Seq Reaction 9: 91fe4965-ef82-41b1-b3ae-cd0457085c1f

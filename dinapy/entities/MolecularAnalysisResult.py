@@ -38,10 +38,10 @@ class MolecularAnalysisResultDTOBuilder:
 		return MolecularAnalysisResultDTO(self._id, self._type, self._attributes, self._relationships)
 
 class MolecularAnalysisResultAttributesDTO:
-	def __init__(self, createdBy=None, createdOn=None, group=None):
+	def __init__(self, group=None, createdBy=None, createdOn=None):
+		self.group = group
 		self.createdBy = createdBy
 		self.createdOn = createdOn
-		self.group = group
 	
 class MolecularAnalysisResultAttributesDTOBuilder:
 	def __init__(self):
