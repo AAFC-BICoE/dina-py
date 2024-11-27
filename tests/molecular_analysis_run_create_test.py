@@ -19,7 +19,7 @@ from dinapy.schemas.molecular_analysis_run_item_schema import MolecularAnalysisR
 # Seq Reaction Imports
 from dinapy.apis.seqdbapi.seqreactionapi import SeqReactionApi
 from dinapy.entities.SeqReaction import SeqReactionDTOBuilder, SeqReactionAttributesDTOBuilder
-from dinapy.schemas.seqreactionschema import SeqReactionSchema
+from dinapy.schemas.seq_reaction_schema import SeqReactionSchema
 # Molecular Analysis Result Imports
 from dinapy.apis.seqdbapi.molecular_analysis_result_api import MolecularAnalysisResultApi
 from dinapy.entities.MolecularAnalysisResult import MolecularAnalysisResultDTOBuilder, MolecularAnalysisResultAttributesDTOBuilder
