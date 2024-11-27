@@ -1,8 +1,8 @@
-"""Class that extracts common functionality for Pcr Batch Item entity"""  
+"""Class that extracts common functionality for Molecular Analysis Result entity"""  
 
 from .seqdbapi import SeqDBApi	
 
-class SeqReactionApi(SeqDBApi):
+class MolecularAnalysisResultApi(SeqDBApi):
 
   def __init__(self, config_path: str = None, base_url: str = None) -> None:
     """
@@ -12,11 +12,12 @@ class SeqReactionApi(SeqDBApi):
         provided then local deployment URL is used. Should end with a forward slash.
     """
     super().__init__(config_path, base_url)
-    self.base_url += "seq-reaction"
+    self.base_url += "molecular-analysis-result"
 
   def get_relationship_entity(self, entity_id, endpoint):
     entity_id = str(entity_id) if isinstance(entity_id, int) else entity_id
     new_request_url = self.base_url + '/'+ str(entity_id) + f'/relationships/{endpoint}'
+    print(new_request_url)
     jsn_resp = self.get_req_dina(request_url = new_request_url)
     return jsn_resp if jsn_resp else ''   
   
