@@ -29,7 +29,7 @@ def main():
                 # Set metadata attributes
                 metadata_attributes = MetadataAttributesDTOBuilder(                        
                     ).set_dcType("DATASET").set_acCaption(name).set_acSubtype("SEQUENCE FILE"
-                    ).set_dcFormat("application/gzip").set_resourceExternalURL(f"file://" + line).set_fileExtension(".fastq.gz"
+                    ).set_dcFormat("application/gzip").set_resourceExternalURL(f"file:/{line}").set_fileExtension(".fastq.gz"
                     ).set_bucket("aafc").set_originalFilename(name).build()
                 file_metadata = MetadataDTOBuilder().set_attributes(metadata_attributes).build()
 
