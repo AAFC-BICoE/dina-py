@@ -10,16 +10,14 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-os.environ["keycloak_username"] = "dina-admin"
-os.environ["keycloak_password"] = "dina-admin"
-
 def main():
 
     # File to be uploaded
-    file = "external-resource-import-demo/dataset1.txt"
+    file = "external-resource-import-demo/dataset2.txt"
 
     try:
         with open(file, 'r') as f:
+            uuids = []
             for line in f:
                 # Parse through file
                 linesplit = line.split("/")
@@ -46,7 +44,11 @@ def main():
                 # Upload to DINA instance
                 response = file_metadata_api.create_entity(metadata_payload, 'metadata')
                 print(response)
+                uuids.append(response.json()['data']['id'])
                 print()
+
+            with open('external-resource-import-demo/external_url_uuids.txt', 'a') as f:
+                print(uuids, file=f)
             
     # Check exceptions
     except:
