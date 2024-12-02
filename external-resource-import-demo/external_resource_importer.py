@@ -16,7 +16,7 @@ os.environ["keycloak_password"] = "dina-admin"
 def main():
 
     # File to be uploaded
-    file = "external-resource-upload-demo/dataset1.txt"
+    file = "external-resource-import-demo/dataset1.txt"
 
     try:
         with open(file, 'r') as f:
