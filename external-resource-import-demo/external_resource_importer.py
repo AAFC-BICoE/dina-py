@@ -13,11 +13,10 @@ sys.path.insert(0, project_root)
 def main():
 
     # File to be uploaded
-    file = "external-resource-import-demo/dataset2.txt"
+    file = "external-resource-import-demo/dataset1.txt"
 
     try:
         with open(file, 'r') as f:
-            uuids = []
             for line in f:
                 # Parse through file
                 linesplit = line.split("/")
@@ -44,11 +43,12 @@ def main():
                 # Upload to DINA instance
                 response = file_metadata_api.create_entity(metadata_payload, 'metadata')
                 print(response)
-                uuids.append(response.json()['data']['id'])
                 print()
 
-            with open('external-resource-import-demo/external_url_uuids.txt', 'a') as f:
-                print(uuids, file=f)
+                # Write UUIDs to file
+                uuid = response.json()['data']['id']
+                with open('external-resource-import-demo/external_url_uuids.txt', 'a') as ff:
+                    print(uuid, file=ff)
             
     # Check exceptions
     except:
