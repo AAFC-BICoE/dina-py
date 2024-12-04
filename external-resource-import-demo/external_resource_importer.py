@@ -13,11 +13,9 @@ sys.path.insert(0, project_root)
 def main():
 
     # File to be uploaded
-    file = "external-resource-import-demo/dataset2.txt"
+    file = "external-resource-import-demo/dataset1.txt"
 
     try:
-        with open('external-resource-import-demo/external_url_uuids.txt', 'a') as ff:
-            print(f"\n{file.split("/")[-1]}", file=ff)
         with open(file, 'r') as f:
             for line in f:
                 # Parse through file
