@@ -13,7 +13,8 @@ sys.path.insert(0, project_root)
 def main():
 
     # File to be uploaded
-    file = "external-resource-import-demo/dataset1.txt"
+    # Change as needed
+    file = "external-resource-import-demo/examples/dataset1.txt"
 
     try:
         with open(file, 'r') as f:
