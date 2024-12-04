@@ -115,7 +115,7 @@ class MaterialSampleSchema(Schema):
 	preparationMethod = create_relationship("material-sample","preparationMethod")
 	parentMaterialSample = create_relationship("material-sample","parentMaterialSample")
 	preparedBy = create_relationship("material-sample","preparedBy")
-	attachment = create_relationship("material-sample","attachment")
+	attachment = create_relationship("material-sample","metadata","attachment")
 	preparationProtocol = create_relationship("material-sample","preparationProtocol")
 	projects = create_relationship("material-sample","projects")
 	assemblages = create_relationship("material-sample","assemblages")

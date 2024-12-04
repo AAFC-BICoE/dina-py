@@ -14,7 +14,8 @@ sys.path.insert(0, project_root)
 # Method Main
 def main():
     # File to be parsed for samples
-    file = "external-resource-import-demo/dataset1.txt"
+    # Change as needed
+    file = "external-resource-import-demo/examples/dataset1.txt"
 
     try:
         with open(file, 'r') as f:
@@ -22,6 +23,7 @@ def main():
             # Get Material Sample info from file name
             for line in f:
                 # Parsing done for dataset1.txt
+                # Change as needed
                 sample_name = line.split(".")[-3]
                 file_name = line.split("/")[-1].split("\n")[0]
                 sample_type = "rumen"
