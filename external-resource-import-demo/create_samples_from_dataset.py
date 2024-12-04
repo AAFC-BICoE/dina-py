@@ -31,6 +31,8 @@ def main():
                     sample_type = "milk"
                 day = line.split("-")[-2].split("d")[1]
 
+                # Call create_sample function based on variables above
+                # Change arguments based on variables
                 create_sample(count, sample_name, file_name, sample_type, day)
                 count += 1
     # Check exceptions
@@ -40,6 +42,8 @@ def main():
         if 'Duplicate File Exists' in traceback.format_exc():
             return 'Duplicate File, File not Uploaded'
    
+# Function to create samples and link them to External URL
+# Change parameters as above
 def create_sample(count, sample_name, file_name, sample_type, day):
     # Create Material Sample and match with External Resource URL
     count_match = 0
@@ -59,7 +63,8 @@ def create_sample(count, sample_name, file_name, sample_type, day):
 
                 material_sample_api = MaterialSampleAPI()
                 material_sample_schema = MaterialSampleSchema()
-                # Define Material Sample Attributes
+                # Define Material Sample Attributes based on parameters
+                # Change as needed
                 material_sample_attributes = MaterialSampleAttributesDTOBuilder(
                     ).createdBy("dina-admin").group("aafc").materialSampleName(sample_name
                     ).materialSampleRemarks(f"File Name: {file_name}\nDay: {day}\nType: {sample_type}").build()
