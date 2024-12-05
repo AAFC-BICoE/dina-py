@@ -18,7 +18,7 @@ def main():
 
     # File to be uploaded
     # Change as needed
-    file = "examples/external-resource-import-demo/dataset2.txt"
+    file = "examples/external-resource-import-demo/dataset.txt"
 
     try:
         with open(file, 'r') as f:
@@ -32,7 +32,7 @@ def main():
                 metadata_attributes = MetadataAttributesDTOBuilder(                        
                     ).set_dcType("DATASET").set_acCaption(file_name).set_acSubtype("SEQUENCE FILE"
                     ).set_dcFormat("application/gzip").set_resourceExternalURL(f"file:/{line}").set_fileExtension(".fastq.gz"
-                    ).set_bucket("aafc").set_originalFilename(file_name).set_acTags('piglet_gut_microbiome_pre_vs_post_weaned').build()
+                    ).set_bucket("aafc").set_originalFilename(file_name).build()
                 file_metadata = MetadataDTOBuilder().set_attributes(metadata_attributes).build()
 
                 file_metadata_api = ObjectStoreApi()

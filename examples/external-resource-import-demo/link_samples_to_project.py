@@ -46,7 +46,7 @@ def main():
                 # Update DINA Material Sample Object
                 response = material_sample_api.update_entity(mat_sample_uuid, serialized_material_sample)
                 mat_sample_id = response.json()['data']['id']
-                print(f"Material Sample {mat_sample_id} updated")
+                print(f"Material Sample {mat_sample_id} Updated")
     except:
         with open('examples/external-resource-import-demo/error_log.txt', 'a') as f:
             print(f'File Not Uploaded: {file}\n{traceback.format_exc()}', file=f)
