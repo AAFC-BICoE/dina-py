@@ -117,7 +117,7 @@ class MaterialSampleSchema(Schema):
 	preparedBy = create_relationship("material-sample","preparedBy")
 	attachment = create_relationship("material-sample","metadata","attachment")
 	preparationProtocol = create_relationship("material-sample","preparationProtocol")
-	projects = create_relationship("material-sample","projects")
+	projects = create_relationship("material-sample","project","projects")
 	assemblages = create_relationship("material-sample","assemblages")
 	organism = create_relationship("material-sample","organism")
 	storageUnit = create_relationship("material-sample","storageUnit")
