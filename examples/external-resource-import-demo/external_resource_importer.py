@@ -39,7 +39,7 @@ def main():
                 file_metadata_schema = MetadataSchema()
 
                 print(line)
-                print(name)
+                print(file_name)
 
                 # Build Metadata JSON object
                 metadata_payload = file_metadata_schema.dump(file_metadata)
