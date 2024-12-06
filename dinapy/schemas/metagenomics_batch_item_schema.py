@@ -23,7 +23,7 @@ class NgsIndexSchema(BaseSchema):
     class Meta:
         type_ = 'ngs-index'
 
-class MetagenomicsBatchSchema(Schema):
+class MetagenomicsBatchItemSchema(Schema):
     id = fields.Str(load_only=True)
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdOn")
