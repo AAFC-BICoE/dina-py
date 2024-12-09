@@ -48,7 +48,7 @@ class MetagenomicsBatchItemSchemaTest(unittest.TestCase):
   def test_serialize_metagenomics_batch(self):
       schema = MetagenomicsBatchItemSchema()
       metagenomics_batch_item_attributes = MetagenomicsBatchItemAttributesDTOBuilder(
-        ).set_name("test").set_createdBy("dina-admin").build()
+        ).set_createdBy("dina-admin").build()
       metagenomics_batch_item = MetagenomicsBatchItemDTOBuilder(
         ).set_attributes(metagenomics_batch_item_attributes).build()
       
@@ -57,9 +57,7 @@ class MetagenomicsBatchItemSchemaTest(unittest.TestCase):
         expected = {
           "data": {
             "type": "metagenomics-batch-item",
-            "attributes": {
-              "name": "test"
-            }
+            "attributes": {}
           }
         }
 
