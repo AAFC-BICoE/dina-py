@@ -52,20 +52,23 @@ class MetagenomicsBatchItemSchemaTest(unittest.TestCase):
       metagenomics_batch_item = MetagenomicsBatchItemDTOBuilder(
         ).set_attributes(metagenomics_batch_item_attributes).build()
       
+      serialized_metagenomics_batch_item = schema.dump(metagenomics_batch_item)
+      print(serialized_metagenomics_batch_item)
+      
       try:
-        serialized_metagenomics_batch_item = schema.dump(metagenomics_batch_item)
         expected = {
           "data": {
             "type": "metagenomics-batch-item",
-            "attributes": {}
+            "attributes": {
+               "createdBy": "dina-admin"
+            }
           }
         }
 
-        print(serialized_metagenomics_batch_item)
         self.assertIsInstance(serialized_metagenomics_batch_item, dict)
         self.assertDictEqual(serialized_metagenomics_batch_item, expected)
       except ValidationError as e:
-          self.fail(f"Validation failed with error: {e.messages}")
+        self.fail(f"Validation failed with error: {e.messages}")
 
 if __name__ == "__main__":
   unittest.main()
