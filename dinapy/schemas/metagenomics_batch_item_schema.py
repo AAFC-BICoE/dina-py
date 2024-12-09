@@ -7,7 +7,7 @@ from dinapy.entities.MetagenomicsBatchItem import MetagenomicsBatchItemDTO
 from .customFields import SkipUndefinedField
 from .BaseSchema import *
 
-class MetagenimicsBatchSchema(BaseSchema):
+class MetagenomicsBatchSchema(BaseSchema):
     class Meta:
         type_ = 'metagenomics-batch'
 
@@ -28,8 +28,8 @@ class MetagenomicsBatchItemSchema(Schema):
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdOn")
 
-    metagenomicsBatch = create_relationship("metagenomics-batch-item", "metgenomics-batch", "metgenomicsBatch")
-    pcrBatchItem = create_relationship("metgenomics-batch-item", "pcr-batch-item", "pcrBatchItem")
+    metagenomicsBatch = create_relationship("metagenomics-batch-item", "metagenomics-batch", "metagenomicsBatch")
+    pcrBatchItem = create_relationship("metagenomics-batch-item", "pcr-batch-item", "pcrBatchItem")
     molecularAnalysisRunItem = create_relationship("metagenomics-batch-item", "molecular-analysis-run-item", "molecularAnalysisRunItem")
     indexI5 = create_relationship("metagenomics-batch-item", "ngs-idnex", "indexI5")
     indexI7 = create_relationship("metagenomics-batch-item", "ngs-idnex", "indexI7")

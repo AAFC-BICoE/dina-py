@@ -14,7 +14,7 @@ class MetagenomicsBatchItemDTO:
 class MetagenomicsBatchItemDTOBuilder:
     def __init__(self):
         self._id = None
-        self._type = 'metagenomics-batch'
+        self._type = 'metagenomics-batch-item'
         self._attributes = None
         self._relationships = None
 
