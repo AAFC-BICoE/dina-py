@@ -27,9 +27,6 @@ from dinapy.schemas.molecular_analysis_result_schema import MolecularAnalysisRes
 
 from dinapy.entities.Relationships import RelationshipDTO
 
-os.environ["keycloak_username"] = "dina-admin"
-os.environ["keycloak_password"] = "dina-admin"
-
 def main():
     # Create a Molecular Analysis Run
     MOCK_RUN_NAME = "test run with results"

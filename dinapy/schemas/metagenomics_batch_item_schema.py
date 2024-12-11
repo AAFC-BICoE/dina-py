@@ -26,7 +26,7 @@ class NgsIndexSchema(BaseSchema):
 class MetagenomicsBatchItemSchema(Schema):
     id = fields.Str(load_only=True)
     createdBy = SkipUndefinedField(fields.Str, attribute="attributes.createdBy")
-    createdOn = SkipUndefinedField(fields.Str, attribute="attributes.createdOn")
+    createdOn = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdOn")
 
     metagenomicsBatch = create_relationship("metagenomics-batch-item", "metagenomics-batch", "metagenomicsBatch")
     pcrBatchItem = create_relationship("metagenomics-batch-item", "pcr-batch-item", "pcrBatchItem")
