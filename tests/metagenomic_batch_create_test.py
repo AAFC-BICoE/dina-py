@@ -58,9 +58,6 @@ def main():
     batch_id = metagenomics_batch_response.json()['data']['id']
     print(f"Metagenomics Batch: {batch_id} created\n")
 
-    with open("./uuids.txt", "a") as f:
-        print(f"Metagenomics Batch: {batch_id} created", file=f)
-
     for item in PCR_BATCH_ITEMS:
         # Build Relationships for Metagenomics Batch Items
         batch_item_relationship = (
@@ -92,9 +89,6 @@ def main():
         metagenomics_batch_item_response = metagenomics_batch_item_api.create_entity(serialized_metagenomics_batch_item)
         batch_item_id = metagenomics_batch_item_response.json()['data']['id']
         print(f"Metagenomics Batch Item: {batch_item_id} created\n")
-
-        with open("./uuids.txt", "a") as f:
-            print(f"Metagenomics Batch Item: {batch_item_id} created",file=f)
 
 if __name__ == "__main__":
     main()
