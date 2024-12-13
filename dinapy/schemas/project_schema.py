@@ -17,20 +17,18 @@ class ProjectSchema(Schema):
     createdOn = SkipUndefinedField(fields.DateTime,load_only=True,attribute="attributes.createdOn")
     group = SkipUndefinedField(fields.Str,attribute="attributes.group")
     name = SkipUndefinedField(fields.Str,required=True,attribute="attributes.name")
-    startDate = SkipUndefinedField(fields.DateTime,allow_none=True,attribute="attributes.startDate")
-    endDate = SkipUndefinedField(fields.DateTime,allow_none=True,attribute="attributes.endDate")
-    multilingualDescription = SkipUndefinedField(fields.Str,allow_none=True,attribute="attributes.multilingualDescription")
+    startDate = SkipUndefinedField(fields.Str,allow_none=True,attribute="attributes.startDate")
+    endDate = SkipUndefinedField(fields.Str,allow_none=True,attribute="attributes.endDate")
+    status = SkipUndefinedField(fields.Str,allow_none=True,attribute="attributes.status")
+    multilingualDescription = SkipUndefinedField(fields.Dict,allow_none=True,attribute="attributes.multilingualDescription")
     extensionValues = SkipUndefinedField(fields.Dict,allow_none=True,attribute="attributes.extensionValues")
 
-    attachment = create_relationship("collecting-event","attachment")
+    attachment = create_relationship("project","attachment")
 
     meta = fields.DocumentMeta()
 
     class Meta: 
         type_ = "project"
-        #self_url = "/api/v1/collecting-event/{id}" or None
-        #self_url_kwargs = {"id": "<id>"}
-        strict = True
 
     @post_dump
     def remove_skipped_fields(self, data, many, **kwargs):
