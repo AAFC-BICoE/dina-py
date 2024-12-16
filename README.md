@@ -80,7 +80,6 @@ Python access to the DINA API
       - Managed Attributes
       - Material Sample
       - Organism
-      - Project
     - Object Store API
       - Metadata
       - Object Export
@@ -102,6 +101,7 @@ Python access to the DINA API
    - Molecular Analysis Result
    - Molecular Analysis Run
    - Molecular Analysis Run Item
+   - Project
 
 ## Installation Instructions
 ### Local Install
