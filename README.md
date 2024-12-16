@@ -14,6 +14,12 @@ Python access to the DINA API
     - Storage Unit
     - Form Template
     - Split Configuration
+    - Metagenomics Batch
+    - Metagenomics Batch Item
+    - Molecular Analysis Result
+    - Molecular Analysis Run
+    - Molecular Analysis Run Item
+    - Project
 #### DINA APIs
 - Currently supported APIs:
     - Agent API
@@ -26,12 +32,18 @@ Python access to the DINA API
       - SplitConfiguration
       - MaterialSample
       - Organism
+      - Project
     - Object Store API
       - Any Object Store API endpoint using ObjectStoreApi's CRUD methods 
     - SeqDB API
       - PCR Batch
       - PCR Batch Item
       - SEQ Reaction
+      - Metagenomics Batch
+      - Metagenomics Batch Item
+      - Molecular Analysis Result
+      - Molecular Analysis Run
+      - Molecular Analysis Run Item
     - Export API
       - Any Export API endpoint using DinaExportApi's CRUD methods 
   
@@ -84,6 +96,12 @@ Python access to the DINA API
    - Person
    - Split Configuration
    - Storage Unit Usage
+   - Metagenomics Batch
+   - Metagenomics Batch Item
+   - Molecular Analysis Result
+   - Molecular Analysis Run
+   - Molecular Analysis Run Item
+   - Project
 
 ## Installation Instructions
 ### Local Install

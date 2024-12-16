@@ -9,7 +9,7 @@ from .BaseSchema import *
 
 class Attachment(BaseSchema):
     class Meta:
-        type_ = 'attacment'
+        type_ = 'attachment'
 
 class MolecularAnalysisResultSchema(Schema):
     id = fields.Str(load_only=True)
