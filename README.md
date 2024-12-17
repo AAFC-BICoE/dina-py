@@ -2,6 +2,14 @@
 
 Python access to the DINA API
 
+## Recommended Python and pip Versions
+
+The features, tests, and installations were tested with Python 3.12 and pip 24.0 and are recommended for users to install. To do this, run the following commands:
+```bash
+sudo apt install python3
+sudo apt install python3-pip
+```
+
 ## Current Features
 
 #### JSON-API serializer and deserializer with Marshmallow JSON-API
@@ -106,11 +114,13 @@ Python access to the DINA API
 ## Installation Instructions
 ### Local Install
 
-Before installing, it's recommended to use a virtual environment in python but not required. create 
+Before installing, it's recommended to use a virtual environment in Python but not required. Create 
 a virtual environment for the dependencies required.
 
+**NOTE:** Change the Python version in the following command to match your current version. It is recommended for the user to use **Python version 3.12** or higher.
+
 ```bash
-sudo apt install python3.10-venv
+sudo apt install python3.12-venv
 python3 -m venv env
 source env/bin/activate
 ```
@@ -152,7 +162,6 @@ Sample usage of DINA_API_CLIENT:
 
 In code:
 ```py
-
 def test_create_delete_entity(self):
    schema = MaterialSampleSchema()
    material_sample_api = MaterialSampleAPI()
