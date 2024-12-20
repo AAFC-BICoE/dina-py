@@ -20,12 +20,12 @@ class CollectionMethod(BaseSchema):
 class Collectors(BaseSchema):
 
 	class Meta:
-		type_ = 'collectors'
+		type_ = 'person'
 
 class Attachment(BaseSchema):
 
 	class Meta:
-		type_ = 'attachment'
+		type_ = 'metadata'
 	
 class CollectingEventSchema(Schema):
 	'''Schema for a Collecting Event used for serializing and deserializing JSON.'''
