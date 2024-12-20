@@ -70,10 +70,10 @@ class CollectingEventSchema(Schema):
 	managedAttributes = SkipUndefinedField(fields.Dict,attribute="attributes.managedAttributes")
 	remarks = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.remarks")
 
-	collectionMethod = create_relationship("collecting-event","collectionMethod")
-	protocol = create_relationship("collecting-event","protocol")
-	collectors = create_relationship("collecting-event","collectors")
-	attachment = create_relationship("collecting-event","attachment")
+	collectionMethod = create_relationship("collecting-event","collection-method","collectionMethod")
+	protocol = create_relationship("collecting-event","protocol","protocol")
+	collectors = create_relationship("collecting-event","person","collectors")
+	attachment = create_relationship("collecting-event","metadata","attachment")
 
 	meta = fields.DocumentMeta()
 
