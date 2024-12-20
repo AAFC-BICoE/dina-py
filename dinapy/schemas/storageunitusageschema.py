@@ -25,8 +25,8 @@ class StorageUnitUsage(Schema):
 	createdOn = SkipUndefinedField(fields.DateTime, load_only=True,attribute="attributes.createdOn")
 	createdBy = SkipUndefinedField(fields.Str, load_only=True,attribute="attributes.createdBy")
 
-	storageUnit = create_relationship("storage-unit-usage","storageUnit")
-	storageUnitType = create_relationship("storage-unit-usage","storageUnitType")
+	storageUnit = create_relationship("storage-unit-usage","storage-unit","storageUnit")
+	storageUnitType = create_relationship("storage-unit-usage","storage-unit-type","storageUnitType")
 	
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):
