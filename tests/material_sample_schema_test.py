@@ -228,8 +228,8 @@ VALID_MATERIAL_SAMPLE_DATA = {
 					"related": "/api/v1/material-sample/182ed68e-7536-4ad4-868c-399c8e5d70f3/parentMaterialSample"
 				},
 						"data": {
-						"id": "01902d3a-0ec1-7a57-8284-f4ba3aff1664",
-						"type": "parent-material-sample"
+							"id": "01902d3a-0ec1-7a57-8284-f4ba3aff1664",
+							"type": "material-sample"
 						},
 			},
 			"collectingEvent": {

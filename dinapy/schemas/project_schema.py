@@ -9,7 +9,7 @@ from .BaseSchema import *
 
 class Attachment(BaseSchema):
     class Meta:
-        type_ = 'attachment'
+        type_ = 'metadata'
 
 class ProjectSchema(Schema):
     id = fields.Str(load_only=True)
@@ -23,7 +23,7 @@ class ProjectSchema(Schema):
     multilingualDescription = SkipUndefinedField(fields.Dict,allow_none=True,attribute="attributes.multilingualDescription")
     extensionValues = SkipUndefinedField(fields.Dict,allow_none=True,attribute="attributes.extensionValues")
 
-    attachment = create_relationship("project","attachment")
+    attachment = create_relationship("project","metadata","attachment")
 
     meta = fields.DocumentMeta()
 
