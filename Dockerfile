@@ -7,15 +7,12 @@ RUN useradd -m pyuser
 # Set working directory
 WORKDIR /app
 
-# Copy the certificates
-COPY certs/* /tmp/
-
-# Add the certificates
-RUN cp /tmp/*.pem /usr/share/ca-certificates/
-RUN update-ca-certificates
-
 # Copy the application code
 COPY . .
+
+# Add the certificates
+RUN cp certs/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 
 # Install the dependencies
 RUN pip install --user -r requirements.txt
