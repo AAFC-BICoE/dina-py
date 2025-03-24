@@ -2,6 +2,8 @@ version: "3.7"
 services:
   dina-py:
     image: dina-py:0.1
+    env_file:
+      - .env
     volumes:
       - ./:/home/dina-py
     stdin_open: true
