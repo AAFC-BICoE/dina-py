@@ -9,7 +9,6 @@ __pycache__/
 *~
 *.bak
 *.swp
-*.env
 
 # Package and distribution files
 *.egg
@@ -19,3 +18,6 @@ build/
 
 # Virtual environment
 env/
+
+# Ignore the .env file
+.env
