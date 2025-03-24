@@ -9,6 +9,7 @@ __pycache__/
 *~
 *.bak
 *.swp
+*.env
 
 # Package and distribution files
 *.egg
