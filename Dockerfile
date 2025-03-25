@@ -13,12 +13,19 @@ COPY . .
 # Define a build-time variable
 ARG CERTIFICATE_SERVER_URL
 
-RUN openssl s_client -connect ${CERTIFICATE_SERVER_URL}:443 -showcerts > certs.txt
-RUN awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' certs.txt > combined-cert.crt
+RUN if [ -n "${CERTIFICATE_SERVER_URL}" ]; then \
+      openssl s_client -connect ${CERTIFICATE_SERVER_URL}:443 -showcerts > certs.txt; \
+      awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' certs.txt > combined-cert.crt; \
+      cp combined-cert.crt /usr/local/share/ca-certificates/; \
+    else \
+      echo "CERTIFICATE_SERVER_URL is not set. Will try copy .crt from certs folder"; \
+      if [ -d "certs" ] && [ "$(ls -A certs/*.crt 2>/dev/null)" ]; then \
+        cp certs/*.crt /usr/local/share/ca-certificates/; \
+      else \
+        echo "No certificates to copy"; \
+      fi; \
+    fi
 
-
-# Add the certificates
-RUN combined-cert.crt /usr/local/share/ca-certificates/
 RUN update-ca-certificates
 
 # Install the dependencies
