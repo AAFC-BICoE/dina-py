@@ -14,7 +14,7 @@ COPY . .
 ARG CERTIFICATE_SERVER_URL
 
 RUN if [ -n "${CERTIFICATE_SERVER_URL}" ]; then \
-      openssl s_client -connect ${CERTIFICATE_SERVER_URL}:443 -showcerts > certs.txt; \
+      openssl s_client -connect ${CERTIFICATE_SERVER_URL%/}:443 -showcerts > certs.txt; \
       awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' certs.txt > combined-cert.crt; \
       cp combined-cert.crt /usr/local/share/ca-certificates/; \
     else \
