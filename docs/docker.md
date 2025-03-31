@@ -11,7 +11,7 @@ For debugging purposes, `--progress=plain` can be added to the build command to 
 
 ## Run the container
 
-User the provided docker compose file: `docker compose -f docker-compose.base.yml up`
+User the provided docker compose file: `docker compose -f docker-compose.yml up`
 
 ## Connect to container
 
