@@ -13,5 +13,6 @@ For debugging purposes, `--progress=plain` can be added to the build command to 
 
 User the provided docker compose file: `docker compose -f docker-compose.base.yml up`
 
+## Connect to container
 
-
+`docker exec -it dina_py_container bash`
