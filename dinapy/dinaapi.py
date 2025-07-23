@@ -7,6 +7,10 @@ import requests
 import yaml
 import logging
 import json
+import re
+import tempfile
+import shutil
+
 
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
@@ -223,6 +227,25 @@ class DinaAPI:
         """
         self.refresh_token()
 
+        # Extract parent folder name and file name
+        parent_folder = os.path.basename(os.path.dirname(file_path))
+        file_name = os.path.basename(file_path)
+
+        # Replace all whitespace characters in the parent folder name with underscores
+        sanitized_parent = re.sub(r'\s+', '_', parent_folder)
+
+        if not file_name.startswith(sanitized_parent):
+            # Create new file name
+            new_file_name = f"{sanitized_parent}_{file_name}"
+            #new_file_path = os.path.join(os.path.dirname(file_path), new_file_name)
+
+            # Create a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, prefix=new_file_name) as temp_file:
+                temp_file_path = temp_file.name
+                print(f"Temporary file created: {temp_file_path}")
+                shutil.copyfile(file_path, temp_file_path)
+                file_path = temp_file_path
+
         try:
             file = {"file": open(file_path, "rb")}
         except FileNotFoundError:
@@ -245,6 +268,12 @@ class DinaAPI:
             # Handle the exception here, e.g., log the error or raise a custom exception
             logging.error(f"Failed to post file to {full_url}: {exc}")
             raise  # Re-raise the exception
+
+        try:
+            os.remove(temp_file_path)
+            print(f"Temporary file deleted: {temp_file_path}")
+        except OSError as e:
+            print(f"Error deleting temporary file: {e}")
 
         return response
 
