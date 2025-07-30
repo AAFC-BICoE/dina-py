@@ -237,14 +237,19 @@ class DinaAPI:
         if not file_name.startswith(sanitized_parent):
             # Create new file name
             new_file_name = f"{sanitized_parent}_{file_name}"
-            #new_file_path = os.path.join(os.path.dirname(file_path), new_file_name)
+            
 
             # Create a temporary file
-            with tempfile.NamedTemporaryFile(delete=False, prefix=new_file_name) as temp_file:
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 temp_file_path = temp_file.name
                 print(f"Temporary file created: {temp_file_path}")
                 shutil.copyfile(file_path, temp_file_path)
-                file_path = temp_file_path
+                # Rename file
+                print(f"Original file: {file_path}")
+                new_file_path = os.path.join(os.path.dirname(temp_file_path), new_file_name)
+                print(f"New file: {new_file_path}")
+                os.rename(temp_file_path, new_file_path)
+                file_path = new_file_path
 
         try:
             file = {"file": open(file_path, "rb")}
@@ -270,8 +275,8 @@ class DinaAPI:
             raise  # Re-raise the exception
 
         try:
-            os.remove(temp_file_path)
-            print(f"Temporary file deleted: {temp_file_path}")
+            os.remove(new_file_path)
+            print(f"Temporary file deleted: {new_file_path}")
         except OSError as e:
             print(f"Error deleting temporary file: {e}")
 

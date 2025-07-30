@@ -82,12 +82,12 @@ def upload_file(
     args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path, group
 ):
     response_json: dict = dina_api_client.objectstore_module_api.upload(group, path.as_posix())
-    log_response: dict = {
-        "originalFilename": response_json.get("originalFilename"),
-        "uuid": response_json.get("uuid"),
-        "warnings": response_json.get("meta").get("warnings"),
-    }
-    print(log_response)
+    # log_response: dict = {
+    #     "originalFilename": response_json.get("originalFilename"),
+    #     "uuid": response_json.get("uuid"),
+    #     "warnings": response_json.get("meta").get("warnings"),
+    # }
+    # print(log_response)
 
     if args.verbose:
         print(response_json)
@@ -178,7 +178,7 @@ def main():
         # .rglob recognizes file patterns
         pathlist = Path(args.upload_dir).rglob("*.*")
         for path in pathlist:
-            upload_file(args, dina_api_client, path)
+            upload_file(args, dina_api_client, path, group)
     elif args.create_metadatas:
         pathlist = Path(args.create_metadatas).rglob("*.*")
         dina_api_client.objectstore_module_api.create_metadatas(pathlist, dina_api_config, group)
