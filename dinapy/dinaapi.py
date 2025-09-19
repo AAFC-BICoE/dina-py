@@ -92,7 +92,7 @@ class DinaAPI:
             logging.error("Error in configuration file. Cannot execute.")
             logging.error(exc)
             raise
-        
+
     def set_keycloak(self):
         """
         Creates a Keycloak token based on configurations and environment variables.
@@ -107,7 +107,7 @@ class DinaAPI:
         if not DinaAPI.token:
             print(f'User: {os.environ.get("keycloak_username")}')
             self.generate_token()
-    
+
     def generate_token(self):
         try:
             DinaAPI.token = self.keycloak.token(
@@ -200,7 +200,7 @@ class DinaAPI:
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
-            logging.error(f"Failed to fetch data from {full_url}: {exc}")
+            logging.error(f"Failed to fetch data from {full_url}: {exc} {response.text}")
             raise  # Re-raise the exception
 
         return response
