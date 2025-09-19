@@ -6,7 +6,7 @@ class CollectionModuleApi(DinaAPI):
 	def __init__(self, config_path: str = None, base_url: str = None) -> None:
 		super().__init__(config_path, base_url)
 		self.base_url += "collection-api/"
-		
+
 	def get_entity(self, entity_id):
 		"""Retrieves an entity
 
@@ -20,7 +20,7 @@ class CollectionModuleApi(DinaAPI):
 		new_request_url = self.base_url + '/' + str(entity_id)
 		jsn_resp = self.get_req_dina(new_request_url)
 		return jsn_resp if jsn_resp else ''
-	
+
 	def create_entity(self, json_data):
 		"""Creates a DINA collection module entity
 
@@ -31,6 +31,33 @@ class CollectionModuleApi(DinaAPI):
 			Response: The response post request
 		"""
 		return self.post_req_dina(self.base_url, json_data)
+
+	def create_bulk(self, json_data):
+		"""Creates a DINA collection module entity as bulk
+
+		Args:
+			json_data (json object): the request body with bulk data
+
+		Returns:
+			Response: The response post request
+		"""
+		# Note: Since the bulk operation for the collection api is
+		# still under development, provisionally we make use of the
+		# legacy operations endpoint for bulk operations
+		# TODO: adapt this function once new collection api is released
+
+		# new_request_url = self.base_url + '/bulk/'
+		new_request_url = "/".join(self.base_url.split("/")[:-1]) + "/operations"
+		new_data = []
+		import uuid
+		for d in json_data["data"]:
+			d["id"] = str(uuid.uuid4())
+			new_data.append({
+				"op": "POST",
+				"path": d["type"],
+				"value": d
+			})
+		return self.patch_req_dina(new_request_url,new_data)
 
 	def get_entity_by_param(self, param):
 		jsn_resp = self.get_req_dina(self.base_url, param)
@@ -53,7 +80,7 @@ class CollectionModuleApi(DinaAPI):
 		new_request_url = self.base_url + '/' + str(entity_id)
 		jsn_resp = self.delete_req_dina(new_request_url)
 		return jsn_resp if jsn_resp else ''
-	
+
 	def update_entity(self, entity_id, json_data):
 
 		"""Updates an entity
