@@ -26,7 +26,6 @@ class Attachment(BaseSchema):
 
 	class Meta:
 		type_ = 'metadata'
-	
 class CollectingEventSchema(Schema):
 	'''Schema for a Collecting Event used for serializing and deserializing JSON.'''
 	id = fields.Str(load_only=True)
@@ -53,14 +52,14 @@ class CollectingEventSchema(Schema):
 	createdOn = SkipUndefinedField(fields.DateTime,attribute="attributes.createdOn")
 	geoReferenceAssertions = SkipUndefinedField(fields.List,fields.Dict(), allow_none=True, required=False, attribute="attributes.geoReferenceAssertions")
 	geographicPlaceNameSource = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.geographicPlaceNameSource")
-	geographicPlaceNameSourceDetail = SkipUndefinedField(fields.Str,allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
+	geographicPlaceNameSourceDetail = SkipUndefinedField(fields.Dict,allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
 	habitat = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.habitat")
 	eventGeom = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.eventGeom")
 	extensionValues = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.extensionValues")
 	dwcVerbatimCoordinates = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimCoordinates")
 	dwcRecordedBy = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcRecordedBy")
 	dwcVerbatimSRS = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimSRS")
-	startEventDateTime = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.startEventDateTime")
+	startEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.startEventDateTime")
 	substrate = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.substrate")
 	tags = SkipUndefinedField(fields.List,fields.Str(), allow_none=True, required=False, attribute="attributes.tags")
 	endEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.endEventDateTime")
@@ -87,13 +86,13 @@ class CollectingEventSchema(Schema):
 	def remove_skipped_fields(self, data, many, **kwargs):
 		# Remove fields with the special marker value
 		return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
-	
+
 	@post_dump
 	def remove_meta(self, data, many, **kwargs):
 		if 'meta' in data:
 			del(data['meta'])
 		return data
-	
+
 	@post_load
 	def set_none_to_undefined(self, data, **kwargs):
 		for attr in data.attributes:
