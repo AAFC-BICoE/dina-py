@@ -6,15 +6,15 @@ class PersonSchema(Schema):
     '''Schema for a Person used for serializing and deserializing JSON.'''
     id = fields.Str(required=True)
     displayName = fields.Str(required=True, attribute="attributes.displayName")
-    email = fields.Str(required=True, attribute="attributes.email")
+    email = fields.Str(allow_none=True, attribute="attributes.email")
     createdBy = fields.Str(required=True, attribute="attributes.createdBy")
     createdOn = fields.DateTime(required=True, attribute="attributes.createdOn")
-    givenNames = fields.Str(required=True, attribute="attributes.givenNames")
-    familyNames = fields.Str(required=True, attribute="attributes.familyNames")
+    givenNames = fields.Str(allow_none=True, attribute="attributes.givenNames")
+    familyNames = fields.Str(allow_none=True, attribute="attributes.familyNames")
     aliases = fields.List(fields.Str(), allow_none=True, attribute="attributes.aliases")
     webpage = fields.Str(allow_none=True, attribute="attributes.webpage")
     remarks = fields.Str(allow_none=True, attribute="attributes.remarks")
-    
+
     identifiers = fields.Relationship(
         self_url="/api/v1/person/{id}/relationships/identifiers",
         self_url_kwargs={"id": "<id>"},
@@ -23,7 +23,7 @@ class PersonSchema(Schema):
         many=True,
         type_="identifiers",
     )
-    
+
     organizations = fields.Relationship(
         self_url="/api/v1/person/{id}/relationships/organizations",
         self_url_kwargs={"id": "<id>"},
@@ -34,7 +34,7 @@ class PersonSchema(Schema):
     )
 
     meta = fields.DocumentMeta()
-    
+
     class Meta:
         type_ = "person"
         self_url = "/api/v1/person/{id}"
