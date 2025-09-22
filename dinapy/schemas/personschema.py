@@ -5,13 +5,13 @@ from dinapy.entities.Person import PersonDTO
 
 class PersonSchema(Schema):
     '''Schema for a Person used for serializing and deserializing JSON.'''
-    id = fields.Str(load_only=True)
-    displayName = SkipUndefinedField(fields.Str, attribute="attributes.displayName")
-    email = SkipUndefinedField(fields.Str, attribute="attributes.email")
-    createdBy = SkipUndefinedField(fields.Str, attribute="attributes.createdBy")
-    createdOn = SkipUndefinedField(fields.DateTime, attribute="attributes.createdOn")
-    givenNames = SkipUndefinedField(fields.Str, attribute="attributes.givenNames")
-    familyNames = SkipUndefinedField(fields.Str, attribute="attributes.familyNames")
+    id = fields.Str(allow_none=True)
+    displayName = SkipUndefinedField(fields.Str, required=True, attribute="attributes.displayName")
+    email = SkipUndefinedField(fields.Str, required=True, attribute="attributes.email")
+    createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
+    createdOn = SkipUndefinedField(fields.DateTime, load_only=True, attribute="attributes.createdOn")
+    givenNames = SkipUndefinedField(fields.Str, required=True, attribute="attributes.givenNames")
+    familyNames = SkipUndefinedField(fields.Str, required=True, attribute="attributes.familyNames")
     aliases = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, required=False, attribute="attributes.aliases")
     webpage = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.webpage")
     remarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.remarks")
