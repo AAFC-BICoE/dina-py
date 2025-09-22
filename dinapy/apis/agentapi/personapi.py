@@ -43,7 +43,6 @@ class PersonAPI(DinaAPI):
 
         return deserialized_data
     
-    # TODO: everything below is untested
     def bulk_update(self, json_data: dict) -> dict:
         """Updates person records providing a bulk payload using a PATCH request.
 
@@ -66,6 +65,7 @@ class PersonAPI(DinaAPI):
 
         return deserialized_data
     
+    # TODO: everything below is untested
     def find_many(self, search_query: str = None, sort_order: str = None, offset: int = None, limit: int = None) -> list:
         """Retrieves a list of persons based on filters, sorting, and paging.
 
