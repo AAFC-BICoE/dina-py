@@ -61,3 +61,37 @@ def get_dina_records_by_params(api,params):
         offset = step + counter*2
         
     return data
+
+def prepare_bulk_payload(entities: list, schema, include_fields: list = None) -> dict:
+    """Prepares a minimal bulk payload from a list of entities.
+    
+    Args:
+        entities (list): List of entity objects to be included in bulk operation
+        schema: The marshmallow schema class to use for serialization
+        include_fields (list, optional): List of attribute fields to include in payload.
+            If None, includes all fields.
+            
+    Returns:
+        dict: A bulk payload formatted for the API
+    """
+    bulk_data = []
+    
+    for entity in entities:
+        # Create minimal payload structure
+        minimal = {
+            "id": entity.get_id(),
+            "type": entity.get_type(),
+            "attributes": {}
+        }
+        
+        # Only include specified fields
+        if include_fields:
+            for field in include_fields:
+                if field in entity.attributes:
+                    minimal["attributes"][field] = entity.get_attributes().get(field)
+        else:
+            minimal["attributes"] = entity.get_attributes()
+            
+        bulk_data.append(minimal)
+        
+    return {"data": bulk_data}

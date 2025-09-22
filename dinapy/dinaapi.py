@@ -13,7 +13,7 @@ from keycloak.exceptions import KeycloakAuthenticationError
 
 KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina.local/api/"
-
+BULK_POST_ENDPOINT_URL = "bulk"
 
 class DinaAPI:
     """Base class containing basic DINA module API calls.
@@ -274,6 +274,37 @@ class DinaAPI:
 
         return response
 
+    def bulk_update_req_dina(self, full_url:str, json_data: dict):
+        """Base method for a Bulk update PATCH request to DINA.
+
+        Args:
+                full_url (str): The full URL for the API request (extension of the base_url).
+                json_data (dict): JSON data to be sent in the request body.
+
+        Returns:
+                requests.Response: The response object containing the API response.
+
+        Raises:
+                requests.exceptions.RequestException: If there is an error during the HTTP request.
+
+        """
+        self.refresh_token()
+        self.session.headers.update(
+        {
+            "Accept": "application/vnd.api+json; ext=bulk",
+            "Content-Type": "application/vnd.api+json; ext=bulk",
+            "Authorization": f"bearer {DinaAPI.token['access_token']}",
+        }
+        )
+        try:
+            response = self.session.patch(full_url + BULK_POST_ENDPOINT_URL, json=json_data)
+            response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
+        except requests.exceptions.RequestException as exc:
+            # Handle the exception here, e.g., log the error or raise a custom exception
+            logging.error(f"Failed to perform PATCH request to {full_url}: {exc}")
+            raise  # Re-raise the exception
+
+        return response
     def delete_req_dina(self, full_url: str, params: dict = None):
         """Base method for a DELETE request to DINA.
 

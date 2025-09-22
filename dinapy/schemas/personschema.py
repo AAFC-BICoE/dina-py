@@ -1,19 +1,20 @@
-# This file holds schemas for serializing and deserializing Person entities
-# using the JSON API format. It utilizes the marshmallow_jsonapi library.
+from marshmallow import post_load, post_dump
 from marshmallow_jsonapi import Schema, fields
+from .customFields import SkipUndefinedField
+from dinapy.entities.Person import PersonDTO
 
 class PersonSchema(Schema):
     '''Schema for a Person used for serializing and deserializing JSON.'''
-    id = fields.Str(required=True)
-    displayName = fields.Str(required=True, attribute="attributes.displayName")
-    email = fields.Str(required=True, attribute="attributes.email")
-    createdBy = fields.Str(required=True, attribute="attributes.createdBy")
-    createdOn = fields.DateTime(required=True, attribute="attributes.createdOn")
-    givenNames = fields.Str(required=True, attribute="attributes.givenNames")
-    familyNames = fields.Str(required=True, attribute="attributes.familyNames")
-    aliases = fields.List(fields.Str(), allow_none=True, attribute="attributes.aliases")
-    webpage = fields.Str(allow_none=True, attribute="attributes.webpage")
-    remarks = fields.Str(allow_none=True, attribute="attributes.remarks")
+    id = fields.Str(load_only=True)
+    displayName = SkipUndefinedField(fields.Str, attribute="attributes.displayName")
+    email = SkipUndefinedField(fields.Str, attribute="attributes.email")
+    createdBy = SkipUndefinedField(fields.Str, attribute="attributes.createdBy")
+    createdOn = SkipUndefinedField(fields.DateTime, attribute="attributes.createdOn")
+    givenNames = SkipUndefinedField(fields.Str, attribute="attributes.givenNames")
+    familyNames = SkipUndefinedField(fields.Str, attribute="attributes.familyNames")
+    aliases = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, required=False, attribute="attributes.aliases")
+    webpage = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.webpage")
+    remarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.remarks")
     
     identifiers = fields.Relationship(
         self_url="/api/v1/person/{id}/relationships/identifiers",
@@ -41,37 +42,31 @@ class PersonSchema(Schema):
         self_url_kwargs = {"id": "<id>"}
         strict = True
 
-# GET response for Person
-# {
-#     "data": {
-#         "id": "bfa3c68b-8e13-4295-8e25-47dbe041cb64",
-#         "type": "person",
-#         "links": {"self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64"},
-#         "attributes": {
-#             "displayName": "testBob",
-#             "email": "bob.builder@agr.gc.ca",
-#             "createdBy": "cnc-su",
-#             "createdOn": "2023-02-20T16:18:10.688627Z",
-#             "givenNames": "Bob",
-#             "familyNames": "Builder",
-#             "aliases": ["Yes we can"],
-#             "webpage": None,
-#             "remarks": None,
-#         },
-#         "relationships": {
-#             "identifiers": {
-#                 "links": {
-#                     "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/identifiers",
-#                     "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/identifiers",
-#                 }
-#             },
-#             "organizations": {
-#                 "links": {
-#                     "self": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/relationships/organizations",
-#                     "related": "/api/v1/person/bfa3c68b-8e13-4295-8e25-47dbe041cb64/organizations",
-#                 }
-#             },
-#         },
-#     },
-#     "meta": {"totalResourceCount": 1, "moduleVersion": "0.24"},
-# }
+    @post_dump
+    def remove_skipped_fields(self, data, many, **kwargs):
+        return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
+    
+    @post_dump
+    def remove_meta(self, data, many, **kwargs):
+        if 'meta' in data:
+            del(data['meta'])
+        return data
+    
+    @post_load
+    def set_none_to_undefined(self, data, **kwargs):
+        for attr in data.attributes:
+            if data.attributes[attr] is None:
+                data.attributes[attr] = 'undefined'
+        return data
+
+    @post_load
+    def object_deserialization(self, data, **kwargs):
+        if 'meta' in data:
+            del data['meta']
+        return PersonDTO(**data)
+
+    def dump(self, obj, many=None, *args, **kwargs):
+        data = super().dump(obj, many=many, *args, **kwargs)
+        if 'meta' in data:
+            del data['meta']
+        return data

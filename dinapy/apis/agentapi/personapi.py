@@ -4,7 +4,7 @@
 import logging
 
 from ...dinaapi import DinaAPI
-from dinapy.apis.agentapi.schemas.personschema import PersonSchema
+from dinapy.schemas.personschema import PersonSchema
 
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""
@@ -44,7 +44,28 @@ class PersonAPI(DinaAPI):
         return deserialized_data
     
     # TODO: everything below is untested
+    def bulk_update(self, json_data: dict) -> dict:
+        """Updates person records providing a bulk payload using a PATCH request.
 
+        Parameters:
+            json_data (dict): JSON data for updating the person.
+
+        Returns:
+            dict: A deserialized object of the PATCH response.
+        """
+        full_url = self.base_url
+
+        try:
+            response_data = self.bulk_update_req_dina(full_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to perform bulk update: {exc}")
+            raise  # Re-raise the exception
+
+        person_schema = PersonSchema()
+        deserialized_data = person_schema.load(response_data.json())
+
+        return deserialized_data
+    
     def find_many(self, search_query: str = None, sort_order: str = None, offset: int = None, limit: int = None) -> list:
         """Retrieves a list of persons based on filters, sorting, and paging.
 

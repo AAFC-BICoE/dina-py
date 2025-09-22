@@ -19,8 +19,6 @@ from dinapy.schemas.collectingeventschema import CollectingEventSchema
 from marshmallow.exceptions import ValidationError
 from dinapy.entities.CollectingEvent import *
 
-KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
-
 VALID_COLLECTING_EVENT_DATA = {
 	"data": {
 		"id": "f08516e5-add2-4baa-89bc-5b8abd0ec8ba",
