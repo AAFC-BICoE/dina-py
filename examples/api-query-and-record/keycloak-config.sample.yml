@@ -1,0 +1,7 @@
+# Local Deployment example
+url: https://dina.local
+realm_name: dina
+client_id: dina-public
+secure: True
+keycloak_username: dina-admin
+keycloak_password: dina-admin

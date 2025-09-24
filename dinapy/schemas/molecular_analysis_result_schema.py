@@ -9,7 +9,7 @@ from .BaseSchema import *
 
 class Attachment(BaseSchema):
     class Meta:
-        type_ = 'attacment'
+        type_ = 'metadata'
 
 class MolecularAnalysisResultSchema(Schema):
     id = fields.Str(load_only=True)
@@ -17,7 +17,7 @@ class MolecularAnalysisResultSchema(Schema):
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdOn")
 
-    attachment = create_relationship("molecular-analysis-result","attachment")
+    attachment = create_relationship("molecular-analysis-result","metadata","attachment")
 
     @post_load
     def set_none_to_undefined(self, data, **kwargs):

@@ -1,0 +1,12 @@
+version: "3.7"
+services:
+  dina-py:
+    image: dina-py:0.1
+    container_name: dina_py_container
+    env_file:
+      - .env
+    volumes:
+      - ./:/home/dina-py
+    stdin_open: true
+    working_dir: /home/dina-py
+    tty: true

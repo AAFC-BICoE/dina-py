@@ -20,12 +20,12 @@ class CollectionMethod(BaseSchema):
 class Collectors(BaseSchema):
 
 	class Meta:
-		type_ = 'collectors'
+		type_ = 'person'
 
 class Attachment(BaseSchema):
 
 	class Meta:
-		type_ = 'attachment'
+		type_ = 'metadata'
 	
 class CollectingEventSchema(Schema):
 	'''Schema for a Collecting Event used for serializing and deserializing JSON.'''
@@ -64,16 +64,16 @@ class CollectingEventSchema(Schema):
 	substrate = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.substrate")
 	tags = SkipUndefinedField(fields.List,fields.Str(), allow_none=True, required=False, attribute="attributes.tags")
 	endEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.endEventDateTime")
-	verbatimEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.verbatimEventDateTime")
+	verbatimEventDateTime = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.verbatimEventDateTime")
 	dwcVerbatimLocality = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimLocality")
 	host = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.host")
 	managedAttributes = SkipUndefinedField(fields.Dict,attribute="attributes.managedAttributes")
 	remarks = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.remarks")
 
-	collectionMethod = create_relationship("collecting-event","collectionMethod")
-	protocol = create_relationship("collecting-event","protocol")
-	collectors = create_relationship("collecting-event","collectors")
-	attachment = create_relationship("collecting-event","attachment")
+	collectionMethod = create_relationship("collecting-event","collection-method","collectionMethod")
+	protocol = create_relationship("collecting-event","protocol","protocol")
+	collectors = create_relationship("collecting-event","person","collectors")
+	attachment = create_relationship("collecting-event","metadata","attachment")
 
 	meta = fields.DocumentMeta()
 
