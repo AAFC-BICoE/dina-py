@@ -20,14 +20,11 @@ class CollectingEventAPI(CollectionModuleApi):
 			dict: A deserialized object of the PATCH response.
 		"""
 		full_url = self.base_url
-
+		
 		try:
 			response_data = self.bulk_update_req_dina(full_url, json_data)
 		except Exception as exc:
 			logging.error(f"Failed to perform bulk update: {exc}")
 			raise  # Re-raise the exception
 
-		collecting_event_schema = CollectingEventSchema()
-		deserialized_data = collecting_event_schema.load(response_data.json())
-
-		return deserialized_data
+		return response_data.json()

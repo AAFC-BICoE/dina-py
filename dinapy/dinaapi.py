@@ -13,7 +13,7 @@ from keycloak.exceptions import KeycloakAuthenticationError
 
 KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina.local/api/"
-BULK_POST_ENDPOINT_URL = "bulk"
+BULK_POST_ENDPOINT_URL = "/bulk"
 
 class DinaAPI:
     """Base class containing basic DINA module API calls.
@@ -297,7 +297,9 @@ class DinaAPI:
         }
         )
         try:
-            response = self.session.patch(full_url + BULK_POST_ENDPOINT_URL, json=json_data)
+            response = self.session.patch(full_url + BULK_POST_ENDPOINT_URL, json=json_data,
+                headers=self.session.headers,
+                verify=self.configs["secure"],)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception

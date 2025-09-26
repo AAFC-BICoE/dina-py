@@ -49,7 +49,4 @@ class MaterialSampleAPI(CollectionModuleApi):
 			logging.error(f"Failed to perform bulk update: {exc}")
 			raise  # Re-raise the exception
 
-		material_sample_schema = MaterialSampleSchema()
-		deserialized_data = material_sample_schema.load(response_data.json())
-
-		return deserialized_data
+		return response_data.json()

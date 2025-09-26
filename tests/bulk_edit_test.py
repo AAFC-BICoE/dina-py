@@ -109,7 +109,6 @@ class TestBulkUpdate(unittest.TestCase):
         # Prepare bulk payload
         bulk_payload = prepare_bulk_payload(
             entities=[person1, person2],
-            schema=PersonSchema,
             include_fields=["familyNames"]
         )
         

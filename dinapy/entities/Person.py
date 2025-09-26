@@ -22,9 +22,10 @@ class Person:
         organizations (list of Organization): List of organizations associated with the person.
     """
 
-    def __init__(self, id, displayName, email, createdBy, createdOn, givenNames, familyNames,
+    def __init__(self, id, meta, displayName, email, createdBy, createdOn, givenNames, familyNames,
                  aliases, webpage=None, remarks=None, identifiers=None, organizations=None):
         self.id = id
+        self.meta = meta
         self.displayName = displayName
         self.email = email
         self.createdBy = createdBy
@@ -80,9 +81,10 @@ class PersonDTOBuilder:
 
 
 class PersonAttributesDTO:
-    def __init__(self, displayName='undefined', email='undefined', createdBy='undefined',
+    def __init__(self, meta='undefined', displayName='undefined', email='undefined', createdBy='undefined',
                  createdOn='undefined', givenNames='undefined', familyNames='undefined',
                  aliases=None, webpage=None, remarks=None):
+        self.meta = meta
         self.displayName = displayName
         self.email = email
         self.createdBy = createdBy
@@ -96,6 +98,7 @@ class PersonAttributesDTO:
 
 class PersonAttributesDTOBuilder:
     def __init__(self):
+        self._meta = 'undefined'
         self._displayName = 'undefined'
         self._email = 'undefined'
         self._createdBy = 'undefined'
@@ -106,6 +109,10 @@ class PersonAttributesDTOBuilder:
         self._webpage = None
         self._remarks = None
 
+    def meta(self, meta):
+        self._meta = meta
+        return self
+    
     def displayName(self, displayName):
         self._displayName = displayName
         return self
@@ -144,6 +151,7 @@ class PersonAttributesDTOBuilder:
 
     def build(self):
         return PersonAttributesDTO(
+            self._meta,
             self._displayName,
             self._email,
             self._createdBy,

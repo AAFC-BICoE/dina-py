@@ -6,11 +6,12 @@ from dinapy.entities.Person import PersonDTO
 class PersonSchema(Schema):
     '''Schema for a Person used for serializing and deserializing JSON.'''
     id = fields.Str(allow_none=True)
+    personMeta = SkipUndefinedField(fields.Dict, allow_none=True, attribute="attributes.meta",data_key="meta")
     displayName = SkipUndefinedField(fields.Str, required=True, attribute="attributes.displayName")
-    email = SkipUndefinedField(fields.Str, required=True, attribute="attributes.email")
+    email = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.email")
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.DateTime, load_only=True, attribute="attributes.createdOn")
-    givenNames = SkipUndefinedField(fields.Str, required=True, attribute="attributes.givenNames")
+    givenNames = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.givenNames")
     familyNames = SkipUndefinedField(fields.Str, required=True, attribute="attributes.familyNames")
     aliases = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, required=False, attribute="attributes.aliases")
     webpage = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.webpage")

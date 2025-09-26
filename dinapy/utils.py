@@ -62,7 +62,7 @@ def get_dina_records_by_params(api,params):
         
     return data
 
-def prepare_bulk_payload(entities: list, schema, include_fields: list = None) -> dict:
+def prepare_bulk_payload(entities: list, include_fields: list = None) -> dict:
     """Prepares a minimal bulk payload from a list of entities.
     
     Args:
