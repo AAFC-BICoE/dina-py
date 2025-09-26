@@ -33,10 +33,10 @@ class MaterialSampleAPI(CollectionModuleApi):
 		return self.get_relationship_entity(entity_id, 'collection')
 
 	def bulk_update(self, json_data: dict) -> dict:
-		"""Updates person records providing a bulk payload using a PATCH request.
+		"""Updates material-sample records providing a bulk payload using a PATCH request.
 
 		Parameters:
-			json_data (dict): JSON data for updating the person.
+			json_data (dict): JSON data for updating the material-sample.
 
 		Returns:
 			dict: A deserialized object of the PATCH response.
