@@ -5,12 +5,12 @@ from dinapy.entities.ManagedAttribute import ManagedAttributesDTO
 from .multilingualDescription import MultilingualDescriptionSchema
 
 class ManagedAttributesSchema(Schema):
-    id = fields.Str(dump_only=False)
+    id = fields.Str(load_only=True)
     name = SkipUndefinedField(fields.Str, attribute="attributes.name")
-    key = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.key")
+    key = SkipUndefinedField(fields.Str, attribute="attributes.key")
     vocabularyElementType = SkipUndefinedField(fields.Str, attribute="attributes.vocabularyElementType")
     unit = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.unit")
-    managedAttributeComponent = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.managedAttributeComponent")
+    managedAttributeComponent = SkipUndefinedField(fields.Str, attribute="attributes.managedAttributeComponent")
     acceptedValues = SkipUndefinedField(fields.List, fields.Raw(), allow_none=True, attribute="attributes.acceptedValues")
     createdOn = SkipUndefinedField(fields.DateTime, allow_none=True, attribute="attributes.createdOn")
     createdBy = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.createdBy")
