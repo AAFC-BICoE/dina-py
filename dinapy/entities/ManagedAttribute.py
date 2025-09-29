@@ -4,6 +4,13 @@ class ManagedAttributesDTO:
         self.type = type
         self.attributes = attributes or {}
 
+    def get_id(self):
+        return self.id
+    def get_type(self):
+        return self.type
+    def get_attributes(self):
+        return self.attributes 
+
 class ManagedAttributesDTOBuilder:
     def __init__(self):
         self.managed_attribute = ManagedAttributesDTO(
