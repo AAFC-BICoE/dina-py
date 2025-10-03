@@ -16,6 +16,7 @@ sys.path.insert(0, project_root)
 
 # Now you can import modules from the dinaapi package
 from dinapy.schemas.managedattributeschema import ManagedAttributesSchema
+from dinapy.entities.ManagedAttribute import ManagedAttributesDTO
 
 KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
 
@@ -46,10 +47,12 @@ class ManagedAttributesSchemaTest(unittest.TestCase):
         # Create a schema instance and validate the data
         schema = ManagedAttributesSchema()
         try:
-            result = schema.load(VALID_MANAGED_ATTRIBUTES_DATA)
+            deserialized = schema.load(VALID_MANAGED_ATTRIBUTES_DATA)
+            self.assertIsInstance(deserialized, ManagedAttributesDTO)
+            serialized = schema.dump(deserialized)
             pp = pprint.PrettyPrinter(indent=0)
-            pp.pprint(result)
-            self.assertIsInstance(result, dict)
+            pp.pprint(serialized)
+            self.assertIsInstance(serialized, dict)
         except ValidationError as e:
             self.fail(f"Validation failed with error: {e.messages}")
 

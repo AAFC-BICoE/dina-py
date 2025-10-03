@@ -11,7 +11,9 @@ class CollectingEventDTO:
 	def get_type(self):
 		return self.type
 
-
+	def get_attributes(self):
+		return self.attributes
+	
 class CollectingEventDTOBuilder:
 	def __init__(self):
 		self._id = None
@@ -20,7 +22,7 @@ class CollectingEventDTOBuilder:
 		self._relationships = None
 
 	def attributes(self, attributes):
-		self._attributes = attributes
+		self._attributes = attributes.to_dict()
 		return self
 
 	def relationships(self, relationships):
@@ -32,7 +34,7 @@ class CollectingEventDTOBuilder:
 
 
 class CollectingEventAttributesDTO:
-	def __init__(self, version='undefined', notPubliclyReleasableReason='undefined', dwcMaximumDepthInMeters='undefined', dwcCountry='undefined', dwcMinimumElevationInMeters='undefined', dwcCountryCode='undefined', dwcFieldNumber='undefined', dwcRecordNumber='undefined', dwcVerbatimDepth='undefined', dwcMinimumDepthInMeters='undefined', dwcMaximumElevationInMeters='undefined', dwcStateProvince='undefined', dwcVerbatimCoordinateSystem='undefined', dwcVerbatimElevation='undefined', dwcVerbatimLatitude='undefined', dwcVerbatimLongitude='undefined', otherRecordNumbers='undefined', publiclyReleasable='undefined', group='undefined', createdBy='undefined', createdOn='undefined', geoReferenceAssertions='undefined', geographicPlaceNameSource='undefined', geographicPlaceNameSourceDetail='undefined', habitat='undefined', eventGeom='undefined', extensionValues='undefined', dwcVerbatimCoordinates='undefined', dwcRecordedBy='undefined', dwcVerbatimSRS='undefined', startEventDateTime='undefined', substrate='undefined', tags='undefined', endEventDateTime='undefined', verbatimEventDateTime='undefined', dwcVerbatimLocality='undefined', host='undefined', managedAttributes={}, remarks='undefined'):
+	def __init__(self, version='undefined', notPubliclyReleasableReason='undefined', dwcMaximumDepthInMeters='undefined', dwcCountry='undefined', dwcMinimumElevationInMeters='undefined', dwcCountryCode='undefined', dwcFieldNumber='undefined', dwcRecordNumber='undefined', dwcVerbatimDepth='undefined', dwcMinimumDepthInMeters='undefined', dwcMaximumElevationInMeters='undefined', dwcStateProvince='undefined', dwcVerbatimCoordinateSystem='undefined', dwcVerbatimElevation='undefined', dwcVerbatimLatitude='undefined', dwcVerbatimLongitude='undefined', otherRecordNumbers='undefined', publiclyReleasable='undefined', group='undefined', createdBy='undefined', createdOn='undefined', geoReferenceAssertions='undefined', geographicPlaceNameSource='undefined', geographicPlaceNameSourceDetail='undefined', geographicThesaurus='undefined', habitat='undefined', eventGeom='undefined', extensionValues='undefined', dwcVerbatimCoordinates='undefined', dwcRecordedBy='undefined', dwcVerbatimSRS='undefined', startEventDateTime='undefined', substrate='undefined', tags='undefined', endEventDateTime='undefined', verbatimEventDateTime='undefined', dwcVerbatimLocality='undefined', host='undefined', managedAttributes={}, remarks='undefined'):
 		self.version = version
 		self.notPubliclyReleasableReason = notPubliclyReleasableReason
 		self.dwcMaximumDepthInMeters = dwcMaximumDepthInMeters
@@ -57,6 +59,7 @@ class CollectingEventAttributesDTO:
 		self.geoReferenceAssertions = geoReferenceAssertions
 		self.geographicPlaceNameSource = geographicPlaceNameSource
 		self.geographicPlaceNameSourceDetail = geographicPlaceNameSourceDetail
+		self.geographicThesaurus = geographicThesaurus
 		self.habitat = habitat
 		self.eventGeom = eventGeom
 		self.extensionValues = extensionValues
@@ -73,7 +76,9 @@ class CollectingEventAttributesDTO:
 		self.managedAttributes = managedAttributes
 		self.remarks = remarks
 
-
+	def to_dict(self):
+		return self.__dict__
+	
 class CollectingEventAttributesDTOBuilder:
 	def __init__(self):
 		self._version = 'undefined'
@@ -100,6 +105,7 @@ class CollectingEventAttributesDTOBuilder:
 		self._geoReferenceAssertions = 'undefined'
 		self._geographicPlaceNameSource = 'undefined'
 		self._geographicPlaceNameSourceDetail = 'undefined'
+		self._geographicThesaurus = 'undefined'
 		self._habitat = 'undefined'
 		self._eventGeom = 'undefined'
 		self._extensionValues = 'undefined'
@@ -211,6 +217,10 @@ class CollectingEventAttributesDTOBuilder:
 		self._geographicPlaceNameSourceDetail = geographicPlaceNameSourceDetail
 		return self
 
+	def geographicThesaurus(self, geographicThesaurus):
+		self._geographicThesaurus = geographicThesaurus
+		return self
+	
 	def habitat(self, habitat):
 		self._habitat = habitat
 		return self
@@ -297,6 +307,7 @@ class CollectingEventAttributesDTOBuilder:
 			self._geoReferenceAssertions,
 			self._geographicPlaceNameSource,
 			self._geographicPlaceNameSourceDetail,
+			self._geographicThesaurus,
 			self._habitat,
 			self._eventGeom,
 			self._extensionValues,

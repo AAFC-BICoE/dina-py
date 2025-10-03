@@ -5,4 +5,4 @@ class DescriptionSchema(Schema):
     desc = fields.String(required=True)
 
 class MultilingualDescriptionSchema(Schema):
-    descriptions = fields.List(fields.Nested(DescriptionSchema), allow_none=True, required=True)
+    descriptions = fields.List(fields.Nested(DescriptionSchema), allow_none=True)

@@ -27,7 +27,7 @@ class StorageUnitUsageDTOBuilder:
 		return self
 
 	def set_attributes(self, attributes):
-		self._attributes = attributes
+		self._attributes = attributes.to_dict()
 		return self
 	
 	def set_relationships(self, relationships):
@@ -47,7 +47,9 @@ class StorageUnitUsageAttributesDTO:
 		self.createdOn = createdOn
 		self.createdBy = createdBy
 
-
+	def to_dict(self):
+		return self.__dict__
+	
 class StorageUnitUsageAttributesDTOBuilder:
 	def __init__(self):
 		self._usageType = 'undefined'

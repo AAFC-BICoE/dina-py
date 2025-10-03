@@ -4,6 +4,13 @@ class ManagedAttributesDTO:
         self.type = type
         self.attributes = attributes or {}
 
+    def get_id(self):
+        return self.id
+    def get_type(self):
+        return self.type
+    def get_attributes(self):
+        return self.attributes 
+
 class ManagedAttributesDTOBuilder:
     def __init__(self):
         self.managed_attribute = ManagedAttributesDTO(
@@ -23,6 +30,9 @@ class ManagedAttributesDTOBuilder:
     def build(self):
         return self.managed_attribute
 
+    def to_dict(self):
+        return self.__dict__
+        
 class ManagedAttributeAttributesDTO:
     def __init__(self, name=None, key=None, vocabularyElementType=None, unit=None, managedAttributeComponent=None, acceptedValues=None, createdOn=None, createdBy=None, group=None, multilingualDescription={}):
         self.name = name

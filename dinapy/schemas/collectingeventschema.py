@@ -54,6 +54,7 @@ class CollectingEventSchema(Schema):
 	geoReferenceAssertions = SkipUndefinedField(fields.List,fields.Dict(), allow_none=True, required=False, attribute="attributes.geoReferenceAssertions")
 	geographicPlaceNameSource = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.geographicPlaceNameSource")
 	geographicPlaceNameSourceDetail = SkipUndefinedField(fields.Str,allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
+	geographicThesaurus = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.geographicThesaurus")
 	habitat = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.habitat")
 	eventGeom = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.eventGeom")
 	extensionValues = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.extensionValues")
