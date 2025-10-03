@@ -11,13 +11,13 @@ class CollectingEventAPI(CollectionModuleApi):
 		self.base_url += "collecting-event"
 
 	def bulk_update(self, json_data: dict):
-		"""Updates person records providing a bulk payload using a PATCH request.
+		"""Updates collecting-event records providing a bulk payload using a PATCH request.
 
 		Parameters:
-			json_data (dict): JSON data for updating the person.
+			json_data (dict): JSON data for updating the collecting-event.
 
 		Returns:
-			dict: A deserialized object of the PATCH response.
+			response_data: json content of the response
 		"""
 		full_url = self.base_url
 		try:

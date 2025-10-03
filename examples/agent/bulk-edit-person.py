@@ -15,8 +15,8 @@ from dinapy.schemas.personschema import PersonSchema
 from dinapy.utils import *
 
 # Set environment variables for authentication (replace with actual credentials or use a secure method)
-os.environ["keycloak_username"] = "dina-admin"
-os.environ["keycloak_password"] = "dina-admin"
+# os.environ["keycloak_username"] = "dina-admin"
+# os.environ["keycloak_password"] = "dina-admin"
 
 def main():
     # Initialize the Person API client (uses certificate-based authentication)
