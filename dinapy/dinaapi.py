@@ -291,7 +291,7 @@ class DinaAPI:
         self.refresh_token()
         self.session.headers.update(
         {
-            "Accept": "application/vnd.api+json; ext=bulk",
+            "Accept": "application/vnd.api+json",
             "Content-Type": "application/vnd.api+json; ext=bulk",
             "Authorization": f"bearer {DinaAPI.token['access_token']}",
         }

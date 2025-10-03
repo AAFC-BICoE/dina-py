@@ -30,6 +30,9 @@ class ManagedAttributesDTOBuilder:
     def build(self):
         return self.managed_attribute
 
+    def to_dict(self):
+        return self.__dict__
+        
 class ManagedAttributeAttributesDTO:
     def __init__(self, name=None, key=None, vocabularyElementType=None, unit=None, managedAttributeComponent=None, acceptedValues=None, createdOn=None, createdBy=None, group=None, multilingualDescription={}):
         self.name = name

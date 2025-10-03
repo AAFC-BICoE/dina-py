@@ -27,7 +27,7 @@ class SeqReactionDTOBuilder:
         return self
 
     def set_attributes(self, attributes):
-        self._attributes = attributes
+        self._attributes = attributes.to_dict()
         return self
 
     def set_relationships(self, relationships):
@@ -43,28 +43,31 @@ class SeqReactionAttributesDTO:
         self.createdOn = createdOn
         self.group = group
 
+    def to_dict(self):
+        return self.__dict__
+        
 class SeqReactionAttributesDTOBuilder:
-	def __init__(self):
-		self._createdBy = 'undefined'
-		self._createdOn = 'undefined'
-		self._group = 'undefined'
+    def __init__(self):
+        self._createdBy = 'undefined'
+        self._createdOn = 'undefined'
+        self._group = 'undefined'
 
-	def set_createdBy(self, createdBy):
-		self._createdBy = createdBy
-		return self
+    def set_createdBy(self, createdBy):
+        self._createdBy = createdBy
+        return self
 
-	def set_createdOn(self, createdOn):
-		self._createdOn = createdOn
-		return self
+    def set_createdOn(self, createdOn):
+        self._createdOn = createdOn
+        return self
 
-	def set_group(self, group):
-		self._group = group
-		return self
-	
-	def build(self):
-		return SeqReactionAttributesDTO(
-			self._createdBy, 
-			self._createdOn, 
-			self._group
-		)
-	
+    def set_group(self, group):
+        self._group = group
+        return self
+    
+    def build(self):
+        return SeqReactionAttributesDTO(
+            self._createdBy, 
+            self._createdOn, 
+            self._group
+        )
+    

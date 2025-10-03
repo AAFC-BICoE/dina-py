@@ -19,7 +19,7 @@ class ProjectDTOBuilder:
         self._relationships = None
 
     def attributes(self, attributes):
-        self._attributes = attributes
+        self._attributes = attributes.to_dict()
         return self
     
     def relationships(self, relationships):
@@ -41,6 +41,9 @@ class ProjectAttributesDTO:
         self.multilingualDescription = multilingualDescription
         self.extensionValues = extensionValues
 
+    def to_dict(self):
+        return self.__dict__
+        
 class ProjectAttributesDTOBuilder:
     def __init__(self):
         self._createdOn = 'undefined'

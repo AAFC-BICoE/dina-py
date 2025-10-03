@@ -69,7 +69,7 @@ class PersonDTOBuilder:
         return self
 
     def attributes(self, attributes):
-        self._attributes = attributes
+        self._attributes = attributes.to_dict()
         return self
 
     def relationships(self, relationships):
@@ -95,7 +95,9 @@ class PersonAttributesDTO:
         self.webpage = webpage
         self.remarks = remarks
 
-
+    def to_dict(self):
+        return self.__dict__
+    
 class PersonAttributesDTOBuilder:
     def __init__(self):
         self._meta = 'undefined'

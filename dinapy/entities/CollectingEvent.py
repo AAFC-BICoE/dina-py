@@ -22,7 +22,7 @@ class CollectingEventDTOBuilder:
 		self._relationships = None
 
 	def attributes(self, attributes):
-		self._attributes = attributes
+		self._attributes = attributes.to_dict()
 		return self
 
 	def relationships(self, relationships):
@@ -76,7 +76,9 @@ class CollectingEventAttributesDTO:
 		self.managedAttributes = managedAttributes
 		self.remarks = remarks
 
-
+	def to_dict(self):
+		return self.__dict__
+	
 class CollectingEventAttributesDTOBuilder:
 	def __init__(self):
 		self._version = 'undefined'

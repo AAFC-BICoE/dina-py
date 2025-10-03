@@ -67,7 +67,6 @@ def prepare_bulk_payload(entities: list, include_fields: list = None) -> dict:
     
     Args:
         entities (list): List of entity objects to be included in bulk operation
-        schema: The marshmallow schema class to use for serialization
         include_fields (list, optional): List of attribute fields to include in payload.
             If None, includes all fields.
             
