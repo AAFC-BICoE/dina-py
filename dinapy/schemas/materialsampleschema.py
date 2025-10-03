@@ -54,6 +54,10 @@ class StorageUnit(BaseSchema):
 	class Meta:
 		type_ = 'storage-unit'
 
+class StorageUnitUsage(BaseSchema):
+	class Meta:
+		type_ = 'storage-unit-usage'
+
 class MaterialSampleSchema(Schema):
 	'''Schema for a Material Sample used for serializing and deserializing JSON.'''
 	id = fields.Str(load_only=True)
@@ -90,6 +94,8 @@ class MaterialSampleSchema(Schema):
 	isRestricted = SkipUndefinedField(fields.Bool, required=True, attribute="attributes.isRestricted")
 	restrictionRemarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.restrictionRemarks")
 	sourceSet = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.sourceSet")
+	isBaseForSplitByType = SkipUndefinedField(fields.Bool, required=False, allow_none=True, attribute="attributes.isBaseForSplitByType")
+	identifiers = SkipUndefinedField(fields.Dict, allow_none=True, required=False, attribute="attributes.identifiers")
 
 	@post_dump
 	def remove_skipped_fields(self, data, many, **kwargs):
@@ -121,7 +127,8 @@ class MaterialSampleSchema(Schema):
 	assemblages = create_relationship("material-sample","assemblage","assemblages")
 	organism = create_relationship("material-sample","organism")
 	storageUnit = create_relationship("material-sample","storage-unit","storageUnit")
-	
+	storageUnitUsage = create_relationship("material-sample","storage-unit-usage","storageUnitUsage")
+
 	meta = fields.DocumentMeta()
 	
 	class Meta:

@@ -60,10 +60,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to perform bulk update: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
+        return response_data.json()
     
     # TODO: everything below is untested
     def find_many(self, search_query: str = None, sort_order: str = None, offset: int = None, limit: int = None) -> list:
@@ -99,11 +96,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to get persons with filters {params}: {exc}")
             raise  # Re-raise the exception
 
-        persons = response_data['data']
-        person_schema = PersonSchema()
-        deserialized_persons = [person_schema.load(person) for person in persons]
-
-        return deserialized_persons
+        return response_data.json()['data']
 
     def create(self, json_data: dict) -> dict:
         """Creates a new person by sending a POST request.

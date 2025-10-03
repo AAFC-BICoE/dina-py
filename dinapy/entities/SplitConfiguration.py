@@ -20,7 +20,7 @@ class SplitConfigurationDTOBuilder:
 		self._relationships = None
 
 	def set_attributes(self, attributes):
-		self._attributes = attributes
+		self._attributes = attributes.to_dict()
 		return self
 	
 	def set_relationships(self, relationships):
@@ -55,6 +55,9 @@ class SplitConfigurationAttributesDTO:
 		self.materialSampleTypeCreatedBySplit = materialSampleTypeCreatedBySplit
 
 
+	def to_dict(self):
+		return self.__dict__
+	
 class SplitConfigurationAttributesDTOBuilder:
 	def __init__(self):
 		self._createdOn = 'undefined'

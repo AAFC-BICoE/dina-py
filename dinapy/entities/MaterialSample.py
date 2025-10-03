@@ -11,6 +11,9 @@ class MaterialSampleDTO:
 	def get_type(self):
 		return self.type
 
+	def get_attributes(self):
+		return self.attributes
+	
 class MaterialSampleDTOBuilder:
 	def __init__(self):
 		self._id = None
@@ -23,7 +26,7 @@ class MaterialSampleDTOBuilder:
 		return self
 	
 	def attributes(self, attributes):
-		self._attributes = attributes
+		self._attributes = attributes.to_dict()
 		return self
 
 	def relationships(self, relationships):
@@ -35,7 +38,7 @@ class MaterialSampleDTOBuilder:
 
 
 class MaterialSampleAttributesDTO:
-	def __init__(self, version='undefined', group='undefined', createdOn='undefined', createdBy='undefined', dwcCatalogNumber='undefined', dwcOtherCatalogNumbers='undefined', materialSampleName='undefined', materialSampleType='undefined', materialSampleChildren='undefined', preparationDate='undefined', preservationType='undefined', preparationFixative='undefined', preparationMaterials='undefined', preparationSubstrate='undefined', managedAttributes={}, preparationManagedAttributes={}, extensionValues='undefined', preparationRemarks='undefined', dwcDegreeOfEstablishment='undefined', barcode='undefined', publiclyReleasable='undefined', notPubliclyReleasableReason='undefined', tags='undefined', materialSampleState='undefined', materialSampleRemarks='undefined', stateChangedOn='undefined', stateChangeRemarks='undefined', associations='undefined', allowDuplicateName=False, restrictionFieldsExtension='undefined', isRestricted=False, restrictionRemarks='undefined', sourceSet='undefined'):
+	def __init__(self, version='undefined', group='undefined', createdOn='undefined', createdBy='undefined', dwcCatalogNumber='undefined', dwcOtherCatalogNumbers='undefined', materialSampleName='undefined', materialSampleType='undefined', materialSampleChildren='undefined', preparationDate='undefined', preservationType='undefined', preparationFixative='undefined', preparationMaterials='undefined', preparationSubstrate='undefined', managedAttributes={}, preparationManagedAttributes={}, extensionValues='undefined', preparationRemarks='undefined', dwcDegreeOfEstablishment='undefined', barcode='undefined', publiclyReleasable='undefined', notPubliclyReleasableReason='undefined', tags='undefined', materialSampleState='undefined', materialSampleRemarks='undefined', stateChangedOn='undefined', stateChangeRemarks='undefined', associations='undefined', allowDuplicateName=False, restrictionFieldsExtension='undefined', isRestricted=False, restrictionRemarks='undefined', sourceSet='undefined', isBaseForSplitByType= False, identifiers= 'undefined'):
 		self.version = version
 		self.group = group
 		self.createdOn = createdOn
@@ -69,6 +72,10 @@ class MaterialSampleAttributesDTO:
 		self.isRestricted = isRestricted
 		self.restrictionRemarks = restrictionRemarks
 		self.sourceSet = sourceSet
+		self.isBaseForSplitByType = isBaseForSplitByType
+		self.identifiers = identifiers
+	def to_dict(self):
+		return self.__dict__
 	
 class MaterialSampleAttributesDTOBuilder:
 	def __init__(self):
@@ -105,6 +112,9 @@ class MaterialSampleAttributesDTOBuilder:
 		self._isRestricted = 'undefined'
 		self._restrictionRemarks = 'undefined'
 		self._sourceSet = 'undefined'
+		self._isBaseForSplitByType = 'undefined'
+		self._identifiers = 'undefined'
+
 	def version(self, version):
 		self._version = version
 		return self
@@ -237,7 +247,14 @@ class MaterialSampleAttributesDTOBuilder:
 		self._sourceSet = sourceSet
 		return self
 
+	def isBaseForSplitByType(self, isBaseForSplitByType):
+		self._isBaseForSplitByType = isBaseForSplitByType
+		return self
+	def identifiers(self, identifiers):
+		self._identifiers = identifiers
+		return self
+	
 	def build(self):
-		return MaterialSampleAttributesDTO(self._version, self._group, self._createdOn, self._createdBy, self._dwcCatalogNumber, self._dwcOtherCatalogNumbers, self._materialSampleName, self._materialSampleType, self._materialSampleChildren, self._preparationDate, self._preservationType, self._preparationFixative, self._preparationMaterials, self._preparationSubstrate, self._managedAttributes, self._preparationManagedAttributes, self._extensionValues, self._preparationRemarks, self._dwcDegreeOfEstablishment, self._barcode, self._publiclyReleasable, self._notPubliclyReleasableReason, self._tags, self._materialSampleState, self._materialSampleRemarks, self._stateChangedOn, self._stateChangeRemarks, self._associations, self._allowDuplicateName, self._restrictionFieldsExtension, self._isRestricted, self._restrictionRemarks, self._sourceSet)
+		return MaterialSampleAttributesDTO(self._version, self._group, self._createdOn, self._createdBy, self._dwcCatalogNumber, self._dwcOtherCatalogNumbers, self._materialSampleName, self._materialSampleType, self._materialSampleChildren, self._preparationDate, self._preservationType, self._preparationFixative, self._preparationMaterials, self._preparationSubstrate, self._managedAttributes, self._preparationManagedAttributes, self._extensionValues, self._preparationRemarks, self._dwcDegreeOfEstablishment, self._barcode, self._publiclyReleasable, self._notPubliclyReleasableReason, self._tags, self._materialSampleState, self._materialSampleRemarks, self._stateChangedOn, self._stateChangeRemarks, self._associations, self._allowDuplicateName, self._restrictionFieldsExtension, self._isRestricted, self._restrictionRemarks, self._sourceSet, self._isBaseForSplitByType, self._identifiers)
 
 
