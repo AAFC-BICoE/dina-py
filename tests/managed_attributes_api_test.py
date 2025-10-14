@@ -19,18 +19,29 @@ os.environ["keycloak_password"] = "dina-admin"
 
 def main():
 	dina_managed_attribute_api = ManagedAttributeAPI()
-	managed_attribute_attributes = ManagedAttributeAttributesDTOBuilder().name("test attribute 2").vocabularyElementType("STRING").group("aafc").managedAttributeComponent("MATERIAL_SAMPLE").build()
-	managed_attribute = ManagedAttributesDTOBuilder().attributes(managed_attribute_attributes).build()
-	managed_attribute_schema = ManagedAttributesSchema()
+	for i in range(1, 16):
+		# Build the attribute DTO
+		managed_attribute_attributes = (
+			ManagedAttributeAttributesDTOBuilder()
+			.name(f"test attribute {i}")
+			.vocabularyElementType("STRING")
+			.group("aafc")
+			.managedAttributeComponent("MATERIAL_SAMPLE")
+			.build()
+		)
 
-	serialized_managed_attribute = managed_attribute_schema.dump(managed_attribute)
+		# Wrap it in the managed attribute DTO
+		managed_attribute = ManagedAttributesDTOBuilder().attributes(managed_attribute_attributes).build()
 
-	response = dina_managed_attribute_api.create_entity(serialized_managed_attribute)
-	print(response.json()['data']['id'])
+		# Serialize using schema
+		managed_attribute_schema = ManagedAttributesSchema()
+		serialized_managed_attribute = managed_attribute_schema.dump(managed_attribute)
 
-	# deserialized_managed_attribute = managed_attribute_schema.load(response.json())
+		# Send to API
+		response = dina_managed_attribute_api.create_entity(serialized_managed_attribute)
 
-	# print(deserialized_managed_attribute)
+		# Print the resulting ID
+		print(response.json()['data']['id'])
 
 if __name__ == '__main__':
 	main()

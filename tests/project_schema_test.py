@@ -18,28 +18,45 @@ from dinapy.entities.Project import *
 
 VALID_PROJECT_DATA = {
     "data": {
-        "id": "01939377-b15d-75f6-b405-54d9e719a509",
-        "type": "project",
-        "attributes": {
-            "createdOn": "2024-12-04T20:58:35.237491Z",
-            "createdBy": "dina-admin",
-            "group": "aafc",
-            "name": "test project",
-            "startDate": "2024-05-01",
-            "endDate": "2025-12-04",
-            "status": "Open",
-            "multilingualDescription": {
-                "descriptions": [
-                    {
-                        "lang": "en",
-                        "desc": "test decription"
-                    }
-                ]
+            "id": "01949469-fd77-7733-84cf-ea7eb1bd21ac",
+            "type": "project",
+            "links": {
+                "self": "/api/v1/project/01949469-fd77-7733-84cf-ea7eb1bd21ac"
             },
-            "extensionValues": {}
-        },
-        "relationships": {}
-    }
+            "attributes": {
+                "createdOn": "2025-01-23T18:26:01.719936Z",
+                "createdBy": "s-seqdbsoil",
+                "group": "aafc",
+                "name": "GRDI",
+                "startDate": None,
+                "endDate": None,
+                "status": None,
+                "contributors": [{
+                    "agent": "6d59d480-e90a-459c-9eb4-b0c97a2cb4c6",
+                    "roles": [
+                    "project_leader"
+                    ],
+                    "remarks": "string"
+                    }],
+                "multilingualDescription": {
+                    "descriptions": [
+                        {
+                            "lang": "en",
+                            "desc": "Genomics Research and Development Initiative🎯"
+                        }
+                    ]
+                },
+                "extensionValues": {}
+            },
+            "relationships": {
+                "attachment": {
+                    "links": {
+                        "self": "/api/v1/project/01949469-fd77-7733-84cf-ea7eb1bd21ac/relationships/attachment",
+                        "related": "/api/v1/project/01949469-fd77-7733-84cf-ea7eb1bd21ac/attachment"
+                    }
+                }
+            }
+        }
 }
 
 class ProjectSchemaTest(unittest.TestCase):
@@ -55,7 +72,7 @@ class ProjectSchemaTest(unittest.TestCase):
     def test_serialize_project(self):
         schema = ProjectSchema()
         project_attributes = ProjectAttributesDTOBuilder(
-            ).name("test project").group("aafc").build()
+            ).name("test project").group("aafc").contributors().build()
         project = ProjectDTOBuilder().attributes(project_attributes).build()
 
         try:

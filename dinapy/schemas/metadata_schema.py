@@ -30,6 +30,9 @@ class MetadataSchema(Schema):
     createdOn = SkipUndefinedField(
         fields.DateTime, load_only=True, attribute="attributes.createdOn"
     )
+    filename = SkipUndefinedField(
+        fields.Str, allow_none=True, attribute="attributes.filename"
+    )
     createdBy = SkipUndefinedField(
         fields.Str, load_only=True, attribute="attributes.createdBy"
     )
