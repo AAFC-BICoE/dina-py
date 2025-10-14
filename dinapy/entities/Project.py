@@ -70,11 +70,17 @@ class ProjectAttributesDTOBuilder:
     def createdOn(self, createdOn):
         self._createdOn = createdOn
         return self
-    
+
     def contributors(self, contributors):
-        self._contributors = contributors
-        return contributors
-    
+        self._contributors = list([
+            dict({
+                "agent": contributor.get("agent"),
+                "roles": list(contributor.get("roles", [])),
+                "remarks": contributor.get("remarks", "")
+            }) for contributor in contributors
+        ])
+        return self
+
     def createdBy(self, createdBy):
         self._createdBy = createdBy
         return self

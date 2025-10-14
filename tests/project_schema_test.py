@@ -71,21 +71,32 @@ class ProjectSchemaTest(unittest.TestCase):
 
     def test_serialize_project(self):
         schema = ProjectSchema()
+        
+        contributors_data = [
+            {
+                "agent": "6d59d480-e90a-459c-9eb4-b0c97a2cb4c6",
+                "roles": ["project_leader"],
+                "remarks": "string"
+            }
+        ]
+
         project_attributes = ProjectAttributesDTOBuilder(
-            ).name("test project").group("aafc").contributors().build()
+            ).name("test project").group("aafc").contributors(contributors_data).build()
         project = ProjectDTOBuilder().attributes(project_attributes).build()
 
         try:
             serialized_project = schema.dump(project)
             expected = {
-                "data": {
-                    "type": "project",
-                    "attributes": {
-                        "name": "test project",
-                        "group": "aafc"
+                'data': {
+                    'attributes': {
+                        'contributors': [{'agent': '6d59d480-e90a-459c-9eb4-b0c97a2cb4c6',
+                                          'remarks': 'string',
+                                          'roles': ['project_leader']}],
+                        'group': 'aafc',
+                        'name': 'test project'},
+                        'type': 'project'
+                        }
                     }
-                }
-            }
             print(serialized_project)
             self.assertIsInstance(serialized_project, dict)
             self.assertDictEqual(serialized_project, expected)
