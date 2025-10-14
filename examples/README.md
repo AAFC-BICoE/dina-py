@@ -24,7 +24,6 @@ examples/
 ├── seqdb/
     ├── metagenomic_batch_create_test.py
     ├── molecular_analysis_run_create_test.py
-├── retrieve_delete_organism_api_test.py
 └── api-query-and-record/
     ├── main.py
     ├── keycloak-config.sample.yml
@@ -76,7 +75,7 @@ Also make sure the `dinapy` package and its modules are available in your Python
 
 ---
 
-## `managed_attributes_api_test.py`
+### `managed_attributes_api_test.py`
 This script tests the creation of managed attributes:
 
 - Builds a managed attribute with properties like name, type, group, and component.
@@ -94,7 +93,7 @@ This script tests the creation of managed attributes:
 
 ---
 
-## `data_export_test.py`
+### `data_export_test.py`
 This script tests the export functionality of the DINA object store module:
 
 - Authenticates using environment variables (`keycloak_username`, `keycloak_password`).
@@ -105,7 +104,7 @@ This script tests the export functionality of the DINA object store module:
 
 ---
 
-## `external_resource_importer.py`
+### `external_resource_importer.py`
 This script imports external resources and links them to newly created material samples:
 
 - Reads a dataset file line-by-line to extract file paths and names.
@@ -117,7 +116,7 @@ This script imports external resources and links them to newly created material 
 
 ---
 
-## `link_samples_to_project.py`
+### `link_samples_to_project.py`
 This script links existing material samples to a specific project:
 
 - Uses a predefined project UUID.
@@ -128,7 +127,7 @@ This script links existing material samples to a specific project:
 
 ---
 
-## `metadata_api_test.py`
+### `metadata_api_test.py`
 This script tests the metadata creation functionality:
 
 - Loads configuration from a YAML file.
@@ -137,7 +136,7 @@ This script tests the metadata creation functionality:
 
 ---
 
-## `object_export_test.py`
+### `object_export_test.py`
 This script tests the object export functionality:
 
 - Retrieves metadata for a specific file using a filter.
@@ -147,7 +146,7 @@ This script tests the object export functionality:
 
 ---
 
-## `metagenomic_batch_create_test.py`
+### `metagenomic_batch_create_test.py`
 This script creates a metagenomics batch and associated batch items:
 
 - Builds relationships to a predefined index set and PCR batch items.
@@ -157,7 +156,7 @@ This script creates a metagenomics batch and associated batch items:
 
 ---
 
-## `molecular_analysis_run_create_test.py`
+### `molecular_analysis_run_create_test.py`
 This script creates a molecular analysis run and associated entities:
 
 - Initializes a molecular analysis run with attributes like name and group.
