@@ -10,17 +10,16 @@ class CollectingEventAPI(CollectionModuleApi):
 		super().__init__(config_path, base_url)
 		self.base_url += "collecting-event"
 
-	def bulk_update(self, json_data: dict) -> dict:
+	def bulk_update(self, json_data: dict):
 		"""Updates collecting-event records providing a bulk payload using a PATCH request.
 
 		Parameters:
 			json_data (dict): JSON data for updating the collecting-event.
 
 		Returns:
-			dict: A deserialized object of the PATCH response.
+			response_data: json content of the response
 		"""
 		full_url = self.base_url
-		
 		try:
 			response_data = self.bulk_update_req_dina(full_url, json_data)
 		except Exception as exc:

@@ -10,8 +10,8 @@ sys.path.insert(0, project_root)
 
 # Import DINA-related modules and utilities
 from dinapy.entities.CollectingEvent import *
-from dinapy.apis.agentapi.personapi import PersonAPI
-from dinapy.schemas.personschema import PersonSchema
+from dinapy.apis.collectionapi.collectingeventapi import CollectingEventAPI
+from dinapy.schemas.collectingeventschema import CollectingEventSchema
 from dinapy.utils import *
 
 # Set environment variables for authentication (replace with actual credentials or use a secure method)
@@ -19,46 +19,49 @@ os.environ["keycloak_username"] = "dina-admin"
 os.environ["keycloak_password"] = "dina-admin"
 
 def main():
-    # Initialize the Person API client (uses certificate-based authentication)
-    person_api = PersonAPI()
+    # Initialize the CollectingEvent API client (uses certificate-based authentication)
+    collecting_event_api = CollectingEventAPI()
 
     # Retrieve records from the API where the 'group' field matches 'aafc'
-    records = person_api.find_many()
+    records = get_dina_records_by_field(collecting_event_api, "group", "aafc")
     print(records)
-    # Deserialize the first 2 records into Person objects using the schema
-    persons = []
-    for record in records[:2]:
+    # Deserialize the first 10 records into CollectingEvent objects using the schema
+    collecting_events = []
+    for record in records[:10]:
         try:
             # Deserialize the record using Marshmallow schema
-            print(record)
-            person = PersonSchema().load({"data": record})
-            persons.append(person)
+            collecting_event = CollectingEventSchema().load({"data": record})
+            collecting_events.append(collecting_event)
         except ValidationError as e:
             # Print validation errors and skip invalid records
             print(f"Validation error: {e}")
             continue
 
-    print(f"Successfully parsed {len(persons)} persons")
+    print(f"Successfully parsed {len(collecting_events)} collecting events")
 
-    # Modify a specific field in each person
-    for record in persons:
-        # Set the 'lastName' attribute to a new value
-        record.attributes["familyNames"] = "test-family-name"
+    # Re-initialize API and schema (optional, could reuse previous instances)
+    collecting_event_api = CollectingEventAPI()
+    collecting_event_schema = CollectingEventSchema()
+
+    # Modify a specific field in each collecting event
+    for record in collecting_events:
+        # Set the 'dwcVerbatimElevation' attribute to a new value
+        record.attributes["dwcVerbatimElevation"] = "0.15"
 
     # Prepare the payload for bulk update, including only the modified field
     bulk_payload = prepare_bulk_payload(
-        entities=persons,
-        include_fields=["familyNames"]
+        entities=collecting_events,
+        include_fields=["dwcVerbatimElevation"]
     )
 
     # Print the bulk payload for inspection/debugging
     print(json.dumps(bulk_payload))
 
     # Send the bulk update request to the API
-    response = person_api.bulk_update(bulk_payload)
+    response = collecting_event_api.bulk_update(bulk_payload)
 
     # print the response from the bulk update operation
-    print(response)
+    print(response.json())
 
 # Entry point for script execution
 if __name__ == "__main__":
