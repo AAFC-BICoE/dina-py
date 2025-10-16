@@ -4,7 +4,12 @@ from .customFields import SkipUndefinedField
 from dinapy.entities.Assemblage import AssemblageDTO
 from dinapy.schemas.multilingualDescription import MultilingualDescriptionSchema
 from dinapy.schemas.multilingualtitleschema import MultilingualTitleSchema
+from .BaseSchema import *
 
+class Attachment(BaseSchema):
+	class Meta:
+		type_ = 'attachment'
+          
 class AssemblageSchema(Schema):
     '''Schema for an Assemblage used for serializing and deserializing JSON.'''
     id = fields.Str(allow_none=True)
@@ -19,20 +24,9 @@ class AssemblageSchema(Schema):
     multilingualDescription = SkipUndefinedField(
         fields.Nested, MultilingualDescriptionSchema, allow_none=True, attribute="attributes.multilingualDescription"
     )
-    familyNames = SkipUndefinedField(fields.Str, required=True, attribute="attributes.familyNames")
-    aliases = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, required=False, attribute="attributes.aliases")
-    webpage = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.webpage")
-    remarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.remarks")
     
-    attachments = fields.Relationship(
-        self_url="/api/v1/assemblage/{id}/relationships/attachments",
-        self_url_kwargs={"id": "<id>"},
-        related_url="/api/v1/assemblage/{id}/attachments",
-        related_url_kwargs={"id": "<id>"},
-        many=True,
-        type_="attachments",
-    )
-    
+    attachment = create_relationship("assemblage","metadata","attachment", many=True)
+
     meta = fields.DocumentMeta()
     
     class Meta:
