@@ -8,10 +8,28 @@ from .customFields import SkipUndefinedField
 from .BaseSchema import *
 	
 class StorageUnitTypeSchema(BaseSchema):
+	name = SkipUndefinedField(fields.Str,attribute="attributes.name")
+	createdOn = SkipUndefinedField(fields.DateTime, load_only=True,attribute="attributes.createdOn")
+	createdBy = SkipUndefinedField(fields.Str, load_only=True,attribute="attributes.createdBy")
+	group = SkipUndefinedField(fields.Str, required=True,attribute="attributes.grroup")
+	isInseparable = SkipUndefinedField(fields.Boolean, required=True,attribute="attributes.isInseparable")
+	gridLayoutDefinition = SkipUndefinedField(fields.Dict, required=True,attribute="attributes.gridLayoutDefinition")
+
 	class Meta:
 		type_ = 'storage-unit-type'
 
 class StorageUnitSchema(BaseSchema):
+	name = SkipUndefinedField(fields.Str,attribute="attributes.name")
+	createdOn = SkipUndefinedField(fields.DateTime, load_only=True,attribute="attributes.createdOn")
+	createdBy = SkipUndefinedField(fields.Str, load_only=True,attribute="attributes.createdBy")
+	group = SkipUndefinedField(fields.Str, required=True,attribute="attributes.group")
+	isGeneric = SkipUndefinedField(fields.Boolean, required=True,attribute="attributes.isGeneric")
+	barcode = SkipUndefinedField(fields.Str,attribute="attributes.barcode")
+	storageUnitChildren = SkipUndefinedField(fields.Dict,attribute="attributes.storageUnitChildren")
+
+	parentStorageUnit = create_relationship("storage-unit","storage-unit","storageUnit")
+	storageUnitType = create_relationship("storage-unit","storage-unit-type","storageUnitType")
+	
 	class Meta:
 		type_ = 'storage-unit'
 	

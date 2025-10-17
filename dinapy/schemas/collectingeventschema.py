@@ -73,8 +73,8 @@ class CollectingEventSchema(Schema):
 
 	collectionMethod = create_relationship("collecting-event","collection-method","collectionMethod")
 	protocol = create_relationship("collecting-event","protocol","protocol")
-	collectors = create_relationship("collecting-event","person","collectors")
-	attachment = create_relationship("collecting-event","metadata","attachment")
+	collectors = create_relationship("collecting-event","person","collectors",many=True)
+	attachment = create_relationship("collecting-event","metadata","attachment",many=True)
 
 	meta = fields.DocumentMeta()
 
