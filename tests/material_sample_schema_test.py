@@ -325,23 +325,6 @@ VALID_MATERIAL_SAMPLE_DATA = {
 
 
 class MaterialSampleSchemaTest(unittest.TestCase):
-	# def test_create_delete_entity(self):
-	# 	schema = MaterialSampleSchema()
-	# 	material_sample_api = MaterialSampleAPI()
-	# 	try:
-	# 		material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").materialSampleName("test").materialSampleType("WHOLE_ORGANISM")\
-	# 		.build()
-	# 		material_sample = MaterialSampleDTOBuilder().attributes(material_sample_attributes).build()
-	# 		serialized_material_sample = schema.dump(material_sample)
-	# 		pp = pprint.PrettyPrinter(indent=0)
-	# 		pp.pprint(serialized_material_sample)
-	# 		response = material_sample_api.create_entity(serialized_material_sample)
-	# 		id = response.json()['data']['id']
-	# 		if response.status_code == 201:
-	# 			response = material_sample_api.remove_entity(id)
-	# 			self.assertEqual(response.status_code,204)
-	# 	except ValidationError as e:
-	# 		self.fail(f"Validation failed with error: {e.messages}")
 
 	def test_serialize_materialsample(self):
 		schema = MaterialSampleSchema()

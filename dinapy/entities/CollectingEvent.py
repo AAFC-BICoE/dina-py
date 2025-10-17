@@ -324,4 +324,3 @@ class CollectingEventAttributesDTOBuilder:
 			self._managedAttributes,
 			self._remarks
 		)
-

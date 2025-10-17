@@ -1,6 +1,4 @@
-# This file contains tests relating to CollectingEventAPI.
-# Currently only contains tests for the CollectingEventSchema (serialization and deserialization tests).
-# API mock call tests should be added.
+# Contains tests for the CollectingEventSchema (serialization and deserialization tests).
 
 import unittest
 import pprint
