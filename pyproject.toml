@@ -64,4 +64,3 @@ exclude = ["tests*", "docs*", "examples*"]
 # uncomment and adjust the following:
 # [tool.setuptools.package-data]
 # dinapy = ["**/*.yml", "**/*.yaml"]
-``
