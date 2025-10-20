@@ -30,8 +30,18 @@ class ProjectDTOBuilder:
         return ProjectDTO(self._id, self._type, self._attributes, self._relationships)
     
 class ProjectAttributesDTO:
-    def __init__(self, createdOn = 'undefined', createdBy = 'undefined', group = 'undefined', name = 'undefined', startDate = 'undefined', endDate = 'undefined', status = 'undefined', multilingualDescription = 'undefined', extensionValues = 'undefined'):
+    def __init__(self, createdOn = 'undefined',
+                 contributors = 'undefined', 
+                 createdBy = 'undefined', 
+                 group = 'undefined', 
+                 name = 'undefined', 
+                 startDate = 'undefined',
+                 endDate = 'undefined', 
+                 status = 'undefined', 
+                 multilingualDescription = 'undefined', 
+                 extensionValues = 'undefined'):
         self.createdOn = createdOn
+        self.contributors = contributors
         self.createdBy = createdBy
         self.group = group
         self.name = name
@@ -47,6 +57,7 @@ class ProjectAttributesDTO:
 class ProjectAttributesDTOBuilder:
     def __init__(self):
         self._createdOn = 'undefined'
+        self._contributors = 'undefined'
         self._createdBy = 'undefined'
         self._group = 'undefined'
         self._name = 'undefined'
@@ -59,7 +70,17 @@ class ProjectAttributesDTOBuilder:
     def createdOn(self, createdOn):
         self._createdOn = createdOn
         return self
-    
+
+    def contributors(self, contributors):
+        self._contributors = list([
+            dict({
+                "agent": contributor.get("agent"),
+                "roles": list(contributor.get("roles", [])),
+                "remarks": contributor.get("remarks", "")
+            }) for contributor in contributors
+        ])
+        return self
+
     def createdBy(self, createdBy):
         self._createdBy = createdBy
         return self
@@ -95,6 +116,7 @@ class ProjectAttributesDTOBuilder:
     def build(self):
         return ProjectAttributesDTO(
         self._createdOn,
+        self._contributors,
         self._createdBy,
         self._group,
         self._name,

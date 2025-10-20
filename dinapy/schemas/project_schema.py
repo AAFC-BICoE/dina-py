@@ -15,6 +15,7 @@ class ProjectSchema(Schema):
     id = fields.Str(load_only=True)
     createdBy = SkipUndefinedField(fields.Str,attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.DateTime,load_only=True,attribute="attributes.createdOn")
+    contributors = SkipUndefinedField(fields.List,fields.Dict(),allow_none=True, attribute="attributes.contributors")    
     group = SkipUndefinedField(fields.Str,attribute="attributes.group")
     name = SkipUndefinedField(fields.Str,required=True,attribute="attributes.name")
     startDate = SkipUndefinedField(fields.Str,allow_none=True,attribute="attributes.startDate")

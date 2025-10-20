@@ -49,6 +49,7 @@ class MetadataAttributesDTO:
         bucket="undefined",
         fileIdentifier="undefined",
         fileExtension="undefined",
+        fileName="undefined",
         resourceExternalURL="undefined",
         dcFormat="undefined",
         dcType="undefined",
@@ -75,6 +76,7 @@ class MetadataAttributesDTO:
         self.bucket = bucket
         self.fileIdentifier = fileIdentifier
         self.fileExtension = fileExtension
+        self.fileName = fileName
         self.resourceExternalURL = resourceExternalURL
         self.dcFormat = dcFormat
         self.dcType = dcType
@@ -106,6 +108,7 @@ class MetadataAttributesDTOBuilder:
         self._bucket = "undefined"
         self._fileIdentifier = "undefined"
         self._fileExtension = "undefined"
+        self._fileName = "undefined"
         self._resourceExternalURL = "undefined"
         self._dcFormat = "undefined"
         self._dcType = "undefined"
@@ -146,7 +149,11 @@ class MetadataAttributesDTOBuilder:
     def set_fileExtension(self, fileExtension):
         self._fileExtension = fileExtension
         return self
-
+    
+    def set_fileName(self, fileName):
+        self._fileName = fileName
+        return self
+    
     def set_resourceExternalURL(self, resourceExternalURL):
         self._resourceExternalURL = resourceExternalURL
         return self
@@ -234,6 +241,7 @@ class MetadataAttributesDTOBuilder:
             bucket=self._bucket,
             fileIdentifier=self._fileIdentifier,
             fileExtension=self._fileExtension,
+            fileName=self._fileName,
             resourceExternalURL=self._resourceExternalURL,
             dcFormat=self._dcFormat,
             dcType=self._dcType,
