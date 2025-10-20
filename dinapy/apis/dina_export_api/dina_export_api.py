@@ -8,8 +8,8 @@ BASE_DELAY_EXPORT_FETCH_S = 2
 
 
 class DinaExportApi(DinaAPI):
-    def __init__(self, config_path: str = None, base_url: str = None) -> None:
-        super().__init__(config_path, base_url)
+    def __init__(self, base_url: str = None) -> None:
+        super().__init__( base_url)
         self.base_url = (
             base_url + "dina-export-api"
             if base_url

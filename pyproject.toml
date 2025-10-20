@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dinapy"
+version = "0.2.0"
+description = "DINA Web Services - Python library for interacting with the DINA web services"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "AAFC-BICoE" }]
+keywords = ["DINA", "API", "AAFC", "BICoE", "JSON:API"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+# Runtime dependencies (moved from requirements.txt; avoid pinning build tools)
+
+dependencies = [
+  "python-dotenv==1.1.1",
+  "requests==2.31.0",
+  "marshmallow-jsonapi==0.24.0",
+  "python-keycloak==3.3.0",
+  "pyyaml==6.0.1",
+  "certifi==2023.7.22",
+  "marshmallow==3.21.3",
+  "wrapt>=1.14.1",
+]
+
+[project.optional-dependencies]
+# For users who want a ready-to-go notebook experience
+notebook = [
+  # Front-end to run notebooks
+  "jupyterlab>=4.2",
+
+  # Python kernel used by Jupyter front-ends
+  "ipykernel>=6.29.5",
+
+  # Nice-to-haves for exploration
+  "ipywidgets>=8.0.0",
+  "matplotlib>=3.6.0",
+  "pandas>=1.5.0",
+  "numpy>=1.23.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/AAFC-BICoE/dina-py"
+Issues = "https://github.com/AAFC-BICoE/dina-py/issues"
+
+# Auto-discover packages under src/ or project root (we use root in this repo)
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dinapy*"]
+exclude = ["tests*", "docs*", "examples*"]
+
+# If you need to ship non-Python files inside the dinapy package (e.g., YAML templates),
+# uncomment and adjust the following:
+# [tool.setuptools.package-data]
+# dinapy = ["**/*.yml", "**/*.yaml"]

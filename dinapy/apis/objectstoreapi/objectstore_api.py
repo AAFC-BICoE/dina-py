@@ -11,8 +11,8 @@ from dinapy.entities.Metadata import MetadataDTOBuilder
 from dinapy.schemas.metadata_schema import MetadataSchema
 
 class ObjectStoreApi(DinaAPI):
-    def __init__(self, config_path: str = None, base_url: str = None) -> None:
-        super().__init__(config_path, base_url)
+    def __init__(self, base_url: str = None) -> None:
+        super().__init__( base_url)
         self.base_url = (
             base_url + "objectstore-api"
             if base_url

@@ -30,7 +30,7 @@ class DinaApiClient:
     Class for handling making requests to DINA APIs
     """
 
-    def __init__(self, config_path: str = None, base_url: str = None) -> None:
+    def __init__(self, base_url: str = None) -> None:
         self.objectstore_module_api = ObjectStoreApi(config_path, base_url)
         self.form_template_api = FormTemplateAPI(config_path, base_url)
         self.split_configuration_api = SplitConfigurationAPI(config_path, base_url)

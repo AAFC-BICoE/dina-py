@@ -7,11 +7,10 @@ import requests
 import yaml
 import logging
 import json
-
+from dotenv import load_dotenv
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
 
-KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
 BASE_URL = "https://dina.local/api/"
 BULK_POST_ENDPOINT_URL = "/bulk"
 
@@ -35,7 +34,7 @@ class DinaAPI:
     # Class-level field. class level are shared across all instances of the class. This means they belong to the class itself, not to any individual instance
     token = None
 
-    def __init__(self, config_path: str = None, base_url: str = None):
+    def __init__(self, base_url: str = None):
         """Creates basic web services based on the provided config path or a default path.
 
         If the config_path is not provided, the default KEYCLOAK_CONFIG_PATH will be used.
@@ -45,21 +44,17 @@ class DinaAPI:
                 base_url (str, optional): URL to the URL to perform the API requests against. If not
                         provided then local deployment URL is used. Should end with a forward slash.
         """
-        if config_path is None:
-            config_path = KEYCLOAK_CONFIG_PATH
         if base_url is None:
             self.base_url = BASE_URL
 
         logging.basicConfig(level=logging.INFO)
         logging.captureWarnings(True)
 
-        self.configs = None
-
         self.keycloak = None
 
         self.session = requests.Session()
 
-        self.set_configs(config_path)
+        load_dotenv()
         self.set_keycloak()
 
     def set_configs(self, config_path: str):
@@ -97,22 +92,29 @@ class DinaAPI:
         """
         Creates a Keycloak token based on configurations and environment variables.
         """
+        secure_flag = os.environ.get("SECURE", "true").lower() in ("true", "1", "yes")
+
         self.keycloak = KeycloakOpenID(
-            server_url=f'{self.configs["url"]}/auth/',
-            client_id=self.configs["client_id"],
-            realm_name=self.configs["realm_name"],
+            server_url=f'{os.environ.get("KEYCLOAK_URL")}/auth/',
+            client_id=os.environ.get("CLIENT_ID"),
+            realm_name=os.environ.get("REALM_NAME"),
             client_secret_key=None,
-            verify=self.configs["secure"],
+            verify=secure_flag,
         )
         if not DinaAPI.token:
-            print(f'User: {os.environ.get("keycloak_username")}')
+            print(f'User: {os.environ.get("KEYCLOAK_USERNAME")}')
+            print(f'Realm name: {os.environ.get("REALM_NAME")}')
+
             self.generate_token()
-    
+        print(f"SSL verification enabled: {secure_flag}")
+        
     def generate_token(self):
+        print(os.environ.get("KEYCLOAK_USERNAME"), 
+              os.environ.get("KEYCLOAK_PASSWORD"),os.environ.get("CLIENT_ID"))
         try:
             DinaAPI.token = self.keycloak.token(
-                os.environ.get("keycloak_username"),
-                os.environ.get("keycloak_password"),
+                os.environ.get("KEYCLOAK_USERNAME"),
+                os.environ.get("KEYCLOAK_PASSWORD"),
             )
 
             # Set the bearer token in the header.
@@ -164,7 +166,7 @@ class DinaAPI:
         self.refresh_token()
         try:
             response = self.session.get(
-                full_url, params=params, verify=self.configs["secure"], stream=stream
+                full_url, params=params, verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"), stream=stream
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
@@ -195,7 +197,7 @@ class DinaAPI:
                 full_url,
                 json=json_data,
                 headers=self.session.headers,
-                verify=self.configs["secure"],
+                verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"),
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
@@ -238,7 +240,7 @@ class DinaAPI:
                 files=file,
                 params=params,
                 headers={"Accept": None, "Content-Type": None},
-                verify=self.configs["secure"],
+                verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"),
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
@@ -299,7 +301,8 @@ class DinaAPI:
         try:
             response = self.session.patch(full_url + BULK_POST_ENDPOINT_URL, json=json_data,
                 headers=self.session.headers,
-                verify=self.configs["secure"],)
+                verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"),
+            )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception

@@ -6,3 +6,4 @@ certifi==2023.7.22
 setuptools==70.3.0
 pip-system-certs==4.0
 marshmallow==3.21.3
+wrapt>=1.14.1
