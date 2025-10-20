@@ -111,71 +111,15 @@ sudo apt install python3-pip
    - Molecular Analysis Run Item
    - Project
 
-## Installation Instructions
-### Local Install
 
-Before installing, it's recommended to use a virtual environment in Python but not required. Create 
-a virtual environment for the dependencies required.
+## 🔧 Installation & Setup
 
-**NOTE:** Change the Python version in the following command to match your current version. It is recommended for the user to use **Python version 3.12** or higher.
+To help you configure your environment and credentials, we've provided an interactive Jupyter notebook:
 
-```bash
-sudo apt install python3.12-venv
-python3 -m venv env
-source env/bin/activate
-```
-From inside of the dina-py root folder, install the library and all required dependencies:
+👉 Installation & Setup Notebook
 
-```bash
-pip install -e .
-pip install -r requirements.txt
-```
-
-The username and password are set via environment variables. This can be done via the command line:
-
-```bash
-set keycloak_username=username
-set keycloak_password=password
-```
-
-Or programmatically using:
-
-```py
-os.environ["keycloak_username"] = "username"
-os.environ["keycloak_password"] = "password"
-```
-
-* Make a copy of **keycloak-config-sample.yml** and rename to **keycloak-config.yml** in the root of dina-py directory, open **keycloak-config.yml** using Notepad
-* In **keycloak-config.yml**, change **url, keycloak_username, keycloak_password** as needed
-* Make a copy of **dina-api-config-sample.yml** and rename to **dina-api-config.yml** in the root of dina-py directory, open **dina-api-config.yml** using Notepad
-
-Sample usage of DINA_API_CLIENT:
-```py
-(.venv) C:\Users\<your_account>\dina-py> python .\dinapy\client\dina_api_client.py -upload_dir '<object_upload_dir>'
-```
-* Or run the following command to upload a specific file:
-```py
-(.venv) C:\Users\<your_account>\dina-py> python .\dinapy\client\dina_api_client.py -upload_file '<object_upload_dir>/<file_name>'
-```
-
-## Example API Usage
-
-In code:
-```py
-def test_create_delete_entity(self):
-   schema = MaterialSampleSchema()
-   material_sample_api = MaterialSampleAPI()
-   try:
-      material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").materialSampleName("test").materialSampleType("WHOLE_ORGANISM")\
-      .build()
-      material_sample = MaterialSampleDTOBuilder().attributes(material_sample_attributes).build()
-      serialized_material_sample = schema.dump(material_sample)
-      pp = pprint.PrettyPrinter(indent=0)
-      pp.pprint(serialized_material_sample)
-      response = material_sample_api.create_entity(serialized_material_sample)
-      id = response.json()['data']['id']
-      if response.status_code == 201:
-         response = material_sample_api.remove_entity(id)
-         self.assertEqual(response.status_code,204)
-   except ValidationError as e:
-      self.fail(f"Validation failed with error: {e.messages}")
+This notebook will guide you through:
+- Entering your Keycloak credentials
+- Setting up environment variables
+- Saving a `.env` file for future use
+- Testing your connection to the DINA API

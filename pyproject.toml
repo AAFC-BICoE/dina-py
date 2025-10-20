@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dinapy"
-version = "0.1.0"
+version = "0.2.0"
 description = "DINA Web Services - Python library for interacting with the DINA web services"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.8"
@@ -25,6 +25,7 @@ classifiers = [
 # Runtime dependencies (moved from requirements.txt; avoid pinning build tools)
 
 dependencies = [
+  "python-dotenv==1.1.1",
   "requests==2.31.0",
   "marshmallow-jsonapi==0.24.0",
   "python-keycloak==3.3.0",

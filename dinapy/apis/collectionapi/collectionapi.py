@@ -3,8 +3,8 @@ from dinapy.dinaapi import DinaAPI
 
 class CollectionModuleApi(DinaAPI):
 
-	def __init__(self, config_path: str = None, base_url: str = None) -> None:
-		super().__init__(config_path, base_url)
+	def __init__(self, base_url: str = None) -> None:
+		super().__init__(base_url)
 		self.base_url += "collection-api/"
 		
 	def get_entity(self, entity_id):
