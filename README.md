@@ -116,7 +116,8 @@ sudo apt install python3-pip
 
 To help you configure your environment and credentials, we've provided an interactive Jupyter notebook:
 
-👉 Installation & Setup Notebook
+👉 [Installation & Setup Notebook](notebooks/installation_guide.ipynb)
+
 
 This notebook will guide you through:
 - Entering your Keycloak credentials
