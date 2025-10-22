@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
 
-BASE_URL = "https://dina.local/api/"
 BULK_POST_ENDPOINT_URL = "/bulk"
 
 class DinaAPI:
@@ -35,17 +34,13 @@ class DinaAPI:
     token = None
 
     def __init__(self, base_url: str = None):
-        """Creates basic web services based on the provided config path or a default path.
-
-        If the config_path is not provided, the default KEYCLOAK_CONFIG_PATH will be used.
+        """Creates basic web services based on the provided .env file.
 
         Parameters:
                 config_path (str, optional): Path to the YAML configuration file (default: None).
                 base_url (str, optional): URL to the URL to perform the API requests against. If not
                         provided then local deployment URL is used. Should end with a forward slash.
         """
-        if base_url is None:
-            self.base_url = BASE_URL
 
         logging.basicConfig(level=logging.INFO)
         logging.captureWarnings(True)
@@ -55,6 +50,7 @@ class DinaAPI:
         self.session = requests.Session()
 
         load_dotenv()
+        self.base_url = f'{os.environ.get("KEYCLOAK_URL")}/api/'
         self.set_keycloak()
 
     def set_configs(self, config_path: str):
@@ -102,15 +98,10 @@ class DinaAPI:
             verify=secure_flag,
         )
         if not DinaAPI.token:
-            print(f'User: {os.environ.get("KEYCLOAK_USERNAME")}')
-            print(f'Realm name: {os.environ.get("REALM_NAME")}')
-
             self.generate_token()
-        print(f"SSL verification enabled: {secure_flag}")
         
     def generate_token(self):
-        print(os.environ.get("KEYCLOAK_USERNAME"), 
-              os.environ.get("KEYCLOAK_PASSWORD"),os.environ.get("CLIENT_ID"))
+
         try:
             DinaAPI.token = self.keycloak.token(
                 os.environ.get("KEYCLOAK_USERNAME"),
