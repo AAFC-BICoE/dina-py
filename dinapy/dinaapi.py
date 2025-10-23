@@ -7,10 +7,13 @@ import requests
 import yaml
 import logging
 import json
+
 from dotenv import load_dotenv
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
 
+KEYCLOAK_CONFIG_PATH = "./keycloak-config.yml"
+BASE_URL = "https://dina.local/api/"
 BULK_POST_ENDPOINT_URL = "/bulk"
 
 class DinaAPI:
@@ -23,7 +26,7 @@ class DinaAPI:
             config_path (str): Path to the YAML configuration file containing Keycloak settings.
 
     Attributes:
-            configs (dict): Configuration information loaded from the YAML file.
+            configs (dict): Configuration information loaded from environment variables or YAML file.
             token (dict): Keycloak token obtained during authentication.
             session (requests.Session): Requests session object for making HTTP requests.
             base_url (str): Base URL for the DINA web API.
@@ -33,25 +36,117 @@ class DinaAPI:
     # Class-level field. class level are shared across all instances of the class. This means they belong to the class itself, not to any individual instance
     token = None
 
-    def __init__(self, base_url: str = None):
-        """Creates basic web services based on the provided .env file.
+    def __init__(self, config_path: str = None, base_url: str = None):
+        """Creates basic web services based on the provided config path or environment variables.
+
+        First attempts to load configuration from environment variables using load_dotenv().
+        If required environment variables are not found, falls back to the YAML config file.
 
         Parameters:
                 config_path (str, optional): Path to the YAML configuration file (default: None).
                 base_url (str, optional): URL to the URL to perform the API requests against. If not
                         provided then local deployment URL is used. Should end with a forward slash.
         """
+        if config_path is None:
+            config_path = KEYCLOAK_CONFIG_PATH
+        if base_url is None:
+            self.base_url = BASE_URL
 
         logging.basicConfig(level=logging.INFO)
         logging.captureWarnings(True)
 
+        self.configs = None
         self.keycloak = None
-
         self.session = requests.Session()
 
-        load_dotenv()
-        self.base_url = f'{os.environ.get("KEYCLOAK_URL")}/api/'
+        # Load environment variables first
+        self._load_env_vars()
+        
+        # Check if all required environment variables are present
+        if self._check_env_vars():
+            self._load_config_from_env()
+        else:
+            self.set_configs(config_path)
+        
         self.set_keycloak()
+
+    def _load_env_vars(self):
+        """Load environment variables."""
+        if self._is_jupyter_notebook():
+            # In Jupyter, use the current working directory (where notebook is)
+            jupyter_env = os.path.join(os.getcwd(), '.env')
+            print(jupyter_env)
+            load_dotenv(jupyter_env)
+            print(f"Jupyter detected: Looking for .env at {jupyter_env}")
+        else:
+            # Standard behavior
+            load_dotenv()
+
+    def _is_jupyter_notebook(self) -> bool:
+        """Check if code is running in a Jupyter notebook."""
+        try:
+            from IPython import get_ipython
+            return get_ipython() is not None
+        except ImportError:
+            return False
+        
+    def _load_config_from_env(self):
+        """Load configuration from environment variables.
+        
+        Raises:
+            ValueError: If any required environment variable is missing or empty.
+        """
+        required_vars = {
+            'KEYCLOAK_USERNAME': 'keycloak_username',
+            'KEYCLOAK_PASSWORD': 'keycloak_password', 
+            'KEYCLOAK_URL': 'url',
+            'CLIENT_ID': 'client_id',
+            'REALM_NAME': 'realm_name',
+            'SECURE': 'secure'
+        }
+        
+        self.configs = {}
+        
+        for env_var, config_key in required_vars.items():
+            value = os.getenv(env_var)
+            if value is None or value.strip() == '':
+                raise ValueError(f"Required environment variable {env_var} is not set or is empty")
+            
+            if config_key == 'secure':
+                self.configs[config_key] = value.lower() in ('true', '1', 'yes', 'on')
+            else:
+                self.configs[config_key] = value
+        
+        # Set keycloak user environment variables
+        os.environ["keycloak_username"] = self.configs["keycloak_username"]
+        os.environ["keycloak_password"] = self.configs["keycloak_password"]
+        
+        # Set base URL
+        if self.configs["url"]:
+            self.base_url = f'{self.configs["url"]}/api/'
+
+    def _check_env_vars(self) -> bool:
+        """Check if all required environment variables are present and not empty.
+        
+        Returns:
+            bool: True if all required environment variables are present and not empty, False otherwise.
+        """
+        required_vars = [
+            'KEYCLOAK_USERNAME',
+            'KEYCLOAK_PASSWORD', 
+            'KEYCLOAK_URL',
+            'CLIENT_ID',
+            'REALM_NAME',
+            'SECURE'
+        ]
+        
+        for var in required_vars:
+            value = os.getenv(var)
+            if value is None or value.strip() == '':
+                logging.info(f"Environment variable {var} is not set or is empty, falling back to config file")
+                return False
+        
+        return True
 
     def set_configs(self, config_path: str):
         """Loads config from YAML file and saves it to the 'configs' variable.
@@ -88,24 +183,22 @@ class DinaAPI:
         """
         Creates a Keycloak token based on configurations and environment variables.
         """
-        secure_flag = os.environ.get("SECURE", "true").lower() in ("true", "1", "yes")
-
         self.keycloak = KeycloakOpenID(
-            server_url=f'{os.environ.get("KEYCLOAK_URL")}/auth/',
-            client_id=os.environ.get("CLIENT_ID"),
-            realm_name=os.environ.get("REALM_NAME"),
+            server_url=f'{self.configs["url"]}/auth/',
+            client_id=self.configs["client_id"],
+            realm_name=self.configs["realm_name"],
             client_secret_key=None,
-            verify=secure_flag,
+            verify=self.configs["secure"],
         )
         if not DinaAPI.token:
+            print(f'User: {os.environ.get("keycloak_username")}')
             self.generate_token()
-        
+    
     def generate_token(self):
-
         try:
             DinaAPI.token = self.keycloak.token(
-                os.environ.get("KEYCLOAK_USERNAME"),
-                os.environ.get("KEYCLOAK_PASSWORD"),
+                os.environ.get("keycloak_username"),
+                os.environ.get("keycloak_password"),
             )
 
             # Set the bearer token in the header.
@@ -157,7 +250,7 @@ class DinaAPI:
         self.refresh_token()
         try:
             response = self.session.get(
-                full_url, params=params, verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"), stream=stream
+                full_url, params=params, verify=self.configs["secure"], stream=stream
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
@@ -188,7 +281,7 @@ class DinaAPI:
                 full_url,
                 json=json_data,
                 headers=self.session.headers,
-                verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"),
+                verify=self.configs["secure"],
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
@@ -231,7 +324,7 @@ class DinaAPI:
                 files=file,
                 params=params,
                 headers={"Accept": None, "Content-Type": None},
-                verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"),
+                verify=self.configs["secure"],
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
@@ -292,8 +385,7 @@ class DinaAPI:
         try:
             response = self.session.patch(full_url + BULK_POST_ENDPOINT_URL, json=json_data,
                 headers=self.session.headers,
-                verify=os.environ.get("SECURE", "true").lower() in ("true", "1", "yes"),
-            )
+                verify=self.configs["secure"],)
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
