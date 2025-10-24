@@ -36,6 +36,9 @@ class MetadataSchema(Schema):
     bucket = SkipUndefinedField(
         fields.Str, required=True, attribute="attributes.bucket"
     )
+    filename = SkipUndefinedField(
+        fields.Str, attribute="attributes.filename", allow_none=True
+    )
     fileIdentifier = SkipUndefinedField(
         fields.UUID, attribute="attributes.fileIdentifier", allow_none=True
     )

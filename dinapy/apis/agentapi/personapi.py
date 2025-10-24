@@ -13,7 +13,6 @@ class PersonAPI(DinaAPI):
         """Creates a PersonAPI instance for handling person DINA API requests.
 
         Parameters:
-            config_path (str, optional): Path to a config file (default: None).
             base_url (str, optional): URL to the URL to perform the API requests against. If not
                 provided then local deployment URL is used. Should end with a forward slash.
         """

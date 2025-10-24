@@ -7,7 +7,6 @@ class MetagenomicsBatchItemApi(SeqDBApi):
   def __init__(self, base_url: str = None) -> None:
     """
     Parameters:
-        config_path (str, optional): Path to a config file (default: None).
         base_url (str, optional): URL to the URL to perform the API requests against. If not
         provided then local deployment URL is used. Should end with a forward slash.
     """
