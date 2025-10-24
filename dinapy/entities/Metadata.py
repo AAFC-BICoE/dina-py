@@ -13,6 +13,8 @@ class MetadataDTO:
     def get_type(self):
         return self.type
 
+    def get_attributes(self):
+            return self.attributes
 
 class MetadataDTOBuilder:
     def __init__(self):

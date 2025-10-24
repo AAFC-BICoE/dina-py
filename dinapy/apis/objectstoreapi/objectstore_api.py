@@ -66,7 +66,7 @@ class ObjectStoreAPI(DinaAPI):
         jsn_resp = self.delete_req_dina(new_request_url)
         return jsn_resp if jsn_resp else ""
 
-    def update_entity(self, entity_id, json_data, endpoint: str):
+    def update_entity(self, entity_id=None, json_data=None, endpoint=None):
         """Updates an entity
 
         Args:
@@ -78,6 +78,7 @@ class ObjectStoreAPI(DinaAPI):
 
         entity_id = str(entity_id) if isinstance(entity_id, int) else entity_id
         new_request_url = f"{self.base_url}/{endpoint}/{str(entity_id)}"
+        print(new_request_url)
         jsn_resp = self.patch_req_dina(new_request_url, json_data)
         return jsn_resp if jsn_resp else ""
 

@@ -351,7 +351,12 @@ class DinaAPI:
         """
         self.refresh_token()
         try:
-            response = self.session.patch(full_url, json=json_data, params=params)
+            response = self.session.patch(
+                full_url,
+                json=json_data,
+                headers=self.session.headers,
+                verify=self.configs["secure"],
+            )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
