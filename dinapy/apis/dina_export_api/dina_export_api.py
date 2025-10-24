@@ -7,7 +7,7 @@ MAX_DATA_EXPORT_FETCH_RETRIES = 6
 BASE_DELAY_EXPORT_FETCH_S = 2
 
 
-class DinaExportApi(DinaAPI):
+class DinaExportAPI(DinaAPI):
     def __init__(self, base_url: str = None) -> None:
         super().__init__( base_url)
         self.base_url = (

@@ -10,7 +10,7 @@ from requests import HTTPError
 from dinapy.entities.Metadata import MetadataDTOBuilder
 from dinapy.schemas.metadata_schema import MetadataSchema
 
-class ObjectStoreApi(DinaAPI):
+class ObjectStoreAPI(DinaAPI):
     def __init__(self, base_url: str = None) -> None:
         super().__init__( base_url)
         self.base_url = (
