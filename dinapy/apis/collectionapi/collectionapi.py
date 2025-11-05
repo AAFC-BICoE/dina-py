@@ -51,7 +51,8 @@ class CollectionModuleApi(DinaAPI):
 		new_data = []
 		import uuid
 		for d in json_data["data"]:
-			d["id"] = str(uuid.uuid4())
+			if "id" not in d:
+				d["id"] = str(uuid.uuid4())
 			new_data.append({
 				"op": "POST",
 				"path": d["type"],
