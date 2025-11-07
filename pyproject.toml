@@ -25,6 +25,7 @@ classifiers = [
 # Runtime dependencies (moved from requirements.txt; avoid pinning build tools)
 
 dependencies = [
+  "setuptools>=77",
   "python-dotenv==1.1.1",
   "requests==2.31.0",
   "marshmallow-jsonapi==0.24.0",
