@@ -8,6 +8,7 @@ import yaml
 import logging
 import json
 
+from dotenv import load_dotenv
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakAuthenticationError
 
@@ -25,7 +26,7 @@ class DinaAPI:
             config_path (str): Path to the YAML configuration file containing Keycloak settings.
 
     Attributes:
-            configs (dict): Configuration information loaded from the YAML file.
+            configs (dict): Configuration information loaded from environment variables or YAML file.
             token (dict): Keycloak token obtained during authentication.
             session (requests.Session): Requests session object for making HTTP requests.
             base_url (str): Base URL for the DINA web API.
@@ -36,9 +37,10 @@ class DinaAPI:
     token = None
 
     def __init__(self, config_path: str = None, base_url: str = None):
-        """Creates basic web services based on the provided config path or a default path.
+        """Creates basic web services based on the provided config path or environment variables.
 
-        If the config_path is not provided, the default KEYCLOAK_CONFIG_PATH will be used.
+        First attempts to load configuration from environment variables using load_dotenv().
+        If required environment variables are not found, falls back to the YAML config file.
 
         Parameters:
                 config_path (str, optional): Path to the YAML configuration file (default: None).
@@ -54,13 +56,97 @@ class DinaAPI:
         logging.captureWarnings(True)
 
         self.configs = None
-
         self.keycloak = None
-
         self.session = requests.Session()
 
-        self.set_configs(config_path)
+        # Load environment variables first
+        self._load_env_vars()
+        
+        # Check if all required environment variables are present
+        if self._check_env_vars():
+            self._load_config_from_env()
+        else:
+            self.set_configs(config_path)
+        
         self.set_keycloak()
+
+    def _load_env_vars(self):
+        """Load environment variables."""
+        if self._is_jupyter_notebook():
+            # In Jupyter, use the current working directory (where notebook is)
+            jupyter_env = os.path.join(os.getcwd(), '.env')
+            print(jupyter_env)
+            load_dotenv(jupyter_env)
+            print(f"Jupyter detected: Looking for .env at {jupyter_env}")
+        else:
+            # Standard behavior
+            load_dotenv()
+
+    def _is_jupyter_notebook(self) -> bool:
+        """Check if code is running in a Jupyter notebook."""
+        try:
+            from IPython import get_ipython
+            return get_ipython() is not None
+        except ImportError:
+            return False
+        
+    def _load_config_from_env(self):
+        """Load configuration from environment variables.
+        
+        Raises:
+            ValueError: If any required environment variable is missing or empty.
+        """
+        required_vars = {
+            'KEYCLOAK_USERNAME': 'keycloak_username',
+            'KEYCLOAK_PASSWORD': 'keycloak_password', 
+            'KEYCLOAK_URL': 'url',
+            'CLIENT_ID': 'client_id',
+            'REALM_NAME': 'realm_name',
+            'SECURE': 'secure'
+        }
+        
+        self.configs = {}
+        
+        for env_var, config_key in required_vars.items():
+            value = os.getenv(env_var)
+            if value is None or value.strip() == '':
+                raise ValueError(f"Required environment variable {env_var} is not set or is empty")
+            
+            if config_key == 'secure':
+                self.configs[config_key] = value.lower() in ('true', '1', 'yes', 'on')
+            else:
+                self.configs[config_key] = value
+        
+        # Set keycloak user environment variables
+        os.environ["keycloak_username"] = self.configs["keycloak_username"]
+        os.environ["keycloak_password"] = self.configs["keycloak_password"]
+        
+        # Set base URL
+        if self.configs["url"]:
+            self.base_url = f'{self.configs["url"]}/api/'
+
+    def _check_env_vars(self) -> bool:
+        """Check if all required environment variables are present and not empty.
+        
+        Returns:
+            bool: True if all required environment variables are present and not empty, False otherwise.
+        """
+        required_vars = [
+            'KEYCLOAK_USERNAME',
+            'KEYCLOAK_PASSWORD', 
+            'KEYCLOAK_URL',
+            'CLIENT_ID',
+            'REALM_NAME',
+            'SECURE'
+        ]
+        
+        for var in required_vars:
+            value = os.getenv(var)
+            if value is None or value.strip() == '':
+                logging.info(f"Environment variable {var} is not set or is empty, falling back to config file")
+                return False
+        
+        return True
 
     def set_configs(self, config_path: str):
         """Loads config from YAML file and saves it to the 'configs' variable.
@@ -265,7 +351,12 @@ class DinaAPI:
         """
         self.refresh_token()
         try:
-            response = self.session.patch(full_url, json=json_data, params=params)
+            response = self.session.patch(
+                full_url,
+                json=json_data,
+                headers=self.session.headers,
+                verify=self.configs["secure"],
+            )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception

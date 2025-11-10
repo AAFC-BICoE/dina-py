@@ -9,15 +9,14 @@ from dinapy.schemas.personschema import PersonSchema
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""
 
-    def __init__(self, config_path: str = None, base_url: str = None) -> None:
+    def __init__(self, base_url: str = None) -> None:
         """Creates a PersonAPI instance for handling person DINA API requests.
 
         Parameters:
-            config_path (str, optional): Path to a config file (default: None).
             base_url (str, optional): URL to the URL to perform the API requests against. If not
                 provided then local deployment URL is used. Should end with a forward slash.
         """
-        super().__init__(config_path, base_url)
+        super().__init__(base_url)
         self.base_url += "agent-api/person"
 
     # TODO: return deserialized object or return response or model (Person object)?

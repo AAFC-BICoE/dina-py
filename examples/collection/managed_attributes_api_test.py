@@ -14,8 +14,8 @@ from dinapy.schemas.managedattributeschema import ManagedAttributesSchema
 from dinapy.utils import get_dina_records_by_field
 
 #TODO: Convert this into proper unit test.
-os.environ["keycloak_username"] = "dina-admin"
-os.environ["keycloak_password"] = "dina-admin"
+#os.environ["keycloak_username"] = "dina-admin"
+#os.environ["keycloak_password"] = "dina-admin"
 
 def main():
 	dina_managed_attribute_api = ManagedAttributeAPI()
@@ -44,4 +44,4 @@ def main():
 		print(response.json()['data']['id'])
 
 if __name__ == '__main__':
-	main()
+ main()
