@@ -18,51 +18,44 @@ from dinapy.schemas.metadata_schema import MetadataSchema
 KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
 
 VALID_METADATA_DATA = {
-    "data": {
-        "id": "0190e0df-abef-7cf5-baa2-9453ec6f012d",
-        "type": "metadata",
-        "attributes": {
-            "createdBy": "dina-admin",
-            "createdOn": "2024-07-23T18:34:33.328038Z",
-            "bucket": "aafc",
-            "fileIdentifier": "0190e0df-0809-71a3-b8e5-036cfbfec914",
-            "fileExtension": ".png",
-            "resourceExternalURL": None,
-            "dcFormat": "image/png",
-            "dcType": "IMAGE",
-            "acCaption": "sample_640×426.png",
-            "acDigitizationDate": "2024-07-23T07:00:00Z",
-            "xmpMetadataDate": "2024-07-23T18:34:33.357486Z",
-            "xmpRightsWebStatement": "https://open.canada.ca/en/open-government-licence-canada",
-            "dcRights": "© His Majesty The King in Right of Canada, as represented by the Minister of Agriculture and Agri-Food | © Sa Majesté le Roi du chef du Canada, représentée par le ministre de l’Agriculture et de l’Agroalimentaire",
-            "xmpRightsOwner": "Government of Canada",
-            "xmpRightsUsageTerms": "Government of Canada Usage Term",
-            "orientation": 1,
-            "originalFilename": "sample_640×426.png",
-            "acHashFunction": "SHA-1",
-            "acHashValue": "e29c5ca02f1b2faec0302700fc084584cf2869ae",
-            "publiclyReleasable": True,
-            "acSubtype": "OBJECT SUBTYPE 1",
-            "group": "aafc",
-        },
-        "relationships": {
-            "acMetadataCreator": {
-                "data": {"id": "3c47203f-9833-4945-b673-ece4e3bd4f9a", "type": "person"}
-            },
-            "dcCreator": {
-                "data": {"id": "afcf0bcc-c6c8-40c5-b97b-1855ce5d1729", "type": "person"}
-            },
-        },
-    },
-    "meta": {
-        "totalResourceCount": 1,
-        "external": [{"href": "Agent/api/v1/person", "type": "person"}],
-        "moduleVersion": "1.17",
-    },
+    "data":{
+            "id": "3fa5734e-a953-41cb-a1ae-eb5f7498b8b9",
+            "type": "metadata",
+            "attributes": {
+                "createdBy": "bilkhus",
+                "createdOn": "2023-04-17T15:22:44.89746Z",
+                "bucket": "aafc",
+                "fileIdentifier": "e42e881e-71f2-43ce-91e8-a703a7dbfa04",
+                "originalFilename": "Agarose-gel-electrophoresis.png",
+                "filename": None,
+                "fileExtension": ".png",
+                "resourceExternalURL": None,
+                "dcFormat": "image/png",
+                "dcType": "IMAGE",
+                "acCaption": "Agarose-gel-electrophoresis.png",
+                "acDigitizationDate": None,
+                "xmpMetadataDate": "2023-04-17T15:22:44.9176Z",
+                "xmpRightsWebStatement": "https://open.canada.ca/en/open-government-licence-canada",
+                "dcRights": "© His Majesty The King in Right of Canada, as represented by the Minister of Agriculture and Agri-Food | © Sa Majesté le Roi du chef du Canada, représentée par le ministre de l’Agriculture et de l’Agroalimentaire",
+                "xmpRightsOwner": "Government of Canada",
+                "xmpRightsUsageTerms": "Government of Canada Usage Term",
+                "orientation": None,
+                "acHashFunction": "SHA-1",
+                "acHashValue": "aed6fd5b8402dc0ad66ca52c1df042a31e70e3bf",
+                "publiclyReleasable": True,
+                "group": "aafc",
+                "managedAttributes": {}
+            }
+        }
 }
 
 
 class MetadataSchemaTest(unittest.TestCase):
+    def test_deserialization(self):
+        # Create a schema instance and attempt to deserialize JSON object using it
+        schema = MetadataSchema()
+        result = schema.load(VALID_METADATA_DATA)
+
     def test_serialization(self):
         # Create a schema instance and validate the data
         acMetadataCreatorId = "3c47203f-9833-4945-b673-ece4e3bd4f9a"
@@ -76,6 +69,7 @@ class MetadataSchemaTest(unittest.TestCase):
 
         attributes = (
             MetadataAttributesDTOBuilder()
+            .set_fileName("test_filename")
             .set_bucket("aafc")
             .set_fileIdentifier("0190e0df-0809-71a3-b8e5-036cfbfec914")
             .set_fileExtension(".png")
