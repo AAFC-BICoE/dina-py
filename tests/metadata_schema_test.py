@@ -69,10 +69,11 @@ class MetadataSchemaTest(unittest.TestCase):
 
         attributes = (
             MetadataAttributesDTOBuilder()
-            .set_fileName("test_filename")
+            .set_filename("test_filename")
             .set_bucket("aafc")
             .set_fileIdentifier("0190e0df-0809-71a3-b8e5-036cfbfec914")
             .set_fileExtension(".png")
+            .set_filename("test_filename")
             .set_resourceExternalURL(None)
             .set_dcFormat("image/png")
             .set_dcType("IMAGE")
@@ -113,6 +114,7 @@ class MetadataSchemaTest(unittest.TestCase):
                     "bucket": "aafc",
                     "fileIdentifier": "0190e0df-0809-71a3-b8e5-036cfbfec914",
                     "fileExtension": ".png",
+                    "filename": "test_filename",
                     "resourceExternalURL": None,
                     "dcFormat": "image/png",
                     "dcType": "IMAGE",
