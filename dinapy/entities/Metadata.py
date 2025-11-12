@@ -32,7 +32,7 @@ class MetadataDTOBuilder:
         return self
 
     def set_attributes(self, attributes):
-        self._attributes = attributes.to_dict()
+        self._attributes = attributes
         return self
 
     def set_relationships(self, relationships):

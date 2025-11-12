@@ -165,8 +165,8 @@ class ObjectStoreAPI(DinaAPI):
             attributes = (
                 dina_api_config.get("objectstore-api").get("metadata").get("attributes")
             )
-            attributes["bucket"] = upload_file_response.get("bucket")
-            attributes["fileIdentifier"] = upload_file_response.get("uuid")
+            attributes["bucket"] = upload_file_response.get("data").get("attributes").get("bucket")
+            attributes["fileIdentifier"] = upload_file_response.get("data").get("id")
             attributes["acDigitizationDate"] = localizedAcDigitizationDate
 
             dto = (
