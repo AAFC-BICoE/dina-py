@@ -57,7 +57,7 @@ class ObjectStoreAPI(DinaAPI):
         Returns:
                 json response: a list of found entities with that value for that field
         """
-        new_params = {"filter[rsql]": "{}=='{}'".format(field, value)}
+        new_params = {f"filter[{field}]": value}
         return self.get_entity_by_param(new_params, endpoint)
 
     def remove_entity(self, entity_id, endpoint: str):

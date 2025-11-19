@@ -358,7 +358,7 @@ class DinaAPI:
                 verify=self.configs["secure"],
             )
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
-        except requests.exceptions.RequestException as exc:
+        except requests.exceptions.HTTPError as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
             logging.error(f"Failed to perform PATCH request to {full_url}: {exc}")
             raise  # Re-raise the exception
