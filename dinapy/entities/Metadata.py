@@ -32,7 +32,7 @@ class MetadataDTOBuilder:
         return self
 
     def set_attributes(self, attributes):
-        self._attributes = attributes.to_dict()
+        self._attributes = attributes
         return self
 
     def set_relationships(self, relationships):
@@ -53,6 +53,7 @@ class MetadataAttributesDTO:
         fileExtension="undefined",
         filename="undefined",
         resourceExternalURL="undefined",
+        sourceSet="undefined",
         dcFormat="undefined",
         dcType="undefined",
         acCaption="undefined",
@@ -80,6 +81,7 @@ class MetadataAttributesDTO:
         self.fileExtension = fileExtension
         self.filename = filename
         self.resourceExternalURL = resourceExternalURL
+        self.sourceSet = sourceSet
         self.dcFormat = dcFormat
         self.dcType = dcType
         self.acCaption = acCaption
@@ -113,6 +115,7 @@ class MetadataAttributesDTOBuilder:
         self._fileExtension = "undefined"
         self._filename = "undefined"
         self._resourceExternalURL = "undefined"
+        self._sourceSet = "undefined"
         self._dcFormat = "undefined"
         self._dcType = "undefined"
         self._acCaption = "undefined"
@@ -163,6 +166,10 @@ class MetadataAttributesDTOBuilder:
     
     def set_resourceExternalURL(self, resourceExternalURL):
         self._resourceExternalURL = resourceExternalURL
+        return self
+    
+    def set_sourceSet(self, sourceSet):
+        self._sourceSet = sourceSet
         return self
 
     def set_dcFormat(self, dcFormat):
@@ -250,6 +257,7 @@ class MetadataAttributesDTOBuilder:
             fileExtension=self._fileExtension,
             filename=self._filename,
             resourceExternalURL=self._resourceExternalURL,
+            sourceSet=self._sourceSet,
             dcFormat=self._dcFormat,
             dcType=self._dcType,
             acCaption=self._acCaption,
