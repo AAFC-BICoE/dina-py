@@ -62,7 +62,7 @@ class MetadataSchema(Schema):
         validate=validate.OneOf(
             ["IMAGE", "MOVING_IMAGE", "SOUND", "TEXT", "DATASET", "UNDETERMINED"]
         ),
-        allow_none=True, load_only=True,
+        allow_none=True,
         attribute="attributes.dcType"
     )
 
@@ -94,7 +94,7 @@ class MetadataSchema(Schema):
         fields.Str, attribute="attributes.originalFilename", allow_none=True
     )
     acHashFunction = SkipUndefinedField(
-        fields.Str, attribute="attributes.acHashFunction", load_only=True, allow_none=True
+        fields.Str, attribute="attributes.acHashFunction", allow_none=True
     )
     acHashValue = SkipUndefinedField(
         fields.Str, attribute="attributes.acHashValue", allow_none=True
@@ -109,9 +109,9 @@ class MetadataSchema(Schema):
         fields.Str, attribute="attributes.notPubliclyReleasableReason", allow_none=True
     )
     acSubtype = SkipUndefinedField(
-        fields.Str, attribute="attributes.acSubtype", load_only=True, allow_none=True
+        fields.Str, attribute="attributes.acSubtype", allow_none=True
     )
-    group = SkipUndefinedField(fields.Str, required=True, load_only=True, attribute="attributes.group")
+    group = SkipUndefinedField(fields.Str, required=True, attribute="attributes.group")
     managedAttributes = SkipUndefinedField(
         fields.Dict, required=False, attribute="attributes.managedAttributes"
     )
