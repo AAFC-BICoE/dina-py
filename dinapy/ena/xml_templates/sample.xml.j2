@@ -1,0 +1,43 @@
+<SAMPLE_NAME>
+  {% if sample.sample_name and sample.sample_name.taxonId is defined %}
+  <TAXON_ID>{{ sample.sample_name.taxonId }}</TAXON_ID>
+  {% elif sample.organism and sample.organism.taxonId is defined %}
+  <TAXON_ID>{{ sample.organism.taxonId }}</TAXON_ID>
+  {% endif %}
+  {% if sample.sample_name and sample.sample_name.scientific_name %}
+  <SCIENTIFIC_NAME>{{ sample.sample_name.scientific_name | e }}</SCIENTIFIC_NAME>
+  {% elif sample.organism and sample.organism.scientificName %}
+  <SCIENTIFIC_NAME>{{ sample.organism.scientificName | e }}</SCIENTIFIC_NAME>
+  {% endif %}
+  {% if sample.sample_name and sample.sample_name.common_name %}
+  <COMMON_NAME>{{ sample.sample_name.common_name | e }}</COMMON_NAME>
+  {% endif %}
+</SAMPLE_NAME>
+
+{% if sample.description %}
+<DESCRIPTION>{{ sample.description | e }}</DESCRIPTION>
+{% endif %}
+
+{% if sample.sample_links %}
+<SAMPLE_LINKS>
+  {% for pl in sample.sample_links %}
+  <SAMPLE_LINK>
+    <XREF_LINK>
+      <DB>{{ pl.xrefLink.db | e }}</DB>
+      <ID>{{ pl.xrefLink.id | e }}</ID>
+    </XREF_LINK>
+  </SAMPLE_LINK>
+  {% endfor %}
+</SAMPLE_LINKS>
+{% endif %}
+
+{% if sample.attributes %}
+<SAMPLE_ATTRIBUTES>
+  {% for a in sample.attributes %}
+  <SAMPLE_ATTRIBUTE>
+    <TAG>{{ a.tag | e }}</TAG>
+    <VALUE{% if a.unit %} unit="{{ a.unit | e }}"{% endif %}>{{ a.value | e }}</VALUE>
+  </SAMPLE_ATTRIBUTE>
+  {% endfor %}
+</SAMPLE_ATTRIBUTES>
+{% endif %}

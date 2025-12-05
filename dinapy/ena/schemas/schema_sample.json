@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "Attribute": {
+      "properties": {
+        "tag": {
+          "title": "Tag",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "tag",
+        "value"
+      ],
+      "title": "Attribute",
+      "type": "object"
+    },
+    "Organism": {
+      "properties": {
+        "taxonId": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Taxonid"
+        }
+      },
+      "required": [
+        "taxonId"
+      ],
+      "title": "Organism",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "alias": {
+      "title": "Alias",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "organism": {
+      "$ref": "#/$defs/Organism"
+    },
+    "attributes": {
+      "items": {
+        "$ref": "#/$defs/Attribute"
+      },
+      "title": "Attributes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "alias",
+    "title",
+    "organism",
+    "attributes"
+  ],
+  "title": "Sample",
+  "type": "object"
+}

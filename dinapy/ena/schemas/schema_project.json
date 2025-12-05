@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "Attribute": {
+      "properties": {
+        "tag": {
+          "title": "Tag",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "tag",
+        "value"
+      ],
+      "title": "Attribute",
+      "type": "object"
+    },
+    "ProjectLink": {
+      "properties": {
+        "xrefLink": {
+          "$ref": "#/$defs/XrefLink"
+        }
+      },
+      "required": [
+        "xrefLink"
+      ],
+      "title": "ProjectLink",
+      "type": "object"
+    },
+    "XrefLink": {
+      "properties": {
+        "db": {
+          "title": "Db",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "db",
+        "id"
+      ],
+      "title": "XrefLink",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "alias": {
+      "title": "Alias",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "sequencingProject": {
+      "additionalProperties": true,
+      "title": "Sequencingproject",
+      "type": "object"
+    },
+    "project_links": {
+      "items": {
+        "$ref": "#/$defs/ProjectLink"
+      },
+      "title": "Project Links",
+      "type": "array"
+    },
+    "attributes": {
+      "items": {
+        "$ref": "#/$defs/Attribute"
+      },
+      "title": "Attributes",
+      "type": "array"
+    },
+    "firstPublic": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Firstpublic"
+    }
+  },
+  "required": [
+    "alias",
+    "title",
+    "description"
+  ],
+  "title": "Project",
+  "type": "object"
+}

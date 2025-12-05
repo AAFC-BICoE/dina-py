@@ -1,0 +1,30 @@
+<SUBMISSION>
+  {% set s = submission.submission if submission.submission is defined else submission %}
+  {% if s.actions %}
+  <ACTIONS>
+    {% for act in s.actions %}
+    <ACTION>
+      {% if act.type == "ADD" %}<ADD/>{% endif %}
+      {% if act.type == "HOLD" %}
+        {% if act.holdUntilDate is defined %}
+          {% set p = act.holdUntilDate.split('-') %}
+          {% if p|length == 3 and (p[2]|length == 1 or p[2]|length == 2) %}
+            {% set y = p[0]|int %}
+            {% set m = p[1]|int %}
+            {% set d = p[2]|int %}
+            <HOLD HoldUntilDate="{{ '%04d'|format(y) }}-{{ '%02d'|format(m) }}-{{ '%02d'|format(d) }}"/>
+          {% else %}
+            <HOLD HoldUntilDate="{{ act.holdUntilDate }}"/>
+          {% endif %}
+        {% else %}
+          <HOLD/>
+        {% endif %}
+      {% endif %}
+
+      {% if act.type == "RELEASE" %}<RELEASE/>{% endif %}
+      {% if act.type == "CANCEL" %}<CANCEL/>{% endif %}
+    </ACTION>
+    {% endfor %}
+  </ACTIONS>
+  {% endif %}
+</SUBMISSION>
