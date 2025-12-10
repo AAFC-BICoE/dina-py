@@ -39,6 +39,7 @@ dependencies = [
   "certifi==2023.7.22",
   "marshmallow==3.21.3",
   "wrapt>=1.14.1",
+  "tqdm>=4.65.0"
 ]
 
 [project.optional-dependencies]

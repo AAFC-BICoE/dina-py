@@ -75,7 +75,6 @@ class WebinAPI:
         # Set default JSON headers (override per request as needed)
         self.session.headers.update({
             "Accept": "application/json",
-            "Content-Type": "application/json",
             "User-Agent": "webin-api-client/1.0 (+https://www.ebi.ac.uk/ena/submit/webin-v2/swagger-ui/index.html)"
         })
         if extra_headers:
@@ -185,3 +184,50 @@ class WebinAPI:
             test = test_env in ("1", "true", "yes", "on")
         submit_url = DROPBOX_SUBMIT_TEST if test else DROPBOX_SUBMIT_PROD
         return self.post_xml(submit_url, xml_string)
+    
+    def submit_xml(
+            self,
+            submission_xml: str,
+            experiment_xml: Optional[str] = None,
+            run_xml: Optional[str] = None,
+            test: Optional[bool] = None,
+        ) -> requests.Response:
+            """
+            Submit SUBMISSION + EXPERIMENT and/or RUN XML to the drop-box endpoint
+            using multipart/form-data, equivalent to:
+
+            curl -u user:pass \\
+                -F "SUBMISSION=@submission.xml" \\
+                [-F "EXPERIMENT=@experiment.xml"] \\
+                [-F "RUN=@run.xml"] \\
+                https://www[dev].ebi.ac.uk/ena/submit/drop-box/submit/
+
+            You must provide at least one of experiment_xml or run_xml.
+            """
+            if experiment_xml is None and run_xml is None:
+                raise ValueError("You must provide at least experiment_xml or run_xml.")
+
+            if test is None:
+                test_env = os.getenv("WEBIN_TEST", "").strip().lower()
+                test = test_env in ("1", "true", "yes", "on")
+
+            submit_url = DROPBOX_SUBMIT_TEST if test else DROPBOX_SUBMIT_PROD
+
+            files = {
+                "SUBMISSION": ("submission.xml", submission_xml, "application/xml"),
+            }
+            if experiment_xml is not None:
+                files["EXPERIMENT"] = ("experiment.xml", experiment_xml, "application/xml")
+            if run_xml is not None:
+                files["RUN"] = ("run.xml", run_xml, "application/xml")
+
+            headers = {"Accept": "application/xml"}  # let requests set multipart boundary
+
+            resp = self.session.post(
+                submit_url,
+                headers=headers,
+                files=files,
+                timeout=self.timeout,
+                verify=self.verify_tls,
+            )
+            return self._handle(resp)

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from dinapy.ena.models import WebinPayload, Submission, Project, Sample
+from dinapy.ena.models import Experiment, WebinPayload, Submission, Project, Sample, Run, Study
 
 # Directory (relative to this file) where generated schemas will be written.
 OUT_DIR = Path(__file__).parent / "schemas"
@@ -12,7 +12,10 @@ def export_all(out_dir: Path = OUT_DIR):
         "schema_webin_v2_payload.json": WebinPayload.model_json_schema(),
         "schema_submission.json": Submission.model_json_schema(),
         "schema_project.json": Project.model_json_schema(),
+        "schema_study.json": Study.model_json_schema(),
         "schema_sample.json": Sample.model_json_schema(),
+        "schema_run.json": Run.model_json_schema(),
+        "schema_experiment.json": Experiment.model_json_schema()
     }
 
     for name, schema in files.items():
