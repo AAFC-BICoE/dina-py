@@ -1,0 +1,159 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ENA Run Schema",
+  "type": "object",
+  "properties": {
+    "alias": {
+      "type": "string",
+      "description": "Unique alias for the run"
+    },
+    "title": {
+      "type": "string",
+      "description": "Short text that can be used to define submissions in searches or in displays"
+    },
+    "experimentRef": {
+      "type": "object",
+      "description": "Identifies the parent experiment",
+      "required": ["accession"],
+      "properties": {
+        "accession": {
+          "type": "string",
+          "description": "ENA experiment accession (e.g., ERX123456)"
+        },
+        "refname": {
+          "type": "string"
+        }
+      }
+    },
+    "runDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO date when the run took place"
+    },
+    "runCenter": {
+      "type": "string",
+      "description": "Name of the contract sequencing center that executed the run"
+    },
+    "dataBlocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "memberName": {
+            "type": "string",
+            "description": "Associate DATA_BLOCK with a member of a sample pool"
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["filename", "filetype", "checksumMethod", "checksum"],
+              "properties": {
+                "filename": {
+                  "type": "string",
+                  "description": "The name or relative pathname of a run data file"
+                },
+                "filetype": {
+                  "type": "string",
+                  "enum": [
+                    "sra", "srf", "sff", "fastq", "fasta", "tab",
+                    "454_native", "454_native_seq", "454_native_qual",
+                    "Helicos_native", "Illumina_native", "Illumina_native_seq",
+                    "Illumina_native_prb", "Illumina_native_int", "Illumina_native_qseq",
+                    "Illumina_native_scarf", "SOLiD_native", "SOLiD_native_csfasta",
+                    "SOLiD_native_qual", "PacBio_HDF5", "bam", "cram",
+                    "CompleteGenomics_native", "OxfordNanopore_native"
+                  ],
+                  "description": "The run data file model"
+                },
+                "checksumMethod": {
+                  "type": "string",
+                  "enum": ["MD5", "SHA-256"],
+                  "description": "Checksum method used"
+                },
+                "checksum": {
+                  "type": "string",
+                  "description": "Checksum of uncompressed file"
+                },
+                "unencryptedChecksum": {
+                  "type": "string",
+                  "description": "Checksum of unencrypted file (used with encrypted file checksum)"
+                },
+                "qualityScoringSystem": {
+                  "type": "string",
+                  "enum": ["phred", "log-odds"],
+                  "description": "How the input data are scored for quality"
+                },
+                "qualityEncoding": {
+                  "type": "string",
+                  "enum": ["ascii", "decimal", "hexadecimal"],
+                  "description": "Character encoding for quality values"
+                },
+                "asciiOffset": {
+                  "type": "string",
+                  "enum": ["!", "@"],
+                  "description": "Character used in representing the minimum quality value"
+                },
+                "readLabels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Associate file to read_label defined in SPOT_DESCRIPTOR"
+                },
+                "readTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "single", "paired", "cell_barcode", "umi_barcode",
+                      "feature_barcode", "sample_barcode", "spatial_barcode", ""
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "runLinks": {
+      "type": "array",
+      "description": "Links to resources related to this RUN",
+      "items": {
+        "type": "object",
+        "properties": {
+          "xrefLink": {
+            "type": "object",
+            "properties": {
+              "db": { "type": "string" },
+              "id": { "type": "string" }
+            }
+          },
+          "urlLink": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        }
+      }
+    },
+    "runAttributes": {
+      "type": "array",
+      "description": "Properties and attributes of a RUN",
+      "items": {
+        "type": "object",
+        "required": ["tag", "value"],
+        "properties": {
+          "tag": { "type": "string" },
+          "value": { "type": "string" },
+          "units": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["alias", "experimentRef", "dataBlocks"]
+}

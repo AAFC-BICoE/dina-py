@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from lxml import etree
 

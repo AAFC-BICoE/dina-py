@@ -177,14 +177,6 @@ class WebinAPI:
         else:
             raise ValueError(f"Unsupported method: {method}")
 
-    # Drop-box submit wrapper (XML); picks test/prod automatically unless you pass a full URL.
-    def submit_xml_to_dropbox(self, xml_string: str, test: Optional[bool] = None) -> requests.Response:
-        if test is None:
-            test_env = os.getenv("WEBIN_TEST", "").strip().lower()
-            test = test_env in ("1", "true", "yes", "on")
-        submit_url = DROPBOX_SUBMIT_TEST if test else DROPBOX_SUBMIT_PROD
-        return self.post_xml(submit_url, xml_string)
-    
     def submit_xml(
             self,
             submission_xml: str,
@@ -231,3 +223,54 @@ class WebinAPI:
                 verify=self.verify_tls,
             )
             return self._handle(resp)
+
+    def submit_webin_xml(
+            self,
+            submission_xml: str,
+            project_xml: Optional[str] = None,
+            sample_xml: Optional[str] = None,
+            experiment_xml: Optional[str] = None,
+            run_xml: Optional[str] = None,
+            extra_sections: Optional[str] = None,
+            path: str = "/metadata",
+        ) -> requests.Response:
+            """
+            Submit a single Webin v2 XML document of the form:
+
+            <WEBIN>
+                <SUBMISSION_SET>...</SUBMISSION_SET>
+                [<PROJECT_SET>...</PROJECT_SET>]
+                [<SAMPLE_SET>...</SAMPLE_SET>]
+                [<EXPERIMENT_SET>...</EXPERIMENT_SET>]
+                [<RUN_SET>...</RUN_SET>]
+                ...
+            </WEBIN>
+
+            to the Webin v2 XML endpoint (relative `path` under base_url).
+            """
+            # Build inner XML sections
+            parts = [submission_xml]
+            if project_xml:
+                parts.append(project_xml)
+            if sample_xml:
+                parts.append(sample_xml)
+            if experiment_xml:
+                parts.append(experiment_xml)
+            if run_xml:
+                parts.append(run_xml)
+            if extra_sections:
+                parts.append(extra_sections)
+
+            # Strip XML declarations from inner fragments if present
+            def strip_decl(x: str) -> str:
+                x = x.lstrip()
+                if x.startswith("<?xml"):
+                    return x.split("?>", 1)[1].lstrip()
+                return x
+
+            inner = "\n".join(strip_decl(p) for p in parts if p)
+
+            webin_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<WEBIN>\n{inner}\n</WEBIN>\n'
+
+            # Now send as a single XML body to Webin v2
+            return self.post_xml(self._url(path), webin_xml)
