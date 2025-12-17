@@ -1,7 +1,16 @@
 
 from pathlib import Path
 from lxml import etree
-from dinapy.ena.xml import render_project_xml, render_submission_xml, validate_xml, validate_xml_with_children, _schema_from, XSD_DIR
+import warnings
+
+from dinapy.ena.xml import validate_xml, validate_xml_with_children, _schema_from, XSD_DIR
+from dinapy.ena.models import Project, Sample, SampleName, Attribute
+from dinapy.ena.mappers.xml_builder.project import build_project_xml_from_model
+from dinapy.ena.mappers.xml_builder.sample import build_sample_xml_from_model
+from dinapy.ena.mappers.xml_builder.submission import build_submission_xml_from_model
+
+# Suppress deprecation warnings in tests
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 def test_xsd_imports_resolve():
     # Ensure the resolver can parse the main project schema with its imports
@@ -9,13 +18,13 @@ def test_xsd_imports_resolve():
     assert isinstance(schema, etree.XMLSchema)
 
 def test_project_xml_xsd_valid():
-    project = {
-        "alias": "p1",
-        "title": "t",
-        "description": "d",
-        "project_links": []
-    }
-    xml = render_project_xml(project)
+    """Test that Project Pydantic model generates valid XML."""
+    project = Project(
+        alias="p1",
+        title="Test Project",
+        description="Test project description"
+    )
+    xml = build_project_xml_from_model(project)
     ok, msg = validate_xml(xml, XSD_DIR / "ENA.project.xsd")
     assert ok, msg
 
@@ -145,7 +154,37 @@ def test_submission_xml_xsd_valid():
             }
         ]
     }
-    xml = render_submission_xml(submission)
-    # If you’ve vendored ENA.submission.xsd, swap the path below appropriately.
-    ok, msg = validate_xml_with_children(xml, XSD_DIR / "SRA.submission.xsd", {'PROJECT': XSD_DIR / "ENA.project.xsd", 'SAMPLE':  XSD_DIR / "SRA.sample.xsd"})  # schema for demo purposes
-    assert ok, msg
+    
+    # Build XML using xml_builder functions
+    submission_xml = build_submission_xml_from_model(
+        submission_alias="submissionAliasName",
+        center_name=None,
+        action="ADD"
+    )
+    project = Project(
+        alias="comparative-analysis",
+        title="Exploration of the diversity human gastric microbiota",
+        description="The genome sequences of gut microbes were obtained using..."
+    )
+    project_xml = build_project_xml_from_model(project)
+    
+    sample = Sample(
+        alias="stomach_microbiota",
+        title="human gastric microbiota, mucosal",
+        sample_name=SampleName(taxonId=1284369, scientificName="stomach metagenome"),
+        sampleAttributes=[
+            Attribute(tag="investigation type", value="mimarks-survey"),
+            Attribute(tag="ena-checklist", value="ERC000014")
+        ]
+    )
+    sample_xml = build_sample_xml_from_model(sample)
+    
+    # Validate individual components
+    ok, msg = validate_xml(submission_xml, XSD_DIR / "SRA.submission.xsd")
+    assert ok, f"Submission XML validation failed: {msg}"
+    
+    ok, msg = validate_xml(project_xml, XSD_DIR / "ENA.project.xsd")
+    assert ok, f"Project XML validation failed: {msg}"
+    
+    ok, msg = validate_xml(sample_xml, XSD_DIR / "SRA.sample.xsd")
+    assert ok, f"Sample XML validation failed: {msg}"

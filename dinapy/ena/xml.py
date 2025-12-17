@@ -1,32 +1,12 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Tuple
+import warnings
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from lxml import etree
 
 TEMPLATES_DIR = Path(__file__).parent / "xml_templates"
 XSD_DIR = Path(__file__).parent / "xsd"
-
-# ---------- Jinja2 renderers ----------
-_env = Environment(
-    loader=FileSystemLoader(str(TEMPLATES_DIR)),
-    autoescape=select_autoescape(["xml"])
-)
-def render_sample_xml(sample: dict) -> str:
-    """
-    Render a SAMPLE (wrapped in SAMPLE_SET) from a sample-like dict using the
-    Jinja2 template `xml_templates/sample.xml.j2`.
-    """
-    tpl = _env.get_template("sample.xml.j2")
-    return tpl.render(sample=sample)
-
-def render_project_xml(project: dict) -> str:
-    tpl = _env.get_template("project.xml.j2")
-    return tpl.render(project=project)
-
-def render_submission_xml(submission: dict) -> str:
-    tpl = _env.get_template("submission.xml.j2")
-    return tpl.render(submission=submission)
 
 # ---------- lxml XSD import resolver ----------
 class LocalXsdResolver(etree.Resolver):

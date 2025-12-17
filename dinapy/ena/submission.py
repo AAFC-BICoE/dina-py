@@ -1,0 +1,377 @@
+"""
+ENA Submission Workflow Orchestrator
+
+High-level convenience class for coordinating the full ENA submission workflow:
+1. Create Pydantic models
+2. Generate XML
+3. Upload sequence files via FTP
+4. Submit metadata via WebinAPI
+5. Parse and return receipts
+
+This simplifies the submission process by handling all the boilerplate.
+"""
+from pathlib import Path
+from typing import List, Optional, Dict, Any, Union
+import logging
+
+from dinapy.apis.webin_api.webin_api import WebinAPI
+from dinapy.ena.models import (
+    Project, Sample, Experiment, Run,
+    Submission, Action, Attribute
+)
+from dinapy.ena.mappers.xml_builder.submission import build_submission_xml_from_model
+from dinapy.ena.mappers.xml_builder.project import build_project_xml_from_model
+from dinapy.ena.mappers.xml_builder.sample import build_sample_xml_from_model
+from dinapy.ena.mappers.xml_builder.experiment import build_experiment_xml_from_model
+from dinapy.ena.mappers.xml_builder.run import build_run_xml_from_model
+from dinapy.ena.receipt import ENAReceipt
+from dinapy.ena.upload import ReadUploader
+
+logger = logging.getLogger(__name__)
+
+
+class ENASubmissionWorkflow:
+    """
+    High-level orchestrator for ENA submissions.
+    
+    Handles the complete workflow from models to submission receipts.
+    
+    Example:
+        >>> workflow = ENASubmissionWorkflow(
+        ...     username="Webin-12345",
+        ...     password="secret",
+        ...     test=True
+        ... )
+        >>> 
+        >>> # Submit a project
+        >>> project = Project(
+        ...     alias="my_project_001",
+        ...     title="My Research Project",
+        ...     description="Study of microbial diversity"
+        ... )
+        >>> receipt = workflow.submit_project(project)
+        >>> print(f"Project accession: {receipt.get_accession('PROJECT')}")
+    """
+    
+    def __init__(
+        self,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        test: bool = True,
+        webin_api: Optional[WebinAPI] = None
+    ):
+        """
+        Initialize the submission workflow.
+        
+        Args:
+            username: ENA Webin username (or use WEBIN_USERNAME env var)
+            password: ENA Webin password (or use WEBIN_PASSWORD env var)
+            test: Use test server (wwwdev) if True, production if False
+            webin_api: Pre-configured WebinAPI instance (optional)
+        """
+        self.api = webin_api or WebinAPI(
+            username=username,
+            password=password,
+            test=test
+        )
+        self.test = test
+        self.username = username or self.api.username
+        self.password = password or self.api.password
+    
+    def submit_project(
+        self,
+        project: Project,
+        submission_alias: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit a project (study) to ENA via JSON API.
+        
+        Args:
+            project: Project Pydantic model
+            submission_alias: Unique submission alias (auto-generated if None)
+            center_name: Center name for submission (optional)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{project.alias}"
+        
+        # Use Webin v2 JSON API for projects
+        payload = {
+            "submission": {
+                "alias": submission_alias,
+                "actions": [{"type": action}]
+            },
+            "projects": [project.model_dump(by_alias=True, exclude_none=True)]
+        }
+        
+        logger.info(f"Submitting project '{project.alias}' via JSON API")
+        resp = self.api.post_json("/submit", payload=payload)
+        
+        # Webin v2 JSON endpoint returns JSON, not XML receipt
+        # Parse accordingly
+        if resp.headers.get("content-type", "").startswith("application/json"):
+            logger.warning("JSON response received; returning custom receipt")
+            return self._parse_json_response(resp, "PROJECT")
+        
+        return self.api.parse_receipt(resp)
+    
+    def submit_sample(
+        self,
+        sample: Sample,
+        submission_alias: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit a sample to ENA via JSON API.
+        
+        Args:
+            sample: Sample Pydantic model
+            submission_alias: Unique submission alias (auto-generated if None)
+            center_name: Center name for submission (optional)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{sample.alias}"
+        
+        # Use Webin v2 JSON API for samples
+        payload = {
+            "submission": {
+                "alias": submission_alias,
+                "actions": [{"type": action}]
+            },
+            "samples": [sample.model_dump(by_alias=True, exclude_none=True)]
+        }
+        
+        logger.info(f"Submitting sample '{sample.alias}' via JSON API")
+        resp = self.api.post_json("/submit", payload=payload)
+        
+        if resp.headers.get("content-type", "").startswith("application/json"):
+            logger.warning("JSON response received; returning custom receipt")
+            return self._parse_json_response(resp, "SAMPLE")
+        
+        return self.api.parse_receipt(resp)
+    
+    def submit_experiment(
+        self,
+        experiment: Experiment,
+        submission_alias: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit an experiment to ENA via drop-box XML API.
+        
+        Args:
+            experiment: Experiment Pydantic model
+            submission_alias: Unique submission alias (auto-generated if None)
+            center_name: Center name for submission (optional)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{experiment.alias}"
+        
+        # Build XML using xml_builder functions
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            action=action
+        )
+        experiment_xml = build_experiment_xml_from_model(experiment)
+        
+        logger.info(f"Submitting experiment '{experiment.alias}' via drop-box XML API")
+        resp = self.api.submit_xml(
+            submission_xml=submission_xml,
+            experiment_xml=experiment_xml,
+            test=self.test
+        )
+        
+        return self.api.parse_receipt(resp)
+    
+    def submit_run(
+        self,
+        run: Run,
+        submission_alias: Optional[str] = None,
+        center_name: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit a run to ENA via drop-box XML API.
+        
+        Note: Sequence files must already be uploaded to ENA FTP before submitting the run.
+        Use upload_reads() method or ReadUploader directly to upload files first.
+        
+        Args:
+            run: Run Pydantic model with file references
+            submission_alias: Unique submission alias (auto-generated if None)
+            center_name: Center name for submission (optional)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{run.alias}"
+        
+        # Build XML
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            center_name=center_name,
+            action=action
+        )
+        run_xml = build_run_xml_from_model(run)
+        
+        logger.info(f"Submitting run '{run.alias}' via drop-box XML API")
+        resp = self.api.submit_xml(
+            submission_xml=submission_xml,
+            run_xml=run_xml,
+            test=self.test
+        )
+        
+        return self.api.parse_receipt(resp)
+    
+    def submit_project_sample_experiment(
+        self,
+        project: Project,
+        sample: Sample,
+        experiment: Experiment,
+        submission_alias: Optional[str] = None,
+        center_name: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit project, sample, and experiment together via Webin v2 XML endpoint.
+        
+        This is useful when submitting related objects that reference each other by alias.
+        
+        Args:
+            project: Project Pydantic model
+            sample: Sample Pydantic model
+            experiment: Experiment Pydantic model
+            submission_alias: Unique submission alias (auto-generated if None)
+            center_name: Center name for submission (optional)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{experiment.alias}"
+        
+        # Build all XML sections
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            center_name=center_name,
+            action=action
+        )
+        project_xml = build_project_xml_from_model(project)
+        sample_xml = build_sample_xml_from_model(sample)
+        experiment_xml = build_experiment_xml_from_model(experiment)
+        
+        logger.info(f"Submitting project+sample+experiment via Webin v2 XML")
+        resp = self.api.submit_webin_xml(
+            submission_xml=submission_xml,
+            project_xml=project_xml,
+            sample_xml=sample_xml,
+            experiment_xml=experiment_xml,
+            path="/submit"
+        )
+        
+        return self.api.parse_receipt(resp)
+    
+    def upload_reads(
+        self,
+        file_paths: List[Union[str, Path]],
+        remote_dir: str = ".",
+        save_manifest: bool = True,
+        manifest_path: str = "manifest.txt",
+        max_retries: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Upload sequence read files to ENA FTP server.
+        
+        This must be done before submitting a RUN that references these files.
+        
+        Args:
+            file_paths: List of local file paths to upload
+            remote_dir: Remote directory on ENA FTP (default: home directory)
+            save_manifest: Save manifest with MD5 checksums to file
+            manifest_path: Path to save manifest file
+            max_retries: Number of upload retry attempts
+            
+        Returns:
+            Dictionary with upload results and manifest info:
+            {
+                'uploaded': int,  # number of files uploaded
+                'results': {filename: status},
+                'manifest': [{'filename': ..., 'md5': ..., 'size': ...}],
+                'manifest_file': Path or None
+            }
+            
+        Example:
+            >>> result = workflow.upload_reads(
+            ...     file_paths=["reads_R1.fastq.gz", "reads_R2.fastq.gz"]
+            ... )
+            >>> print(f"Uploaded {result['uploaded']} files")
+            >>> for file_info in result['manifest']:
+            ...     print(f"{file_info['filename']}: MD5={file_info['md5']}")
+        """
+        uploader = ReadUploader()
+        
+        # Convert string paths to Path objects
+        paths = [Path(p) if isinstance(p, str) else p for p in file_paths]
+        
+        logger.info(f"Uploading {len(paths)} read files to ENA FTP")
+        result = uploader.prepare_and_upload_reads(
+            file_paths=paths,
+            host="webin2.ebi.ac.uk" if self.test else "webin.ebi.ac.uk",
+            username=self.username,
+            password=self.password,
+            remote_dir=remote_dir,
+            use_tls=False,  # ENA FTP doesn't use TLS
+            resume=False,
+            verify=True,
+            save_manifest=save_manifest,
+            manifest_path=manifest_path,
+            max_retries=max_retries
+        )
+        
+        logger.info(f"Upload complete: {result['uploaded']} files uploaded")
+        return result
+    
+    def _parse_json_response(self, response, object_type: str) -> ENAReceipt:
+        """
+        Parse JSON response from Webin v2 JSON endpoints into ENAReceipt format.
+        
+        This is a helper for handling non-XML responses.
+        """
+        from dinapy.ena.receipt import ENAReceipt, ENAObject, ENAMessage
+        
+        try:
+            data = response.json()
+        except Exception:
+            # Fallback: treat as failure
+            return ENAReceipt(
+                success=False,
+                messages=[ENAMessage(type="ERROR", text=f"Failed to parse JSON response")]
+            )
+        
+        # Try to extract accession and status from JSON
+        # Format varies; this is a best-effort attempt
+        success = response.status_code in (200, 201)
+        receipt = ENAReceipt(success=success)
+        
+        # Common JSON structure has accession in the response
+        if isinstance(data, dict):
+            accession = data.get("accession")
+            alias = data.get("alias")
+            if accession:
+                receipt.objects.append(ENAObject(
+                    object_type=object_type,
+                    accession=accession,
+                    alias=alias
+                ))
+        
+        return receipt

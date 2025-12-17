@@ -116,30 +116,49 @@ class Project(BaseModel):
 # SAMPLE
 # ============================================================================
 
+# ============================================================================
+# SAMPLE (XML-oriented core)
+# ============================================================================
+
 class SampleName(BaseModel):
-    """Sample taxonomy info."""
+    """Sample taxonomy info (maps to <SAMPLE_NAME> in XML)."""
     taxon_id: int = Field(alias="taxonId")
     scientific_name: Optional[str] = Field(None, alias="scientificName")
     common_name: Optional[str] = Field(None, alias="commonName")
+    # Optional SAMPLE_NAME@display_name attribute
+    display_name: Optional[str] = Field(
+        None,
+        alias="displayName",
+        description="Optional display_name attribute on SAMPLE_NAME"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
-
 class Sample(BaseModel):
-    """ENA Sample."""
+    """
+    ENA Sample (XML view).
+
+    XML mapping:
+      - alias -> <SAMPLE alias="...">
+      - title -> <TITLE>
+      - sample_name -> <SAMPLE_NAME> (TAXON_ID, SCIENTIFIC_NAME, COMMON_NAME, display_name)
+      - description -> either <DESCRIPTION> or a SAMPLE_ATTRIBUTE with tag='description'
+      - sample_links -> <SAMPLE_LINKS>/<SAMPLE_LINK>
+      - sample_attributes -> <SAMPLE_ATTRIBUTES>/<SAMPLE_ATTRIBUTE>
+    """
     alias: str
     title: Optional[str] = None
     sample_name: SampleName = Field(alias="sampleName")
     description: Optional[str] = None
     sample_links: List[Link] = Field(default_factory=list, alias="sampleLinks")
+    # Keep XML-friendly name, but alias it as "attributes" for JSON Webin v2 style:
     sample_attributes: List[Attribute] = Field(
         min_length=1,
-        alias="sampleAttributes",
+        alias="attributes",        # <-- JSON will show "attributes": [...]
         description="MIxS/checklist attributes"
     )
 
     model_config = ConfigDict(populate_by_name=True)
-
 
 # ============================================================================
 # EXPERIMENT
