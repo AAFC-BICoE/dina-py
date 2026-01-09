@@ -131,7 +131,7 @@ class PersonAPI(DinaAPI):
         Returns:
             dict: A deserialized object of the POST response.
         """
-        full_url = self.base_url + "bulk/"
+        full_url = self.base_url + "/bulk/"
 
         try:
             response_data = self.post_req_dina(full_url, json_data)
