@@ -42,8 +42,6 @@ class PersonAPI(DinaAPI):
 
         return deserialized_data
 
-    # TODO: everything below is untested
-
     def bulk_update(self, json_data: dict) -> dict:
         """Updates person records providing a bulk payload using a PATCH request.
 
