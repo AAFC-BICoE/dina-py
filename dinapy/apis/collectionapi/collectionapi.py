@@ -3,8 +3,8 @@ from dinapy.dinaapi import DinaAPI
 
 class CollectionModuleApi(DinaAPI):
 
-	def __init__(self, config_path: str = None, base_url: str = None) -> None:
-		super().__init__(config_path, base_url)
+	def __init__(self, base_url: str = None) -> None:
+		super().__init__(base_url)
 		self.base_url += "collection-api/"
 
 	def get_entity(self, entity_id):
@@ -57,7 +57,7 @@ class CollectionModuleApi(DinaAPI):
 		Returns:
 			json response: a list of found entities with that value for that field
 		"""
-		new_params = {'filter[rsql]': "{}=='{}'".format(field, value)}
+		new_params = {f"filter[{field}][EQ]": value}
 		return self.get_entity_by_param(new_params)
 
 	def remove_entity(self, entity_id):

@@ -9,16 +9,15 @@ from dinapy.schemas.personschema import PersonSchema
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""
 
-    def __init__(self, config_path: str = None, base_url: str = None) -> None:
+    def __init__(self, base_url: str = None) -> None:
         """Creates a PersonAPI instance for handling person DINA API requests.
 
         Parameters:
-            config_path (str, optional): Path to a config file (default: None).
             base_url (str, optional): URL to the URL to perform the API requests against. If not
                 provided then local deployment URL is used. Should end with a forward slash.
         """
-        super().__init__(config_path, base_url)
-        self.base_url += "agent-api/person/"
+        super().__init__(base_url)
+        self.base_url += "agent-api/person"
 
     # TODO: return deserialized object or return response or model (Person object)?
     def find(self, uuid: str) -> dict:
@@ -45,6 +44,27 @@ class PersonAPI(DinaAPI):
 
     # TODO: everything below is untested
 
+    def bulk_update(self, json_data: dict) -> dict:
+        """Updates person records providing a bulk payload using a PATCH request.
+
+        Parameters:
+            json_data (dict): JSON data for updating the person.
+
+        Returns:
+			response_data: json content of the response
+
+        """
+        full_url = self.base_url
+
+        try:
+            response_data = self.bulk_update_req_dina(full_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to perform bulk update: {exc}")
+            raise  # Re-raise the exception
+
+        return response_data.json()
+
+    # TODO: everything below is untested
     def find_many(self, search_query: str = None, sort_order: str = None, offset: int = None, limit: int = None) -> list:
         """Retrieves a list of persons based on filters, sorting, and paging.
 
@@ -78,11 +98,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to get persons with filters {params}: {exc}")
             raise  # Re-raise the exception
 
-        persons = response_data['data']
-        person_schema = PersonSchema()
-        deserialized_persons = [person_schema.load(person) for person in persons]
-
-        return deserialized_persons
+        return response_data.json()['data']
 
     def create(self, json_data: dict) -> dict:
         """Creates a new person by sending a POST request.

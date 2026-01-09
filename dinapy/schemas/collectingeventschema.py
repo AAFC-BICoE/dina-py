@@ -53,6 +53,7 @@ class CollectingEventSchema(Schema):
 	geoReferenceAssertions = SkipUndefinedField(fields.List,fields.Dict(), allow_none=True, required=False, attribute="attributes.geoReferenceAssertions")
 	geographicPlaceNameSource = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.geographicPlaceNameSource")
 	geographicPlaceNameSourceDetail = SkipUndefinedField(fields.Dict,allow_none=True, attribute= "attributes.geographicPlaceNameSourceDetail")
+	geographicThesaurus = SkipUndefinedField(fields.Dict,allow_none=True, attribute= "attributes.geographicThesaurus")
 	habitat = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.habitat")
 	eventGeom = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.eventGeom")
 	extensionValues = SkipUndefinedField(fields.Dict,allow_none=True, attribute="attributes.extensionValues")
@@ -71,8 +72,8 @@ class CollectingEventSchema(Schema):
 
 	collectionMethod = create_relationship("collecting-event","collection-method","collectionMethod")
 	protocol = create_relationship("collecting-event","protocol","protocol")
-	collectors = create_relationship("collecting-event","person","collectors")
-	attachment = create_relationship("collecting-event","metadata","attachment")
+	collectors = create_relationship("collecting-event","person","collectors",many=True)
+	attachment = create_relationship("collecting-event","metadata","attachment",many=True)
 
 	meta = fields.DocumentMeta()
 

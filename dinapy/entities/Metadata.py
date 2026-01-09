@@ -13,6 +13,8 @@ class MetadataDTO:
     def get_type(self):
         return self.type
 
+    def get_attributes(self):
+            return self.attributes
 
 class MetadataDTOBuilder:
     def __init__(self):
@@ -49,7 +51,9 @@ class MetadataAttributesDTO:
         bucket="undefined",
         fileIdentifier="undefined",
         fileExtension="undefined",
+        filename="undefined",
         resourceExternalURL="undefined",
+        sourceSet="undefined",
         dcFormat="undefined",
         dcType="undefined",
         acCaption="undefined",
@@ -75,7 +79,9 @@ class MetadataAttributesDTO:
         self.bucket = bucket
         self.fileIdentifier = fileIdentifier
         self.fileExtension = fileExtension
+        self.filename = filename
         self.resourceExternalURL = resourceExternalURL
+        self.sourceSet = sourceSet
         self.dcFormat = dcFormat
         self.dcType = dcType
         self.acCaption = acCaption
@@ -96,15 +102,20 @@ class MetadataAttributesDTO:
         self.group = group
         self.managedAttributes = managedAttributes
 
-
+    def to_dict(self):
+        return self.__dict__
+    
 class MetadataAttributesDTOBuilder:
     def __init__(self):
         self._createdBy = "undefined"
         self._createdOn = "undefined"
         self._bucket = "undefined"
+        self._filename = "undefined"
         self._fileIdentifier = "undefined"
         self._fileExtension = "undefined"
+        self._filename = "undefined"
         self._resourceExternalURL = "undefined"
+        self._sourceSet = "undefined"
         self._dcFormat = "undefined"
         self._dcType = "undefined"
         self._acCaption = "undefined"
@@ -137,6 +148,10 @@ class MetadataAttributesDTOBuilder:
         self._bucket = bucket
         return self
 
+    def set_filename(self, filename):
+        self._filename = filename
+        return self
+    
     def set_fileIdentifier(self, fileIdentifier):
         self._fileIdentifier = fileIdentifier
         return self
@@ -144,9 +159,17 @@ class MetadataAttributesDTOBuilder:
     def set_fileExtension(self, fileExtension):
         self._fileExtension = fileExtension
         return self
-
+    
+    def set_filename(self, filename):
+        self._filename = filename
+        return self
+    
     def set_resourceExternalURL(self, resourceExternalURL):
         self._resourceExternalURL = resourceExternalURL
+        return self
+    
+    def set_sourceSet(self, sourceSet):
+        self._sourceSet = sourceSet
         return self
 
     def set_dcFormat(self, dcFormat):
@@ -232,7 +255,9 @@ class MetadataAttributesDTOBuilder:
             bucket=self._bucket,
             fileIdentifier=self._fileIdentifier,
             fileExtension=self._fileExtension,
+            filename=self._filename,
             resourceExternalURL=self._resourceExternalURL,
+            sourceSet=self._sourceSet,
             dcFormat=self._dcFormat,
             dcType=self._dcType,
             acCaption=self._acCaption,

@@ -1,7 +1,0 @@
-url: https://dina-dev2.biodiversity.agr.gc.ca
-keycloak_username: "dina-admin"
-keycloak_password: "dina-admin"
-
-realm_name: dina
-client_id: dina-public
-secure: True

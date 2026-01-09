@@ -10,9 +10,9 @@ from requests import HTTPError
 from dinapy.entities.Metadata import MetadataDTOBuilder
 from dinapy.schemas.metadata_schema import MetadataSchema
 
-class ObjectStoreApi(DinaAPI):
-    def __init__(self, config_path: str = None, base_url: str = None) -> None:
-        super().__init__(config_path, base_url)
+class ObjectStoreAPI(DinaAPI):
+    def __init__(self, base_url: str = None) -> None:
+        super().__init__( base_url)
         self.base_url = (
             base_url + "objectstore-api"
             if base_url
@@ -57,7 +57,7 @@ class ObjectStoreApi(DinaAPI):
         Returns:
                 json response: a list of found entities with that value for that field
         """
-        new_params = {"filter[rsql]": "{}=='{}'".format(field, value)}
+        new_params = {f"filter[{field}]": value}
         return self.get_entity_by_param(new_params, endpoint)
 
     def remove_entity(self, entity_id, endpoint: str):
@@ -66,7 +66,7 @@ class ObjectStoreApi(DinaAPI):
         jsn_resp = self.delete_req_dina(new_request_url)
         return jsn_resp if jsn_resp else ""
 
-    def update_entity(self, entity_id, json_data, endpoint: str):
+    def update_entity(self, entity_id=None, json_data=None, endpoint=None):
         """Updates an entity
 
         Args:
@@ -78,6 +78,7 @@ class ObjectStoreApi(DinaAPI):
 
         entity_id = str(entity_id) if isinstance(entity_id, int) else entity_id
         new_request_url = f"{self.base_url}/{endpoint}/{str(entity_id)}"
+        print(new_request_url)
         jsn_resp = self.patch_req_dina(new_request_url, json_data)
         return jsn_resp if jsn_resp else ""
 
@@ -164,8 +165,8 @@ class ObjectStoreApi(DinaAPI):
             attributes = (
                 dina_api_config.get("objectstore-api").get("metadata").get("attributes")
             )
-            attributes["bucket"] = upload_file_response.get("bucket")
-            attributes["fileIdentifier"] = upload_file_response.get("uuid")
+            attributes["bucket"] = upload_file_response.get("data").get("attributes").get("bucket")
+            attributes["fileIdentifier"] = upload_file_response.get("data").get("id")
             attributes["acDigitizationDate"] = localizedAcDigitizationDate
 
             dto = (

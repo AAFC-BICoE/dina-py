@@ -1,4 +1,4 @@
-from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreApi
+from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreAPI
 from dinapy.entities.Metadata import MetadataAttributesDTOBuilder, MetadataDTOBuilder
 from dinapy.schemas.metadata_schema import MetadataSchema
 from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
@@ -35,7 +35,7 @@ def main():
                     ).set_bucket("aafc").set_originalFilename(file_name).build()
                 file_metadata = MetadataDTOBuilder().set_attributes(metadata_attributes).build()
 
-                file_metadata_api = ObjectStoreApi()
+                file_metadata_api = ObjectStoreAPI()
                 file_metadata_schema = MetadataSchema()
 
                 # Build Metadata JSON object

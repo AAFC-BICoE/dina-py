@@ -30,11 +30,17 @@ class MetadataSchema(Schema):
     createdOn = SkipUndefinedField(
         fields.DateTime, load_only=True, attribute="attributes.createdOn"
     )
+    filename = SkipUndefinedField(
+        fields.Str, allow_none=True, attribute="attributes.filename"
+    )
     createdBy = SkipUndefinedField(
         fields.Str, load_only=True, attribute="attributes.createdBy"
     )
     bucket = SkipUndefinedField(
         fields.Str, required=True, attribute="attributes.bucket"
+    )
+    filename = SkipUndefinedField(
+        fields.Str, attribute="attributes.filename", allow_none=True
     )
     fileIdentifier = SkipUndefinedField(
         fields.UUID, attribute="attributes.fileIdentifier", allow_none=True
@@ -44,6 +50,9 @@ class MetadataSchema(Schema):
     )
     resourceExternalURL = SkipUndefinedField(
         fields.Str, attribute="attributes.resourceExternalURL", allow_none=True
+    )
+    sourceSet = SkipUndefinedField(
+        fields.Str, attribute="attributes.sourceSetting", allow_none=True
     )
     dcFormat = SkipUndefinedField(
         fields.Str, attribute="attributes.dcFormat", allow_none=True
@@ -64,7 +73,7 @@ class MetadataSchema(Schema):
         fields.DateTime, attribute="attributes.acDigitizationDate", allow_none=True
     )
     xmpMetadataDate = SkipUndefinedField(
-        fields.DateTime, attribute="attributes.xmpMetadataDate", allow_none=True
+        fields.DateTime, attribute="attributes.xmpMetadataDate", load_only=True, allow_none=True
     )
     xmpRightsWebStatement = SkipUndefinedField(
         fields.Str, attribute="attributes.xmpRightsWebStatement", allow_none=True
@@ -82,7 +91,7 @@ class MetadataSchema(Schema):
         fields.Int, attribute="attributes.orientation", allow_none=True
     )
     originalFilename = SkipUndefinedField(
-        fields.Str, attribute="attributes.originalFilename"
+        fields.Str, attribute="attributes.originalFilename", allow_none=True
     )
     acHashFunction = SkipUndefinedField(
         fields.Str, attribute="attributes.acHashFunction", allow_none=True
@@ -132,7 +141,7 @@ class MetadataSchema(Schema):
             del data['meta']
         return MetadataDTO(**data)
 
-    meta = fields.DocumentMeta()
+    meta = fields.DocumentMeta(load_only=True)
 
     class Meta:
         type_ = "metadata"

@@ -1,6 +1,4 @@
-# This file contains tests relating to CollectingEventAPI.
-# Currently only contains tests for the CollectingEventSchema (serialization and deserialization tests).
-# API mock call tests should be added.
+# Contains tests for the CollectingEventSchema (serialization and deserialization tests).
 
 import unittest
 import pprint
@@ -18,8 +16,6 @@ sys.path.insert(0, project_root)
 from dinapy.schemas.collectingeventschema import CollectingEventSchema
 from marshmallow.exceptions import ValidationError
 from dinapy.entities.CollectingEvent import *
-
-KEYCLOAK_CONFIG_PATH = "tests/keycloak-config.yml"
 
 VALID_COLLECTING_EVENT_DATA = {
 	"data": {

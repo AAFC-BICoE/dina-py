@@ -27,7 +27,7 @@ class MetagenomicsBatchDTOBuilder:
         return self
     
     def set_attributes(self, attributes):
-        self._attributes = attributes
+        self._attributes = attributes.to_dict()
         return self
 
     def set_relationships(self, relationships):
@@ -44,6 +44,9 @@ class MetagenomicsBatchAttributesDTO:
         self.group = group
         self.name = name
 
+    def to_dict(self):
+        return self.__dict__
+    
 class MetagenomicsBatchAttributesDTOBuilder:
     def __init__(self):
         self._createdBy = 'undefined'
