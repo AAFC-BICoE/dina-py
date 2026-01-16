@@ -53,8 +53,7 @@ print()
 # ============================================================================
 
 receipt = workflow.submit_project(
-    project=project,
-    center_name=None  # Optional: specify your center name
+    project=project
 )
 
 

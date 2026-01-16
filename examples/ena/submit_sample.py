@@ -75,8 +75,7 @@ print()
 # ============================================================================
 
 receipt = workflow.submit_sample(
-    sample=sample,
-    center_name=None  # Optional: specify your center name
+    sample=sample
 )
 
 
