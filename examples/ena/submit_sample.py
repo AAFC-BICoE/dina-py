@@ -53,8 +53,8 @@ sample = Sample(
 print("Sample to submit:")
 print(f"  Alias: {sample.alias}")
 print(f"  Title: {sample.title}")
-print(f"  Taxon: {sample.sample_name.scientificName} (taxid:{sample.sample_name.taxonId})")
-print(f"  Attributes: {len(sample.sampleAttributes)} metadata fields")
+print(f"  Taxon: {sample.sample_name.scientific_name} (taxid:{sample.sample_name.taxon_id})")
+print(f"  Attributes: {len(sample.sample_attributes)} metadata fields")
 print()
 
 
