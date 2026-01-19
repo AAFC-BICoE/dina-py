@@ -183,17 +183,17 @@ def format_receipt_summary(receipt: ENAReceipt) -> str:
         if errors:
             lines.append("\nErrors:")
             for err in errors:
-                lines.append(f"  ❌ {err}")
+                lines.append(f"  [ERROR] {err}")
         
         if warnings:
             lines.append("\nWarnings:")
             for warn in warnings:
-                lines.append(f"  ⚠️  {warn}")
+                lines.append(f"  [WARNING] {warn}")
         
         if infos:
             lines.append("\nInfo:")
             for info in infos:
-                lines.append(f"  ℹ️  {info}")
+                lines.append(f"  [INFO] {info}")
     
     if receipt.actions:
         lines.append(f"\nActions: {', '.join(receipt.actions)}")

@@ -3,7 +3,7 @@ from lxml import etree
 import warnings
 
 from dinapy.ena.xml import _schema_from, XSD_DIR
-from dinapy.ena.models import Sample, SampleName, Submission, Action, Attribute
+from dinapy.ena.models import Sample, Organism, Submission, Action, Attribute
 from dinapy.ena.mappers.xml_builder.submission import build_submission_xml_from_model
 from dinapy.ena.mappers.xml_builder.sample import build_sample_xml_from_model
 
@@ -61,11 +61,11 @@ def test_invalid_submission_and_sample_models_are_caught():
     valid_sample = Sample(
         alias="valid_sample",
         title="Valid Sample",
-        sample_name=SampleName(
+        organism=Organism(
             taxonId=9606,
             scientificName="Homo sapiens"
         ),
-        sampleAttributes=[
+        attributes=[
             Attribute(tag="test_tag", value="test_value")
         ]
     )

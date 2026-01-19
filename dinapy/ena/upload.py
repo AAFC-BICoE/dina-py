@@ -171,7 +171,7 @@ class ReadUploader:
                     
                     if success:
                         results[file_path.name] = "success"
-                        logger.info(f"✓ Successfully uploaded {file_path.name}")
+                        logger.info(f"Successfully uploaded {file_path.name}")
                         break
                     else:
                         results[file_path.name] = "failed"
@@ -230,7 +230,7 @@ class ReadUploader:
                 try:
                     start_pos = ftp.size(remote_filename)
                     if start_pos == file_size:
-                        logger.info(f"✓ {remote_filename} already uploaded (skipping)")
+                        logger.info(f"{remote_filename} already uploaded (skipping)")
                         return True
                     elif start_pos > 0:
                         logger.info(f"Resuming from {start_pos / 1e6:.1f} MB")
@@ -276,11 +276,11 @@ class ReadUploader:
                 try:
                     remote_size = ftp.size(remote_filename)
                     if remote_size == file_size:
-                        logger.info(f"✓ Upload verified via SIZE: {file_size / 1e6:.1f} MB")
+                        logger.info(f"Upload verified via SIZE: {file_size / 1e6:.1f} MB")
                         return True
                     else:
                         logger.error(
-                            f"✗ Size mismatch: local={file_size}, remote={remote_size}"
+                            f"Size mismatch: local={file_size}, remote={remote_size}"
                         )
                         return False
                 except (ftplib.error_perm, ftplib.error_temp) as e:
@@ -310,7 +310,7 @@ class ReadUploader:
                 if name == filename:
                     remote_size = int(facts.get('size', 0))
                     if remote_size == expected_size:
-                        logger.info(f"✓ Upload verified via MLSD: {filename} ({expected_size / 1e6:.1f} MB)")
+                        logger.info(f"Upload verified via MLSD: {filename} ({expected_size / 1e6:.1f} MB)")
                         return True
                     else:
                         logger.warning(
@@ -329,10 +329,10 @@ class ReadUploader:
             logger.debug(f"Attempting NLST verification for {filename}")
             files = ftp.nlst()
             if filename in files:
-                logger.info(f"✓ Upload verified via NLST: {filename} found in directory")
+                logger.info(f"Upload verified via NLST: {filename} found in directory")
                 return True
             else:
-                logger.error(f"✗ File {filename} not found in NLST listing")
+                logger.error(f"File {filename} not found in NLST listing")
                 return False
         except ftplib.error_perm as e:
             logger.debug(f"NLST not supported: {e}")

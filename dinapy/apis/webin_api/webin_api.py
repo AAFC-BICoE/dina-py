@@ -11,6 +11,9 @@ import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 
+# Import receipt parsing utilities
+from dinapy.ena.receipt import parse_receipt_xml, format_receipt_summary, ENAReceipt
+
 # ---- Defaults ----
 # Use test=True for the nightly-reset dev environment (wwwdev), production otherwise.
 # Base URL points at Webin v2; some classic programmatic XML submissions use the drop-box "submit" endpoint.
@@ -50,7 +53,10 @@ class WebinAPI:
         self.password = password or os.getenv("WEBIN_PASSWORD")
 
         if self.username is None or self.password is None:
-            raise ValueError("WEBIN_USERNAME/WEBIN_PASSWORD are required.")
+            raise ValueError(
+                "WEBIN_USERNAME and WEBIN_PASSWORD are required. "
+                "Please provide them as arguments or set them in environment variables/.env file."
+            )
 
         if test is None:
             test_env = os.getenv("WEBIN_TEST", "").strip().lower()
@@ -274,3 +280,42 @@ class WebinAPI:
 
             # Now send as a single XML body to Webin v2
             return self.post_xml(self._url(path), webin_xml)
+
+    # ---------------------- Receipt parsing helpers ----------------------
+    
+    def parse_receipt(self, response: requests.Response) -> ENAReceipt:
+        """
+        Parse an ENA receipt XML response into a structured ENAReceipt object.
+        
+        Args:
+            response: requests.Response object containing XML receipt
+            
+        Returns:
+            ENAReceipt object with parsed accessions, messages, etc.
+            
+        Example:
+            >>> resp = client.submit_xml(submission_xml, experiment_xml=exp_xml)
+            >>> receipt = client.parse_receipt(resp)
+            >>> if receipt.success:
+            ...     print(f"Experiment accession: {receipt.get_accession('EXPERIMENT')}")
+            >>> else:
+            ...     print(f"Errors: {receipt.get_errors()}")
+        """
+        return parse_receipt_xml(response.text)
+    
+    def get_receipt_summary(self, response: requests.Response) -> str:
+        """
+        Get a human-readable summary of an ENA receipt response.
+        
+        Args:
+            response: requests.Response object containing XML receipt
+            
+        Returns:
+            Formatted string summary
+            
+        Example:
+            >>> resp = client.submit_xml(submission_xml, run_xml=run_xml)
+            >>> print(client.get_receipt_summary(resp))
+        """
+        receipt = self.parse_receipt(response)
+        return format_receipt_summary(receipt)

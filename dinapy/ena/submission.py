@@ -13,6 +13,8 @@ This simplifies the submission process by handling all the boilerplate.
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
 import logging
+import os
+from dotenv import load_dotenv
 
 from dinapy.apis.webin_api.webin_api import WebinAPI
 from dinapy.ena.models import (
@@ -69,6 +71,13 @@ class ENASubmissionWorkflow:
             test: Use test server (wwwdev) if True, production if False
             webin_api: Pre-configured WebinAPI instance (optional)
         """
+        # Load .env file if present (works in notebooks and scripts)
+        load_dotenv()
+        
+        # Get credentials from arguments or environment variables
+        username = username or os.getenv("WEBIN_USERNAME")
+        password = password or os.getenv("WEBIN_PASSWORD")
+        
         self.api = webin_api or WebinAPI(
             username=username,
             password=password,
@@ -138,13 +147,19 @@ class ENASubmissionWorkflow:
         """
         submission_alias = submission_alias or f"sub_{sample.alias}"
         
+        # Serialize sample and remove empty lists to avoid API issues
+        sample_data = sample.model_dump(by_alias=True, exclude_none=True)
+        # Remove empty lists (ENA API may not accept empty sampleLinks, etc.)
+        sample_data = {k: v for k, v in sample_data.items() 
+                      if not (isinstance(v, list) and len(v) == 0)}
+        
         # Use Webin v2 JSON API for samples
         payload = {
             "submission": {
                 "alias": submission_alias,
                 "actions": [{"type": action}]
             },
-            "samples": [sample.model_dump(by_alias=True, exclude_none=True)]
+            "samples": [sample_data]
         }
         
         logger.info(f"Submitting sample '{sample.alias}' via JSON API")

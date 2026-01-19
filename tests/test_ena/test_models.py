@@ -4,7 +4,7 @@ from lxml import etree
 import warnings
 
 from dinapy.ena.xml import validate_xml, validate_xml_with_children, _schema_from, XSD_DIR
-from dinapy.ena.models import Project, Sample, SampleName, Attribute
+from dinapy.ena.models import Project, Sample, Organism, Attribute
 from dinapy.ena.mappers.xml_builder.project import build_project_xml_from_model
 from dinapy.ena.mappers.xml_builder.sample import build_sample_xml_from_model
 from dinapy.ena.mappers.xml_builder.submission import build_submission_xml_from_model
@@ -171,8 +171,8 @@ def test_submission_xml_xsd_valid():
     sample = Sample(
         alias="stomach_microbiota",
         title="human gastric microbiota, mucosal",
-        sample_name=SampleName(taxonId=1284369, scientificName="stomach metagenome"),
-        sampleAttributes=[
+        organism=Organism(taxonId=1284369, scientificName="stomach metagenome"),
+        attributes=[
             Attribute(tag="investigation type", value="mimarks-survey"),
             Attribute(tag="ena-checklist", value="ERC000014")
         ]

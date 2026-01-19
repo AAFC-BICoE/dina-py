@@ -54,6 +54,8 @@ Example showing two approaches for submitting sequencing runs:
 - Creating `Run` models with file checksums
 - Working with MD5 manifests
 
+**Prerequisites:** Must have an experiment accession (e.g., ERX123456) before submitting runs.
+
 **Run it:**
 ```bash
 python submit_run.py
@@ -118,11 +120,11 @@ WEBIN_TEST=true
    # → Returns experiment accession (e.g., ERX123456)
    ```
 
-4. **Upload Reads & Submit Run**
+4. **Upload Reads & Submit Run** (requires experiment accession from step 3)
    ```python
    # See submit_run.py for full example with upload
    upload_result = workflow.upload_reads(file_paths=[...])
-   run = Run(experiment_ref={"accession": "ERX123456"}, ...)
+   run = Run(experiment_ref={"accession": "ERX123456"}, ...)  # Use accession from step 3
    receipt = workflow.submit_run(run)
    # → Returns run accession (e.g., ERR123456)
    ```

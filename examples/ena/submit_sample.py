@@ -10,8 +10,12 @@ Environment variables required:
     WEBIN_TEST: Set to 'true' for test server (default: true)
 """
 
-from dinapy.ena.models import Sample, SampleName, Attribute
+import os
+from dinapy.ena.models import Sample, Organism, Attribute
+from dinapy.ena.receipt import format_receipt_summary
 from dinapy.ena.submission import ENASubmissionWorkflow
+webin_username = os.environ.get("WEBIN_USERNAME")
+webin_password = os.environ.get("WEBIN_PASSWORD")
 
 
 # ============================================================================
@@ -21,12 +25,12 @@ from dinapy.ena.submission import ENASubmissionWorkflow
 sample = Sample(
     alias="sample_arctic_soil_001",
     title="Arctic permafrost soil sample from Resolute Bay",
-    sample_name=SampleName(
+    organism=Organism(
         taxonId=410658,  # soil metagenome
         scientificName="soil metagenome"
     ),
     description="Soil sample collected from active layer above permafrost at 10cm depth",
-    sampleAttributes=[
+    attributes=[
         # Required MIxS attributes for environmental samples
         Attribute(tag="geographic location (country and/or sea)", value="Canada"),
         Attribute(tag="geographic location (latitude)", value="74.6895 N"),
@@ -53,8 +57,8 @@ sample = Sample(
 print("Sample to submit:")
 print(f"  Alias: {sample.alias}")
 print(f"  Title: {sample.title}")
-print(f"  Taxon: {sample.sample_name.scientific_name} (taxid:{sample.sample_name.taxon_id})")
-print(f"  Attributes: {len(sample.sample_attributes)} metadata fields")
+print(f"  Taxon: {sample.organism.scientific_name} (taxid:{sample.organism.taxon_id})")
+print(f"  Attributes: {len(sample.attributes)} metadata fields")
 print()
 
 
@@ -98,6 +102,7 @@ if receipt.success:
         print("\nNote: Accession not found in receipt (may be assigned later)")
 else:
     print("FAILURE")
+    print(format_receipt_summary(receipt))
     errors = receipt.get_errors()
     if errors:
         print("\nErrors:")
@@ -116,7 +121,7 @@ print()
 # ============================================================================
 # TIPS
 # ============================================================================
-print("\n💡 Tips:")
+print("\nTips:")
 print("  - Use appropriate taxon ID from NCBI Taxonomy")
 print("  - For metagenomes, use taxon IDs like:")
 print("    • 410658 (soil metagenome)")

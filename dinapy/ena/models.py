@@ -44,9 +44,9 @@ class Action(BaseModel):
     """Submission action."""
     type: Literal["ADD", "HOLD", "RELEASE", "CANCEL", "VALIDATE"]
     source: Optional[str] = Field(None, description="Path to XML file for ADD/VALIDATE")
-    schema: Optional[Literal[
+    schema_: Optional[Literal[
         "study", "experiment", "sample", "run", "analysis", "project"
-    ]] = Field(None, description="Type of object being submitted")
+    ]] = Field(None, alias="schema", description="Type of object being submitted")
     hold_until_date: Optional[str] = Field(
         None,
         alias="holdUntilDate",
@@ -116,46 +116,41 @@ class Project(BaseModel):
 # SAMPLE
 # ============================================================================
 
-# ============================================================================
-# SAMPLE (XML-oriented core)
-# ============================================================================
-
-class SampleName(BaseModel):
-    """Sample taxonomy info (maps to <SAMPLE_NAME> in XML)."""
+class Organism(BaseModel):
+    """Organism taxonomy info for samples (JSON API format)."""
     taxon_id: int = Field(alias="taxonId")
     scientific_name: Optional[str] = Field(None, alias="scientificName")
     common_name: Optional[str] = Field(None, alias="commonName")
-    # Optional SAMPLE_NAME@display_name attribute
-    display_name: Optional[str] = Field(
-        None,
-        alias="displayName",
-        description="Optional display_name attribute on SAMPLE_NAME"
-    )
 
     model_config = ConfigDict(populate_by_name=True)
 
+
 class Sample(BaseModel):
     """
-    ENA Sample (XML view).
+    ENA Sample (JSON API format).
 
-    XML mapping:
-      - alias -> <SAMPLE alias="...">
-      - title -> <TITLE>
-      - sample_name -> <SAMPLE_NAME> (TAXON_ID, SCIENTIFIC_NAME, COMMON_NAME, display_name)
-      - description -> either <DESCRIPTION> or a SAMPLE_ATTRIBUTE with tag='description'
-      - sample_links -> <SAMPLE_LINKS>/<SAMPLE_LINK>
-      - sample_attributes -> <SAMPLE_ATTRIBUTES>/<SAMPLE_ATTRIBUTE>
+    JSON API mapping:
+      - alias -> sample alias
+      - title -> sample title
+      - organism -> {taxonId, scientificName, commonName}
+      - attributes -> list of {tag, value, unit?} objects for MIxS/checklist (optional)
+      - description -> free-form text (optional)
+      - sampleLinks -> links to related resources (optional)
+
+    XML format uses SAMPLE_NAME, SAMPLE_ATTRIBUTES, SAMPLE_LINKS elements.
     """
     alias: str
     title: Optional[str] = None
-    sample_name: SampleName = Field(alias="sampleName")
+    organism: Organism
     description: Optional[str] = None
-    sample_links: List[Link] = Field(default_factory=list, alias="sampleLinks")
-    # Keep XML-friendly name, but alias it as "attributes" for JSON Webin v2 style:
-    sample_attributes: List[Attribute] = Field(
-        min_length=1,
-        alias="attributes",        # <-- JSON will show "attributes": [...]
-        description="MIxS/checklist attributes"
+    attributes: List[Attribute] = Field(
+        default_factory=list,
+        description="MIxS/checklist attributes (optional)"
+    )
+    sample_links: List[Link] = Field(
+        default_factory=list,
+        alias="sampleLinks",
+        description="Links to resources related to this sample"
     )
 
     model_config = ConfigDict(populate_by_name=True)

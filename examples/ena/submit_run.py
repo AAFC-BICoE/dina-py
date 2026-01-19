@@ -32,7 +32,7 @@ upload_result = workflow.upload_reads(
     manifest_path="manifest.txt"
 )
 
-print(f"✅ Uploaded {upload_result['uploaded']} files")
+print(f"Uploaded {upload_result['uploaded']} files")
 for file_info in upload_result['manifest']:
     print(f"  {file_info['filename']}: MD5={file_info['md5'][:16]}...")
 print()
@@ -60,15 +60,16 @@ run = Run(
 receipt = workflow.submit_run(run=run)
 
 if receipt.success:
-    print("✅ SUCCESS")
+    print("SUCCESS")
     run_accession = receipt.get_accession("RUN")
     print(f"Run Accession: {run_accession}")
 else:
-    print("❌ FAILURE")
+    print("FAILURE")
     print(f"Errors: {receipt.get_errors()}")
 
+from dinapy.ena.receipt import format_receipt_summary
 print("\n" + "="*60)
-print(workflow.api.get_receipt_summary(receipt))
+print(format_receipt_summary(receipt))
 
 # =============================================================================
 # APPROACH 2: Use pre-uploaded files with known MD5 checksums

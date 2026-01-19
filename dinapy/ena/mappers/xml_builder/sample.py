@@ -8,9 +8,9 @@ def build_sample_xml_from_model(sample_model: Sample) -> str:
     Maps:
       - Sample.alias   -> <SAMPLE alias="...">
       - Sample.title   -> <TITLE>
-      - Sample.sample_name.* -> <SAMPLE_NAME> children
+      - Sample.organism.* -> <SAMPLE_NAME> children
       - Sample.description -> (optional) added as a SAMPLE_ATTRIBUTE
-      - Sample.sample_attributes -> <SAMPLE_ATTRIBUTES>/<SAMPLE_ATTRIBUTE>
+      - Sample.attributes -> <SAMPLE_ATTRIBUTES>/<SAMPLE_ATTRIBUTE>
     """
     sm = sample_model.model_dump(by_alias=True)
 
@@ -30,23 +30,23 @@ def build_sample_xml_from_model(sample_model: Sample) -> str:
         title_el = etree.SubElement(sample_el, "TITLE")
         title_el.text = sm["title"]
 
-    # SAMPLE_NAME
-    sn = sm["sampleName"]
+    # SAMPLE_NAME (from organism field)
+    organism = sm["organism"]
     sn_el = etree.SubElement(sample_el, "SAMPLE_NAME")
 
     tax_el = etree.SubElement(sn_el, "TAXON_ID")
-    tax_el.text = str(sn["taxonId"])
+    tax_el.text = str(organism["taxonId"])
 
-    if sn.get("scientificName"):
+    if organism.get("scientificName"):
         sci_el = etree.SubElement(sn_el, "SCIENTIFIC_NAME")
-        sci_el.text = sn["scientificName"]
+        sci_el.text = organism["scientificName"]
 
-    if sn.get("commonName"):
+    if organism.get("commonName"):
         com_el = etree.SubElement(sn_el, "COMMON_NAME")
-        com_el.text = sn["commonName"]
+        com_el.text = organism["commonName"]
 
     # SAMPLE_ATTRIBUTES
-    attrs_list = sm.get("sampleAttributes") or []
+    attrs_list = sm.get("attributes") or []
 
     # If you want description to appear as a SAMPLE_ATTRIBUTE:
     if sm.get("description"):
