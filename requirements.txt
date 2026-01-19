@@ -1,0 +1,10 @@
+requests==2.31.0
+marshmallow-jsonapi==0.24.0
+python-keycloak==3.3.0
+pyyaml==6.0.1
+certifi==2023.7.22
+setuptools==70.3.0
+pip-system-certs==4.0
+marshmallow==3.21.3
+wrapt>=1.14.1
+python-dotenv==1.1.1
