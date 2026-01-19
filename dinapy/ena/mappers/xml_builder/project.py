@@ -40,42 +40,44 @@ def build_project_xml_from_model(project_model: Project) -> str:
         desc_el = etree.SubElement(proj_el, "DESCRIPTION")
         desc_el.text = proj["description"]
 
-    # SUBMISSION_PROJECT / SEQUENCING_PROJECT / ORGANISM
-    sub_proj = proj.get("submissionProject") or {}
-    if sub_proj:
-        sub_proj_el = etree.SubElement(proj_el, "SUBMISSION_PROJECT")
+    # SUBMISSION_PROJECT (required by XSD - must have either this or UMBRELLA_PROJECT)
+    # Always include SUBMISSION_PROJECT wrapper
+    sub_proj_el = etree.SubElement(proj_el, "SUBMISSION_PROJECT")
+    
+    # SEQUENCING_PROJECT (inside SUBMISSION_PROJECT)
+    seq_proj = proj.get("sequencingProject") or {}
+    if seq_proj and seq_proj.get("locusTagPrefix"):
+        seq_el = etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
+        for prefix in seq_proj["locusTagPrefix"]:
+            lp_el = etree.SubElement(seq_el, "LOCUS_TAG_PREFIX")
+            lp_el.text = prefix
+    else:
+        # Empty SEQUENCING_PROJECT element
+        etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
 
-        # SEQUENCING_PROJECT (if locus_tag_prefix or other details present)
-        seq_proj = sub_proj.get("sequencingProject") or {}
-        if seq_proj and seq_proj.get("locusTagPrefix"):
-            seq_el = etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
-            for prefix in seq_proj["locusTagPrefix"]:
-                lp_el = etree.SubElement(seq_el, "LOCUS_TAG_PREFIX")
-                lp_el.text = prefix
-        else:
-            # ENA examples often have an empty <SEQUENCING_PROJECT/>; optional
-            etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
+    # ORGANISM (optional, inside SUBMISSION_PROJECT)
+    # Note: Our model has sequencingProject directly, not nested in submissionProject
+    # For XML we need to check if organism was in the old structure
+    # For now, leave this section for backward compatibility
+    sub_proj_data = proj.get("submissionProject") or {}
+    org = sub_proj_data.get("organism") or {}
+    if org:
+        org_el = etree.SubElement(sub_proj_el, "ORGANISM")
+        # TAXON_ID
+        if org.get("taxonId") is not None:
+            tax_el = etree.SubElement(org_el, "TAXON_ID")
+            tax_el.text = str(org["taxonId"])
+        # SCIENTIFIC_NAME
+        if org.get("scientificName"):
+            sci_el = etree.SubElement(org_el, "SCIENTIFIC_NAME")
+            sci_el.text = org["scientificName"]
+        # COMMON_NAME
+        if org.get("commonName"):
+            com_el = etree.SubElement(org_el, "COMMON_NAME")
+            com_el.text = org["commonName"]
 
-        # ORGANISM (taxon info)
-        org = sub_proj.get("organism") or {}
-        if org:
-            org_el = etree.SubElement(sub_proj_el, "ORGANISM")
-            # TAXON_ID
-            if org.get("taxonId") is not None:
-                tax_el = etree.SubElement(org_el, "TAXON_ID")
-                tax_el.text = str(org["taxonId"])
-            # SCIENTIFIC_NAME
-            if org.get("scientificName"):
-                sci_el = etree.SubElement(org_el, "SCIENTIFIC_NAME")
-                sci_el.text = org["scientificName"]
-            # COMMON_NAME
-            if org.get("commonName"):
-                com_el = etree.SubElement(org_el, "COMMON_NAME")
-                com_el.text = org["commonName"]
-            # ENA usually puts these either in ORGANISM or as PROJECT_ATTRIBUTEs;
-
-    # PROJECT_LINKS
-    links = proj.get("projectLinks") or []
+    # PROJECT_LINKS (field name is now project_links in our model)
+    links = proj.get("project_links") or []
     if links:
         pls_el = etree.SubElement(proj_el, "PROJECT_LINKS")
         for link in links:
@@ -94,8 +96,8 @@ def build_project_xml_from_model(project_model: Project) -> str:
                 loc_el = etree.SubElement(url_el, "URL")
                 loc_el.text = link["url"]
 
-    # PROJECT_ATTRIBUTES
-    attrs_list = proj.get("projectAttributes") or []
+    # PROJECT_ATTRIBUTES (field name is now attributes in our model)
+    attrs_list = proj.get("attributes") or []
     if attrs_list:
         pats_el = etree.SubElement(proj_el, "PROJECT_ATTRIBUTES")
         for a in attrs_list:

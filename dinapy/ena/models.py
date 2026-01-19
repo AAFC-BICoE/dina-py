@@ -86,6 +86,12 @@ class SequencingProject(BaseModel):
     locus_tag_prefix: List[str] = Field(default_factory=list, alias="locusTagPrefix")
 
     model_config = ConfigDict(populate_by_name=True)
+    
+    def model_dump(self, **kwargs):
+        """Override to exclude empty lists."""
+        data = super().model_dump(**kwargs)
+        # Remove empty lists
+        return {k: v for k, v in data.items() if not (isinstance(v, list) and len(v) == 0)}
 
 
 class SubmissionProject(BaseModel):
@@ -97,17 +103,28 @@ class SubmissionProject(BaseModel):
 
 
 class Project(BaseModel):
-    """ENA Project."""
+    """
+    ENA Project (JSON API format).
+    
+    JSON API field names:
+      - alias: project alias
+      - name: short name (optional)
+      - title: project title
+      - description: project description (optional)
+      - sequencingProject: sequencing project details (optional, empty object by default)
+      - attributes: list of tag-value pairs (optional)
+      - project_links: links to external resources (optional, snake_case)
+    """
     alias: str
     title: str
     description: Optional[str] = None
     name: Optional[str] = Field(None, description="Short name")
-    submission_project: Optional[SubmissionProject] = Field(
-        default_factory=lambda: SubmissionProject(),
-        alias="submissionProject"
+    sequencing_project: Optional[SequencingProject] = Field(
+        default_factory=lambda: SequencingProject(),
+        alias="sequencingProject"
     )
-    project_links: List[Link] = Field(default_factory=list, alias="projectLinks")
-    project_attributes: List[Attribute] = Field(default_factory=list, alias="projectAttributes")
+    project_links: List[Link] = Field(default_factory=list, alias="project_links")
+    attributes: List[Attribute] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -133,24 +150,25 @@ class Sample(BaseModel):
       - alias -> sample alias
       - title -> sample title
       - organism -> {taxonId, scientificName, commonName}
-      - attributes -> list of {tag, value, unit?} objects for MIxS/checklist (optional)
       - description -> free-form text (optional)
-      - sampleLinks -> links to related resources (optional)
+      - sampleLinks -> links to resources related to this sample (optional)
+      - attributes -> list of {tag, value, unit?} objects for MIxS/checklist (optional)
 
     XML format uses SAMPLE_NAME, SAMPLE_ATTRIBUTES, SAMPLE_LINKS elements.
+    Field order matches XSD sequence: TITLE, SAMPLE_NAME(organism), DESCRIPTION, SAMPLE_LINKS, SAMPLE_ATTRIBUTES
     """
     alias: str
     title: Optional[str] = None
-    organism: Organism
+    organism: Organism  # Maps to SAMPLE_NAME in XML
     description: Optional[str] = None
-    attributes: List[Attribute] = Field(
-        default_factory=list,
-        description="MIxS/checklist attributes (optional)"
-    )
     sample_links: List[Link] = Field(
         default_factory=list,
         alias="sampleLinks",
         description="Links to resources related to this sample"
+    )
+    attributes: List[Attribute] = Field(
+        default_factory=list,
+        description="MIxS/checklist attributes (optional)"
     )
 
     model_config = ConfigDict(populate_by_name=True)

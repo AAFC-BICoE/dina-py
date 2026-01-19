@@ -107,13 +107,33 @@ class ENASubmissionWorkflow:
         """
         submission_alias = submission_alias or f"sub_{project.alias}"
         
+        # Serialize project and clean up empty nested objects
+        project_data = project.model_dump(by_alias=True, exclude_none=True)
+        
+        # Remove empty lists from top level
+        project_data = {k: v for k, v in project_data.items() 
+                       if not (isinstance(v, list) and len(v) == 0)}
+        
+        # Clean up nested sequencingProject if it only has empty lists
+        if 'sequencingProject' in project_data:
+            seq_proj = project_data['sequencingProject']
+            if isinstance(seq_proj, dict):
+                # Remove empty lists from sequencingProject
+                seq_proj_cleaned = {k: v for k, v in seq_proj.items() 
+                                   if not (isinstance(v, list) and len(v) == 0)}
+                if not seq_proj_cleaned:
+                    # If empty after cleaning, keep as empty object (ENA expects this)
+                    project_data['sequencingProject'] = {}
+                else:
+                    project_data['sequencingProject'] = seq_proj_cleaned
+        
         # Use Webin v2 JSON API for projects
         payload = {
             "submission": {
                 "alias": submission_alias,
                 "actions": [{"type": action}]
             },
-            "projects": [project.model_dump(by_alias=True, exclude_none=True)]
+            "projects": [project_data]
         }
         
         logger.info(f"Submitting project '{project.alias}' via JSON API")
@@ -153,6 +173,13 @@ class ENASubmissionWorkflow:
         sample_data = {k: v for k, v in sample_data.items() 
                       if not (isinstance(v, list) and len(v) == 0)}
         
+        # WORKAROUND: ENA JSON API has a bug with 'description' field
+        # It fails XML validation: "Expected element 'SAMPLE_NAME' instead of 'DESCRIPTION'"
+        # Remove description until ENA fixes their JSON-to-XML converter
+        if 'description' in sample_data:
+            logger.warning(f"Removing 'description' field due to ENA API bug - use 'title' instead")
+            del sample_data['description']
+        
         # Use Webin v2 JSON API for samples
         payload = {
             "submission": {
@@ -168,7 +195,6 @@ class ENASubmissionWorkflow:
         if resp.headers.get("content-type", "").startswith("application/json"):
             logger.warning("JSON response received; returning custom receipt")
             return self._parse_json_response(resp, "SAMPLE")
-        
         return self.api.parse_receipt(resp)
     
     def submit_experiment(
@@ -360,7 +386,19 @@ class ENASubmissionWorkflow:
         """
         Parse JSON response from Webin v2 JSON endpoints into ENAReceipt format.
         
-        This is a helper for handling non-XML responses.
+        ENA JSON response format:
+        {
+            "success": true/false,
+            "receiptDate": "2026-01-19T18:27:12.144Z",
+            "submission": {"alias": "..."},
+            "messages": {
+                "info": ["..."],
+                "error": ["..."],
+                "warning": ["..."]
+            },
+            "actions": ["ADD"],
+            "sample": {"accession": "...", "alias": "..."} // or project/experiment
+        }
         """
         from dinapy.ena.receipt import ENAReceipt, ENAObject, ENAMessage
         
@@ -373,16 +411,51 @@ class ENASubmissionWorkflow:
                 messages=[ENAMessage(type="ERROR", text=f"Failed to parse JSON response")]
             )
         
-        # Try to extract accession and status from JSON
-        # Format varies; this is a best-effort attempt
-        success = response.status_code in (200, 201)
-        receipt = ENAReceipt(success=success)
+        # Check the actual success field in JSON (not HTTP status code!)
+        success = data.get("success", False)
+        receipt_date = data.get("receiptDate")
         
-        # Common JSON structure has accession in the response
-        if isinstance(data, dict):
+        receipt = ENAReceipt(
+            success=success,
+            receipt_date=receipt_date
+        )
+        
+        # Parse messages
+        messages = data.get("messages", {})
+        for msg_type in ["info", "error", "warning"]:
+            msg_list = messages.get(msg_type, [])
+            if isinstance(msg_list, list):
+                for msg_text in msg_list:
+                    receipt.messages.append(ENAMessage(
+                        type=msg_type.upper(),
+                        text=msg_text
+                    ))
+        
+        # Parse actions
+        actions = data.get("actions", [])
+        if isinstance(actions, list):
+            receipt.actions.extend(actions)
+        
+        # Try to extract accession from object-specific field
+        # Response may have "sample", "project", "experiment", etc.
+        object_key = object_type.lower()
+        obj_data = data.get(object_key, {})
+        
+        if isinstance(obj_data, dict):
+            accession = obj_data.get("accession")
+            alias = obj_data.get("alias")
+            if accession or alias:
+                receipt.objects.append(ENAObject(
+                    object_type=object_type,
+                    accession=accession,
+                    alias=alias
+                ))
+        
+        # Also check for direct accession/alias fields (varies by endpoint)
+        if not receipt.objects:
             accession = data.get("accession")
             alias = data.get("alias")
-            if accession:
+            if accession or alias:
                 receipt.objects.append(ENAObject(
                     object_type=object_type,
                     accession=accession,

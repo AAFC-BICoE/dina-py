@@ -419,15 +419,23 @@ class TestJSONResponseParsing(unittest.TestCase):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
+            "success": True,  # ENA JSON responses include success field
+            "receiptDate": "2026-01-19T12:00:00.000Z",
             "accession": "SAMEA123456",
-            "alias": "test_sample"
+            "alias": "test_sample",
+            "messages": {
+                "info": ["Submission successful"]
+            }
         }
         
         receipt = self.workflow._parse_json_response(mock_response, "SAMPLE")
         
         self.assertTrue(receipt.success)
+        self.assertEqual(receipt.receipt_date, "2026-01-19T12:00:00.000Z")
         self.assertEqual(len(receipt.objects), 1)
         self.assertEqual(receipt.objects[0].accession, "SAMEA123456")
+        self.assertEqual(len(receipt.messages), 1)
+        self.assertEqual(receipt.messages[0].type, "INFO")
         self.assertEqual(receipt.objects[0].alias, "test_sample")
     
     def test_parse_json_response_failure(self):
