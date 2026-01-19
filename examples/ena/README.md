@@ -2,62 +2,112 @@
 
 This directory contains **notebook-style code examples** for submitting data to the European Nucleotide Archive (ENA). These are simple, self-contained scripts that you can copy into Jupyter notebooks or run directly with Python.
 
+## 🆕 JSON vs XML Submission Methods
+
+ENA supports two submission methods:
+
+**JSON API** (`submit_project`, `submit_sample`)
+- Simpler payload format
+- Has known bugs (e.g., description field validation)
+- Incomplete XSD coverage (no umbrella_project, related_projects)
+
+**XML API** (`submit_experiment`, `submit_run`)
+- Complete XSD coverage
+- No known bugs
+- Well-documented via XSD schemas
+
 ## 📋 What's Included
 
-### submit_project.py
-Simple example showing how to submit a project (study) to ENA.
+### Complete Workflow Test
+
+#### test_ena_submission.py
+End-to-end test that submits both a project and sample to the live ENA test server.
+
+**Prerequisites:** None (creates new test submissions)
+
+**Key concepts:**
+- Complete workflow demonstration
+- XML API usage
+- Receipt parsing and validation
+- Automatic unique alias generation
+
+**Run it:**
+```bash
+python test_ena_submission.py
+```
+
+### JSON API Examples (Legacy/Simple Use Cases)
+
+#### submit_project.py
+Simple example showing how to submit a project via JSON API.
+
+**Prerequisites:** None (creates new project)
 
 **Key concepts:**
 - Creating a `Project` model
 - Using `ENASubmissionWorkflow`
 - Parsing submission receipts
+- JSON API limitations
 
 **Run it:**
 ```bash
 python submit_project.py
 ```
 
-### submit_sample.py
-Example showing how to submit a sample with MIxS-compliant metadata.
+#### submit_sample.py
+Example showing how to submit a sample via JSON API
+
+**Prerequisites:** None (creates new sample)
 
 **Key concepts:**
-- Creating a `Sample` model with `SampleName` and attributes
+- Creating a `Sample` model with `Organism` and attributes
 - Using controlled vocabularies (ENVO ontology)
 - MIxS metadata standards for environmental samples
-- Choosing appropriate taxon IDs for metagenomes
+- JSON API limitations (description field removed automatically)
 
 **Run it:**
 ```bash
 python submit_sample.py
 ```
 
-### submit_experiment.py
-Example showing how to submit an experiment linked to an existing study and sample.
+### XML API Examples
+
+#### submit_experiment.py
+Submit an experiment linked to an existing study and sample.
+
+**Prerequisites:**
+- ⚠️ **Requires project accession** (e.g., PRJEB123456)
+- ⚠️ **Requires sample accession** (e.g., SAMEA123456)
 
 **Key concepts:**
 - Creating an `Experiment` model
 - Linking to existing study/sample by accession
 - Specifying library preparation details
+- Platform and instrument configuration
 
 **Run it:**
 ```bash
+# First, get accessions from submit_project_xml.py and submit_sample_xml.py
 python submit_experiment.py
 ```
 
-### submit_run.py
-Example showing two approaches for submitting sequencing runs:
-1. Upload files and submit run together
-2. Submit run referencing pre-uploaded files
+#### submit_run.py
+Submit sequencing runs with file uploads.
+
+**Prerequisites:**
+- ⚠️ **Requires experiment accession** (e.g., ERX123456)
+- ⚠️ **Requires sequence files** (FASTQ/BAM)
+- ⚠️ **Files must be uploaded to ENA FTP first**
 
 **Key concepts:**
 - Uploading files to ENA FTP with `upload_reads()`
 - Creating `Run` models with file checksums
 - Working with MD5 manifests
-
-**Prerequisites:** Must have an experiment accession (e.g., ERX123456) before submitting runs.
+- Two approaches: upload+submit or reference pre-uploaded files
 
 **Run it:**
 ```bash
+# First, get experiment accession from submit_experiment.py
 python submit_run.py
 ```
 
@@ -79,7 +129,27 @@ WEBIN_PASSWORD=your_password
 WEBIN_TEST=true
 ```
 
-## 🔄 Typical Workflow
+## � Submission Dependency Chain
+
+ENA submissions must follow this order:
+
+```
+1. PROJECT (Study)
+   ↓ (returns project accession)
+2. SAMPLE
+   ↓ (both project and sample accessions needed)
+3. EXPERIMENT ──→ references PROJECT + SAMPLE
+   ↓ (experiment accession needed)
+4. RUN ──→ references EXPERIMENT + uploaded files
+```
+
+**Important:**
+- Projects and samples are **independent** (can submit in any order)
+- Experiments **require** both project AND sample accessions
+- Runs **require** experiment accession and uploaded sequence files
+- Use test server (`test=True`) until ready for production
+
+## �🔄 Typical Workflow
 
 1. **Submit Project** (Study)
    ```python
