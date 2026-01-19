@@ -11,7 +11,7 @@ from dinapy.apis.collectionapi.collectingeventapi import CollectingEventAPI
 from dinapy.apis.collectionapi.collectionapi import CollectionModuleApi
 from dinapy.entities.CollectingEvent import CollectingEventDTOBuilder, CollectingEventAttributesDTOBuilder
 from dinapy.schemas.collectingeventschema import CollectingEventSchema
-from mock_responses import *
+from .mock_responses import *
 
 class TestCollectingEventAPI(unittest.TestCase):
 
