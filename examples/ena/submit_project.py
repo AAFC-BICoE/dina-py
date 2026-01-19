@@ -32,7 +32,7 @@ print("Project to submit:")
 print(f"  Alias: {project.alias}")
 print(f"  Title: {project.title}")
 print(f"  Description: {project.description[:50]}...")
-print(f"  Attributes: {len(project.project_attributes or [])} custom attributes")
+print(f"  Attributes: {len(project.attributes or [])} custom attributes")
 print()
 
 
