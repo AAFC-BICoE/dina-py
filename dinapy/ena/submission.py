@@ -390,76 +390,59 @@ class ENASubmissionWorkflow:
         {
             "success": true/false,
             "receiptDate": "2026-01-19T18:27:12.144Z",
-            "submission": {"alias": "..."},
-            "messages": {
-                "info": ["..."],
-                "error": ["..."],
-                "warning": ["..."]
-            },
+            "submission": {"alias": "...", "accession": "..."},
+            "messages": {"info": [...], "error": [...], "warning": [...]},
             "actions": ["ADD"],
-            "sample": {"accession": "...", "alias": "..."} // or project/experiment
+            "samples": [{"accession": "...", "alias": "...", "status": "..."}],
+            "projects": [{"accession": "...", "alias": "...", "status": "..."}]
         }
+        
+        Note: ENA returns plural arrays (samples, projects) not singular objects.
         """
         from dinapy.ena.receipt import ENAReceipt, ENAObject, ENAMessage
         
         try:
             data = response.json()
         except Exception:
-            # Fallback: treat as failure
             return ENAReceipt(
                 success=False,
-                messages=[ENAMessage(type="ERROR", text=f"Failed to parse JSON response")]
+                messages=[ENAMessage(type="ERROR", text="Failed to parse JSON response")]
             )
         
-        # Check the actual success field in JSON (not HTTP status code!)
-        success = data.get("success", False)
-        receipt_date = data.get("receiptDate")
-        
         receipt = ENAReceipt(
-            success=success,
-            receipt_date=receipt_date
+            success=data.get("success", False),
+            receipt_date=data.get("receiptDate")
         )
         
         # Parse messages
         messages = data.get("messages", {})
         for msg_type in ["info", "error", "warning"]:
-            msg_list = messages.get(msg_type, [])
-            if isinstance(msg_list, list):
-                for msg_text in msg_list:
-                    receipt.messages.append(ENAMessage(
-                        type=msg_type.upper(),
-                        text=msg_text
-                    ))
+            for msg_text in messages.get(msg_type, []):
+                receipt.messages.append(ENAMessage(
+                    type=msg_type.upper(),
+                    text=msg_text
+                ))
         
         # Parse actions
-        actions = data.get("actions", [])
-        if isinstance(actions, list):
-            receipt.actions.extend(actions)
+        receipt.actions.extend(data.get("actions", []))
         
-        # Try to extract accession from object-specific field
-        # Response may have "sample", "project", "experiment", etc.
-        object_key = object_type.lower()
-        obj_data = data.get(object_key, {})
+        # Parse submission object (always present)
+        submission = data.get("submission", {})
+        if submission:
+            receipt.objects.append(ENAObject(
+                object_type="SUBMISSION",
+                accession=submission.get("accession"),
+                alias=submission.get("alias")
+            ))
         
-        if isinstance(obj_data, dict):
-            accession = obj_data.get("accession")
-            alias = obj_data.get("alias")
-            if accession or alias:
-                receipt.objects.append(ENAObject(
-                    object_type=object_type,
-                    accession=accession,
-                    alias=alias
-                ))
-        
-        # Also check for direct accession/alias fields (varies by endpoint)
-        if not receipt.objects:
-            accession = data.get("accession")
-            alias = data.get("alias")
-            if accession or alias:
-                receipt.objects.append(ENAObject(
-                    object_type=object_type,
-                    accession=accession,
-                    alias=alias
-                ))
+        # Parse object-specific array (ENA returns plural: "projects", "samples", etc.)
+        object_key = object_type.lower() + "s"
+        for obj_data in data.get(object_key, []):
+            receipt.objects.append(ENAObject(
+                object_type=object_type,
+                accession=obj_data.get("accession"),
+                alias=obj_data.get("alias"),
+                status=obj_data.get("status")
+            ))
         
         return receipt

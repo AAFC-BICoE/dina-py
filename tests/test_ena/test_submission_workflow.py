@@ -415,28 +415,53 @@ class TestJSONResponseParsing(unittest.TestCase):
         )
     
     def test_parse_json_response_success(self):
-        """Test parsing successful JSON response."""
+        """Test parsing successful JSON response with both samples and projects."""
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "success": True,  # ENA JSON responses include success field
+            "success": True,
             "receiptDate": "2026-01-19T12:00:00.000Z",
-            "accession": "SAMEA123456",
-            "alias": "test_sample",
+            "submission": {"alias": "sub_test_sample", "accession": "ERA123456"},
+            "samples": [{"alias": "test_sample", "accession": "SAMEA123456", "status": "PRIVATE"}],
+            "projects": [{"alias": "test_project", "accession": "PRJEB106844", "status": "PRIVATE"}],
             "messages": {
                 "info": ["Submission successful"]
-            }
+            },
+            "actions": ["ADD"]
         }
         
+        # Test parsing as SAMPLE
         receipt = self.workflow._parse_json_response(mock_response, "SAMPLE")
         
         self.assertTrue(receipt.success)
         self.assertEqual(receipt.receipt_date, "2026-01-19T12:00:00.000Z")
-        self.assertEqual(len(receipt.objects), 1)
-        self.assertEqual(receipt.objects[0].accession, "SAMEA123456")
+        # Should have 2 objects: SUBMISSION and SAMPLE (PROJECT is in response but we asked for SAMPLE)
+        self.assertEqual(len(receipt.objects), 2)
+        # Find the SAMPLE object
+        sample_obj = next((obj for obj in receipt.objects if obj.object_type == "SAMPLE"), None)
+        self.assertIsNotNone(sample_obj)
+        self.assertEqual(sample_obj.accession, "SAMEA123456")
+        self.assertEqual(sample_obj.alias, "test_sample")
+        self.assertEqual(sample_obj.status, "PRIVATE")
+        # Verify submission object
+        submission_obj = next((obj for obj in receipt.objects if obj.object_type == "SUBMISSION"), None)
+        self.assertIsNotNone(submission_obj)
+        self.assertEqual(submission_obj.accession, "ERA123456")
+        # Check messages
         self.assertEqual(len(receipt.messages), 1)
         self.assertEqual(receipt.messages[0].type, "INFO")
-        self.assertEqual(receipt.objects[0].alias, "test_sample")
+        
+        # Test parsing the same response as PROJECT
+        receipt_project = self.workflow._parse_json_response(mock_response, "PROJECT")
+        self.assertTrue(receipt_project.success)
+        # Should have 2 objects: SUBMISSION and PROJECT (SAMPLE is in response but we asked for PROJECT)
+        self.assertEqual(len(receipt_project.objects), 2)
+        # Find the PROJECT object
+        project_obj = next((obj for obj in receipt_project.objects if obj.object_type == "PROJECT"), None)
+        self.assertIsNotNone(project_obj)
+        self.assertEqual(project_obj.accession, "PRJEB106844")
+        self.assertEqual(project_obj.alias, "test_project")
+        self.assertEqual(project_obj.status, "PRIVATE")
     
     def test_parse_json_response_failure(self):
         """Test parsing failed JSON response."""
@@ -452,3 +477,4 @@ class TestJSONResponseParsing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
