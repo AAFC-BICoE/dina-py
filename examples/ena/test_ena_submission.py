@@ -65,10 +65,13 @@ def main():
     
     if project_receipt.success:
         project_accession = project_receipt.get_accession("PROJECT")
+        project_status = project_receipt.get_status("PROJECT")
         print(f"\nProject submitted successfully!")
         if project_accession:
-            print(f"   Accession: {project_accession}")
-            print(f"   View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{project_accession}")
+            print(f"\nProject Accession: {project_accession}")
+            # print link if project is public
+            if project_status == "PUBLIC":      
+                print(f"View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{project_accession}")
     else:
         print(f"\nProject submission failed")
         errors = project_receipt.get_errors()
@@ -122,10 +125,13 @@ def main():
     
     if sample_receipt.success:
         sample_accession = sample_receipt.get_accession("SAMPLE")
+        sample_status = sample_receipt.get_status("SAMPLE")
         print(f"\nSample submitted successfully!")
         if sample_accession:
             print(f"   Accession: {sample_accession}")
-            print(f"   View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{sample_accession}")
+            # print view link is sample is public
+            if sample_status == "PUBLIC":
+                print(f"   View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{sample_accession}")
     else:
         print(f"\nSample submission failed")
         errors = sample_receipt.get_errors()

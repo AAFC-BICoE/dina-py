@@ -95,9 +95,12 @@ print()
 if receipt.success:
     print("SUCCESS")
     sample_accession = receipt.get_accession("SAMPLE")
+    sample_status = receipt.get_status("SAMPLE")
     if sample_accession:
         print(f"\nSample Accession: {sample_accession}")
-        print(f"View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{sample_accession}")
+        # print link if sample is public
+        if sample_status == "PUBLIC":
+            print(f"View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{sample_accession}")
     else:
         print("\nNote: Accession not found in receipt (may be assigned later)")
 else:

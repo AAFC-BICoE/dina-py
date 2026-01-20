@@ -69,9 +69,12 @@ print()
 if receipt.success:
     print("SUCCESS")
     project_accession = receipt.get_accession("PROJECT")
+    project_status = receipt.get_status("PROJECT")
     if project_accession:
         print(f"\nProject Accession: {project_accession}")
-        print(f"View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{project_accession}")
+        # print link if project is public
+        if project_status == "PUBLIC":      
+            print(f"View at: https://wwwdev.ebi.ac.uk/ena/browser/view/{project_accession}")
     else:
         print("\nNote: Accession not found in receipt (may be assigned later)")
 else:
