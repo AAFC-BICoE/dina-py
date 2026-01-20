@@ -324,10 +324,10 @@ class ENASubmissionWorkflow:
     
     def upload_reads(
         self,
-        file_paths: List[Union[str, Path]],
+        file_paths: List[Path],
         remote_dir: str = ".",
         save_manifest: bool = True,
-        manifest_path: str = "manifest.txt",
+        manifest_path: Path = Path("manifest.txt"),
         max_retries: int = 3
     ) -> Dict[str, Any]:
         """
@@ -336,10 +336,10 @@ class ENASubmissionWorkflow:
         This must be done before submitting a RUN that references these files.
         
         Args:
-            file_paths: List of local file paths to upload
+            file_paths: List of Path objects to upload
             remote_dir: Remote directory on ENA FTP (default: home directory)
             save_manifest: Save manifest with MD5 checksums to file
-            manifest_path: Path to save manifest file
+            manifest_path: Path object for saving manifest file
             max_retries: Number of upload retry attempts
             
         Returns:
@@ -353,7 +353,7 @@ class ENASubmissionWorkflow:
             
         Example:
             >>> result = workflow.upload_reads(
-            ...     file_paths=["reads_R1.fastq.gz", "reads_R2.fastq.gz"]
+            ...     file_paths=[Path("reads_R1.fastq.gz"), Path("reads_R2.fastq.gz")]
             ... )
             >>> print(f"Uploaded {result['uploaded']} files")
             >>> for file_info in result['manifest']:
@@ -361,12 +361,9 @@ class ENASubmissionWorkflow:
         """
         uploader = ReadUploader()
         
-        # Convert string paths to Path objects
-        paths = [Path(p) if isinstance(p, str) else p for p in file_paths]
-        
-        logger.info(f"Uploading {len(paths)} read files to ENA FTP")
+        logger.info(f"Uploading {len(file_paths)} read files to ENA FTP")
         result = uploader.prepare_and_upload_reads(
-            file_paths=paths,
+            file_paths=file_paths,
             host="webin2.ebi.ac.uk" if self.test else "webin.ebi.ac.uk",
             username=self.username,
             password=self.password,

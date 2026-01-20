@@ -29,7 +29,7 @@ print("Uploading files to ENA FTP...")
 upload_result = workflow.upload_reads(
     file_paths=file_paths,
     save_manifest=True,        # Saves MD5s to manifest.txt
-    manifest_path="manifest.txt"
+    manifest_path=Path("manifest.txt")
 )
 
 print(f"Uploaded {upload_result['uploaded']} files")

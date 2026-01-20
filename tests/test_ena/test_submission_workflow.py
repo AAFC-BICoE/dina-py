@@ -390,7 +390,7 @@ class TestReadUpload(unittest.TestCase):
         
         # Upload files
         result = self.workflow.upload_reads(
-            file_paths=['file1.fastq.gz', 'file2.fastq.gz']
+            file_paths=[Path('file1.fastq.gz'), Path('file2.fastq.gz')]
         )
         
         # Verify upload was called
