@@ -1,6 +1,7 @@
+from typing import Optional
 from lxml import etree
 
-def build_submission_xml_from_model(submission_alias: str, center_name: str | None = None,
+def build_submission_xml_from_model(submission_alias: str, center_name: Optional[str] = None,
                          action: str = "ADD") -> str:
     """
     Build a minimal SUBMISSION_SET XML for actions like ADD, MODIFY, VALIDATE, etc.

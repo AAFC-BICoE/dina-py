@@ -99,7 +99,6 @@ class ENASubmissionWorkflow:
         Args:
             project: Project Pydantic model
             submission_alias: Unique submission alias (auto-generated if None)
-            center_name: Center name for submission (optional)
             action: Submission action (ADD, MODIFY, VALIDATE, etc.)
             
         Returns:
@@ -159,7 +158,6 @@ class ENASubmissionWorkflow:
         Args:
             sample: Sample Pydantic model
             submission_alias: Unique submission alias (auto-generated if None)
-            center_name: Center name for submission (optional)
             action: Submission action (ADD, MODIFY, VALIDATE, etc.)
             
         Returns:
@@ -209,7 +207,6 @@ class ENASubmissionWorkflow:
         Args:
             experiment: Experiment Pydantic model
             submission_alias: Unique submission alias (auto-generated if None)
-            center_name: Center name for submission (optional)
             action: Submission action (ADD, MODIFY, VALIDATE, etc.)
             
         Returns:

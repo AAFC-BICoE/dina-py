@@ -85,13 +85,7 @@ class SequencingProject(BaseModel):
     """Sequencing project details."""
     locus_tag_prefix: List[str] = Field(default_factory=list, alias="locusTagPrefix")
 
-    model_config = ConfigDict(populate_by_name=True)
-    
-    def model_dump(self, **kwargs):
-        """Override to exclude empty lists."""
-        data = super().model_dump(**kwargs)
-        # Remove empty lists
-        return {k: v for k, v in data.items() if not (isinstance(v, list) and len(v) == 0)}
+    model_config = ConfigDict(populate_by_name=True, exclude_defaults=True)
 
 
 class SubmissionProject(BaseModel):

@@ -58,7 +58,7 @@ class ENAReceipt:
         """Get status for a specific object type (e.g., 'EXPERIMENT', 'RUN')."""
         for obj in self.objects:
             if obj.object_type == object_type and obj.status:
-                return obj.accession
+                return obj.status
         return None
     
     def get_errors(self) -> List[str]:
