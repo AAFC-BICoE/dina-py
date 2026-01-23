@@ -58,8 +58,8 @@ def main():
     print(f"Title: {project.title}")
     print("Submitting...")
     
-    project_receipt = workflow.submit_project(project=project)
-    
+    project_receipt = workflow.submit_project_xml(project=project)
+
     print()
     print(format_receipt_summary(project_receipt))
     
@@ -118,8 +118,8 @@ def main():
     print(f"Attributes: {len(sample.attributes)} metadata fields")
     print("Submitting...")
     
-    sample_receipt = workflow.submit_sample(sample=sample)
-    
+    sample_receipt = workflow.submit_sample_xml(sample=sample)
+        
     print()
     print(format_receipt_summary(sample_receipt))
     
