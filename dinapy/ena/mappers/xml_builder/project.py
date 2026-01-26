@@ -10,9 +10,15 @@ def build_project_xml_from_model(project_model: Project) -> str:
       - Project.title   -> <TITLE>
       - Project.description -> <DESCRIPTION>
       - Project.name    -> <NAME> (if present)
-      - Project.submission_project.organism.* -> <SUBMISSION_PROJECT>/<ORGANISM>...
+      - Project.collaborators -> <COLLABORATORS>/<COLLABORATOR>
+      - Project.umbrella_project.organism.* -> <UMBRELLA_PROJECT>/<ORGANISM>...
+      - Project.sequencing_project.* -> <SUBMISSION_PROJECT>/<SEQUENCING_PROJECT>...
+      - Project.related_projects -> <RELATED_PROJECTS>/<RELATED_PROJECT>
       - Project.project_links -> <PROJECT_LINKS>/<PROJECT_LINK>/<XREF_LINK> or <URL_LINK>
-      - Project.project_attributes -> <PROJECT_ATTRIBUTES>/<PROJECT_ATTRIBUTE>
+      - Project.attributes -> <PROJECT_ATTRIBUTES>/<PROJECT_ATTRIBUTE>
+      
+    Note: UMBRELLA_PROJECT and SUBMISSION_PROJECT are mutually exclusive.
+    If umbrella_project is set, it takes precedence.
     """
     proj = project_model.model_dump(by_alias=True)
 
@@ -40,41 +46,88 @@ def build_project_xml_from_model(project_model: Project) -> str:
         desc_el = etree.SubElement(proj_el, "DESCRIPTION")
         desc_el.text = proj["description"]
 
-    # SUBMISSION_PROJECT (required by XSD - must have either this or UMBRELLA_PROJECT)
-    # Always include SUBMISSION_PROJECT wrapper
-    sub_proj_el = etree.SubElement(proj_el, "SUBMISSION_PROJECT")
-    
-    # SEQUENCING_PROJECT (inside SUBMISSION_PROJECT)
-    seq_proj = proj.get("sequencingProject") or {}
-    if seq_proj and seq_proj.get("locusTagPrefix"):
-        seq_el = etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
-        for prefix in seq_proj["locusTagPrefix"]:
-            lp_el = etree.SubElement(seq_el, "LOCUS_TAG_PREFIX")
-            lp_el.text = prefix
-    else:
-        # Empty SEQUENCING_PROJECT element
-        etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
+    # COLLABORATORS (XML-only)
+    collaborators = proj.get("collaborators") or []
+    if collaborators:
+        collabs_el = etree.SubElement(proj_el, "COLLABORATORS")
+        for collab_name in collaborators:
+            collab_el = etree.SubElement(collabs_el, "COLLABORATOR")
+            collab_el.text = collab_name
 
-    # ORGANISM (optional, inside SUBMISSION_PROJECT)
-    # Note: Our model has sequencingProject directly, not nested in submissionProject
-    # For XML we need to check if organism was in the old structure
-    # For now, leave this section for backward compatibility
-    sub_proj_data = proj.get("submissionProject") or {}
-    org = sub_proj_data.get("organism") or {}
-    if org:
-        org_el = etree.SubElement(sub_proj_el, "ORGANISM")
-        # TAXON_ID
-        if org.get("taxonId") is not None:
-            tax_el = etree.SubElement(org_el, "TAXON_ID")
-            tax_el.text = str(org["taxonId"])
-        # SCIENTIFIC_NAME
-        if org.get("scientificName"):
-            sci_el = etree.SubElement(org_el, "SCIENTIFIC_NAME")
-            sci_el.text = org["scientificName"]
-        # COMMON_NAME
-        if org.get("commonName"):
-            com_el = etree.SubElement(org_el, "COMMON_NAME")
-            com_el.text = org["commonName"]
+    # UMBRELLA_PROJECT or SUBMISSION_PROJECT (mutually exclusive)
+    umbrella = proj.get("umbrellaProject")
+    if umbrella:
+        # UMBRELLA_PROJECT mode - for grouping other projects
+        umb_el = etree.SubElement(proj_el, "UMBRELLA_PROJECT")
+        
+        # ORGANISM (optional in umbrella)
+        org = umbrella.get("organism")
+        if org:
+            org_el = etree.SubElement(umb_el, "ORGANISM")
+            # TAXON_ID
+            if org.get("taxonId") is not None:
+                tax_el = etree.SubElement(org_el, "TAXON_ID")
+                tax_el.text = str(org["taxonId"])
+            # SCIENTIFIC_NAME
+            if org.get("scientificName"):
+                sci_el = etree.SubElement(org_el, "SCIENTIFIC_NAME")
+                sci_el.text = org["scientificName"]
+            # COMMON_NAME
+            if org.get("commonName"):
+                com_el = etree.SubElement(org_el, "COMMON_NAME")
+                com_el.text = org["commonName"]
+            # Optional organism fields
+            for field in ["strain", "breed", "cultivar", "isolate"]:
+                if org.get(field):
+                    field_el = etree.SubElement(org_el, field.upper())
+                    field_el.text = org[field]
+    else:
+        # SUBMISSION_PROJECT mode - standard project
+        sub_proj_el = etree.SubElement(proj_el, "SUBMISSION_PROJECT")
+        
+        # SEQUENCING_PROJECT (inside SUBMISSION_PROJECT)
+        seq_proj = proj.get("sequencingProject") or {}
+        if seq_proj and seq_proj.get("locusTagPrefix"):
+            seq_el = etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
+            for prefix in seq_proj["locusTagPrefix"]:
+                lp_el = etree.SubElement(seq_el, "LOCUS_TAG_PREFIX")
+                lp_el.text = prefix
+        else:
+            # Empty SEQUENCING_PROJECT element
+            etree.SubElement(sub_proj_el, "SEQUENCING_PROJECT")
+
+        # ORGANISM (optional, inside SUBMISSION_PROJECT)
+        # Check if organism is in submissionProject (old structure)
+        sub_proj_data = proj.get("submissionProject") or {}
+        org = sub_proj_data.get("organism")
+        if org:
+            org_el = etree.SubElement(sub_proj_el, "ORGANISM")
+            # TAXON_ID
+            if org.get("taxonId") is not None:
+                tax_el = etree.SubElement(org_el, "TAXON_ID")
+                tax_el.text = str(org["taxonId"])
+            # SCIENTIFIC_NAME
+            if org.get("scientificName"):
+                sci_el = etree.SubElement(org_el, "SCIENTIFIC_NAME")
+                sci_el.text = org["scientificName"]
+            # COMMON_NAME
+            if org.get("commonName"):
+                com_el = etree.SubElement(org_el, "COMMON_NAME")
+                com_el.text = org["commonName"]
+
+    # RELATED_PROJECTS (XML-only)
+    related_projects = proj.get("relatedProjects") or []
+    if related_projects:
+        rel_projs_el = etree.SubElement(proj_el, "RELATED_PROJECTS")
+        for rel_proj in related_projects:
+            rel_proj_el = etree.SubElement(rel_projs_el, "RELATED_PROJECT")
+            
+            # Relationship type element with accession attribute
+            # Structure: <PARENT_PROJECT accession="..."/>
+            rel_type = rel_proj.get("relationshipType")
+            accession = rel_proj.get("accession")
+            if rel_type and accession:
+                etree.SubElement(rel_proj_el, rel_type, accession=accession)
 
     # PROJECT_LINKS (field name is now project_links in our model)
     links = proj.get("project_links") or []

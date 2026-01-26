@@ -195,6 +195,80 @@ class ENASubmissionWorkflow:
             return self._parse_json_response(resp, "SAMPLE")
         return self.api.parse_receipt(resp)
     
+    def submit_project_xml(
+        self,
+        project: Project,
+        submission_alias: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit a project (study) to ENA via Webin v2 XML API.
+        
+        This method uses XML submission which provides complete XSD coverage
+        
+        Args:
+            project: Project Pydantic model
+            submission_alias: Unique submission alias (auto-generated if None)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{project.alias}"
+        
+        # Build XML using xml_builder functions
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            action=action
+        )
+        project_xml = build_project_xml_from_model(project)
+        
+        logger.info(f"Submitting project '{project.alias}' via Webin v2 XML API")
+        resp = self.api.submit_webin_xml(
+            submission_xml=submission_xml,
+            project_xml=project_xml,
+            path="/submit"
+        )
+        
+        return self.api.parse_receipt(resp)
+    
+    def submit_sample_xml(
+        self,
+        sample: Sample,
+        submission_alias: Optional[str] = None,
+        action: str = "ADD"
+    ) -> ENAReceipt:
+        """
+        Submit a sample to ENA via Webin v2 XML API.
+        
+        This method uses XML submission which provides complete XSD coverage
+        
+        Args:
+            sample: Sample Pydantic model
+            submission_alias: Unique submission alias (auto-generated if None)
+            action: Submission action (ADD, MODIFY, VALIDATE, etc.)
+            
+        Returns:
+            Parsed ENAReceipt object
+        """
+        submission_alias = submission_alias or f"sub_{sample.alias}"
+        
+        # Build XML using xml_builder functions
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            action=action
+        )
+        sample_xml = build_sample_xml_from_model(sample)
+        
+        logger.info(f"Submitting sample '{sample.alias}' via Webin v2 XML API")
+        resp = self.api.submit_webin_xml(
+            submission_xml=submission_xml,
+            sample_xml=sample_xml,
+            path="/submit"
+        )
+        
+        return self.api.parse_receipt(resp)
+    
     def submit_experiment(
         self,
         experiment: Experiment,

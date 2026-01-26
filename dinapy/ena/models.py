@@ -96,9 +96,29 @@ class SubmissionProject(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class UmbrellaProject(BaseModel):
+    """Umbrella project for grouping related projects."""
+    organism: Optional[ProjectOrganism] = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class RelatedProject(BaseModel):
+    """Reference to a related project with relationship type."""
+    accession: str = Field(description="ENA project accession (e.g., PRJEB12345)")
+    relationship_type: Literal[
+        "PARENT_PROJECT",
+        "CHILD_PROJECT",
+        "PEER_PROJECT",
+        "RELATED_PROJECT"
+    ] = Field(alias="relationshipType")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class Project(BaseModel):
     """
-    ENA Project (JSON API format).
+    ENA Project (JSON API and XML format).
     
     JSON API field names:
       - alias: project alias
@@ -108,6 +128,11 @@ class Project(BaseModel):
       - sequencingProject: sequencing project details (optional, empty object by default)
       - attributes: list of tag-value pairs (optional)
       - project_links: links to external resources (optional, snake_case)
+    
+    XML-only fields (use submit_project_xml for these):
+      - collaborators: list of collaborator names (XML only)
+      - umbrella_project: umbrella project details (mutually exclusive with sequencing_project)
+      - related_projects: list of related project references (XML only)
     """
     alias: str
     title: str
@@ -119,6 +144,22 @@ class Project(BaseModel):
     )
     project_links: List[Link] = Field(default_factory=list, alias="project_links")
     attributes: List[Attribute] = Field(default_factory=list)
+    
+    # XML-only fields
+    collaborators: List[str] = Field(
+        default_factory=list,
+        description="List of collaborator names (XML submission only)"
+    )
+    umbrella_project: Optional[UmbrellaProject] = Field(
+        None,
+        alias="umbrellaProject",
+        description="Umbrella project details (XML only, mutually exclusive with sequencing_project)"
+    )
+    related_projects: List[RelatedProject] = Field(
+        default_factory=list,
+        alias="relatedProjects",
+        description="Related project references (XML submission only)"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -314,19 +355,3 @@ class Run(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-
-# ============================================================================
-# COMBINED PAYLOADS
-# ============================================================================
-
-class WebinPayload(BaseModel):
-    """Combined submission payload for ENA Webin Portal v2 API."""
-    submission: Submission
-    projects: List[Project] = Field(default_factory=list)
-    samples: List[Sample] = Field(default_factory=list)
-
-    # These are not sent as JSON, but keeping them for internal use
-    experiments: List[Experiment] = Field(default_factory=list)
-    runs: List[Run] = Field(default_factory=list)
-
-    model_config = ConfigDict(populate_by_name=True)
