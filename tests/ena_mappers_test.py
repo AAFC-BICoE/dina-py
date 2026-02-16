@@ -543,7 +543,7 @@ class TestUnmappedAttributes:
         
         mapped_keys = {'name', 'description'}
         
-        unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys, include_managed=False)
+        unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys)
         
         # Should extract customField and anotherField, but not noneField or undefinedField
         tags = {attr.tag for attr in unmapped}
@@ -569,7 +569,7 @@ class TestUnmappedAttributes:
         
         mapped_keys = {'name'}
         
-        unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys, include_managed=True)
+        unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys)
         
         tags = {attr.tag for attr in unmapped}
         assert 'managed_customKey' in tags
@@ -696,7 +696,7 @@ class TestUnmappedAttributes:
             'nestedList': ['item1', 'item2']
         }
         
-        unmapped = extract_unmapped_attributes(attrs_dict, set(), include_managed=False)
+        unmapped = extract_unmapped_attributes(attrs_dict, set())
         
         tags = {attr.tag for attr in unmapped}
         
