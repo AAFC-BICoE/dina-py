@@ -252,6 +252,75 @@ def resolve_taxon_id_from_scientific_name(
         return None
 
 
+def resolve_country_from_coordinates(
+    latitude: float,
+    longitude: float,
+    cache: Optional[dict] = None
+) -> Optional[str]:
+    """
+    Reverse geocode coordinates to get country name using Nominatim (OpenStreetMap).
+    
+    Args:
+        latitude: Decimal latitude
+        longitude: Decimal longitude
+        cache: Optional dict to cache results (key: "lat,lon" -> country)
+    
+    Returns:
+        Country name string matching ENA's controlled vocabulary, or None if lookup fails
+    
+    Example:
+        >>> resolve_country_from_coordinates(45.38, -75.71)
+        'Canada'
+    
+    Note:
+        - Uses Nominatim API (free, no API key required)
+        - Results are cached to minimize API calls
+        - Rate limited to be respectful to the service
+        - Returns None on network errors or lookup failures
+    """
+    # Check cache first
+    cache_key = f"{latitude},{longitude}"
+    if cache is not None and cache_key in cache:
+        return cache[cache_key]
+    
+    try:
+        # Nominatim reverse geocoding API
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            'lat': latitude,
+            'lon': longitude,
+            'format': 'json',
+            'zoom': 3,  # Country level
+            'addressdetails': 1
+        }
+        headers = {
+            'User-Agent': 'DINA-ENA-Mapper/1.0'  # Required by Nominatim usage policy
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract country from address
+        country = data.get('address', {}).get('country')
+        
+        if country:
+            # Cache the result
+            if cache is not None:
+                cache[cache_key] = country
+            
+            # Be respectful to Nominatim - rate limit to 1 request per second
+            time.sleep(1.0)
+            
+            return country
+        
+        return None
+    
+    except (requests.RequestException, ValueError, KeyError) as e:
+        print(f"Warning: Failed to resolve country for coordinates ({latitude}, {longitude}): {e}")
+        return None
+
+
 def extract_scientific_name_from_material_sample(
     material_sample: MaterialSampleDTO,
     organism_data: Optional[dict] = None
@@ -347,6 +416,32 @@ def is_valid_attribute_value(value) -> bool:
     return str_val not in ('', 'none', 'undefined')
 
 
+def flatten_dict(d: dict, parent_key: str = '', sep: str = '.') -> dict:
+    """
+    Flatten a nested dictionary using dot notation.
+    
+    Args:
+        d: Dictionary to flatten
+        parent_key: Parent key prefix
+        sep: Separator between keys (default: '.')
+    
+    Returns:
+        Flattened dictionary with dot-notation keys
+    
+    Example:
+        >>> flatten_dict({'a': {'b': 1, 'c': 2}})
+        {'a.b': 1, 'a.c': 2}
+    """
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
 def extract_unmapped_attributes(
     attributes_obj,
     exclude_keys: set,
@@ -357,7 +452,7 @@ def extract_unmapped_attributes(
     Always extracts:
         - managedAttributes (prefixed with 'managed_')
         - preparationManagedAttributes (prefixed with 'prep_')
-        - extensionValues (prefixed with 'ext_')
+        - extensionValues (flattened with dot notation, prefixed with 'ext_')
     
     Args:
         attributes_obj: The attributes object from a DINA DTO (e.g., material_sample.attributes)
@@ -365,6 +460,18 @@ def extract_unmapped_attributes(
     
     Returns:
         List of ENA Attribute objects for unmapped fields
+    
+    Example:
+        extensionValues = {
+            "mixs_soil_v4": {
+                "store_cond": "6months/-80oC",
+                "env_package": "Soil"
+            }
+        }
+        
+        Produces:
+        - Attribute(tag="ext_mixs_soil_v4.store_cond", value="6months/-80oC")
+        - Attribute(tag="ext_mixs_soil_v4.env_package", value="Soil")
     """
     if attributes_obj is None:
         return []
@@ -398,14 +505,22 @@ def extract_unmapped_attributes(
     # Always process managedAttributes, preparationManagedAttributes, and extensionValues
     for managed_field, prefix in [
         ('managedAttributes', 'managed_'),
-        ('preparationManagedAttributes', 'prep_'),
-        ('extensionValues', 'ext_')
+        ('preparationManagedAttributes', 'prep_')
     ]:
         managed = safe_get_attr(attributes_obj, managed_field, {})
         if isinstance(managed, dict):
             for key, value in managed.items():
                 if key not in exclude_keys and is_valid_attribute_value(value):
                     attributes.append(Attribute(tag=f"{prefix}{key}", value=str(value)))
+    
+    # Process extensionValues with flattening
+    extension_values = safe_get_attr(attributes_obj, 'extensionValues', {})
+    if isinstance(extension_values, dict):
+        # Flatten the nested structure
+        flattened = flatten_dict(extension_values)
+        for key, value in flattened.items():
+            if key not in exclude_keys and is_valid_attribute_value(value):
+                attributes.append(Attribute(tag=f"ext_{key}", value=str(value)))
     
     return attributes
 
@@ -487,8 +602,8 @@ def material_sample_to_ena(
         - Sample.alias <- material_sample.id
         - Sample.title <- material_sample.attributes.materialSampleName
         - Sample.organism.taxon_id <- taxon_id parameter OR auto-resolved from scientific name
-        - Sample.geographic_location <- collecting_event.attributes.dwcCountry (or override)
-        - Sample.collection_date <- collecting_event.attributes.endEventDateTime
+        - Sample.geographic_location <- collecting_event (dwcCountry > reverse geocode from coords > "not provided")
+        - Sample.collection_date <- collecting_event (endEventDateTime > startEventDateTime)
         - Unmapped attributes <- generic Attribute objects (if include_unmapped=True)
     
     Args:
@@ -499,7 +614,7 @@ def material_sample_to_ena(
         geographic_location: Optional geographic location override
         organism_data: Optional organism data from DINA (contains scientific name)
         email: Email for NCBI API requests (recommended)
-        taxon_cache: Optional dict to cache taxon ID lookups
+        taxon_cache: Optional dict to cache taxon ID AND coordinate lookups (keys: scientific_name, 'geo_cache')
         include_unmapped: If True, include unmapped DINA attributes as generic ENA attributes
     
     Returns:
@@ -510,6 +625,11 @@ def material_sample_to_ena(
         1. Extract scientific name from organism_data or material_sample
         2. Query NCBI Taxonomy database to resolve taxon ID
         3. Fall back to environmental sample taxon ID (1284369) if resolution fails
+        
+        Collection date and geographic location are MANDATORY for ENA. The mapper will:
+        - Collection date: Use endEventDateTime > startEventDateTime from collecting event
+        - Geographic location: Use dwcCountry > reverse geocode from coordinates > "not provided"
+        - Reverse geocoding uses Nominatim (OpenStreetMap) API - free, no API key required
     """
     alias = material_sample.id or ""
     attrs = material_sample.attributes
@@ -529,19 +649,56 @@ def material_sample_to_ena(
     if checklist:
         attributes.append(Attribute(tag="ENA-CHECKLIST", value=checklist))
     
-    # Collection date and geographic location from collecting event
+    # Collection date and geographic location from collecting event (MANDATORY for ENA)
     if collecting_event:
         ce_attrs = collecting_event.attributes
-        collection_date = safe_get_attr(ce_attrs, 'endEventDateTime')
+        
+        # Collection date: try endEventDateTime first, fall back to startEventDateTime
+        collection_date = safe_get_attr(ce_attrs, 'endEventDateTime') or safe_get_attr(ce_attrs, 'startEventDateTime')
         if collection_date and collection_date != 'undefined':
             attributes.append(Attribute(tag="collection date", value=str(collection_date)))
         
+        # Geographic location: try dwcCountry, fall back to reverse geocoding from coordinates
         if not geographic_location:
             country = safe_get_attr(ce_attrs, 'dwcCountry')
             state = safe_get_attr(ce_attrs, 'dwcStateProvince')
+            
             if country:
                 geographic_location = country if not state else f"{country}: {state}"
+            else:
+                # Try to derive country from coordinates using reverse geocoding
+                lat = safe_get_attr(ce_attrs, 'dwcVerbatimLatitude')
+                lon = safe_get_attr(ce_attrs, 'dwcVerbatimLongitude')
+                
+                # Also check geoReferenceAssertions if direct fields are empty
+                if not lat or not lon:
+                    geo_refs = safe_get_attr(ce_attrs, 'geoReferenceAssertions', [])
+                    if geo_refs and len(geo_refs) > 0:
+                        # Get the primary assertion or first one
+                        primary = next((g for g in geo_refs if g.get('isPrimary')), geo_refs[0])
+                        lat = primary.get('dwcDecimalLatitude')
+                        lon = primary.get('dwcDecimalLongitude')
+                
+                if lat and lon:
+                    try:
+                        lat_float = float(lat)
+                        lon_float = float(lon)
+                        # Initialize cache if not provided
+                        if taxon_cache is not None and 'geo_cache' not in taxon_cache:
+                            taxon_cache['geo_cache'] = {}
+                        geo_cache = taxon_cache.get('geo_cache', {}) if taxon_cache else None
+                        
+                        country = resolve_country_from_coordinates(lat_float, lon_float, cache=geo_cache)
+                        if country:
+                            geographic_location = country if not state else f"{country}: {state}"
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Fall back to "not provided" if still no location
+                if not geographic_location:
+                    geographic_location = "not provided"
     
+    # Ensure geographic location is always present (MANDATORY for ENA)
     if geographic_location:
         attributes.append(Attribute(tag="geographic location (country and/or sea)", value=geographic_location))
     
@@ -559,7 +716,8 @@ def material_sample_to_ena(
         
         # Add unmapped collecting event attributes with prefix
         if collecting_event:
-            ce_mapped = {'endEventDateTime', 'dwcCountry', 'dwcStateProvince'}
+            ce_mapped = {'endEventDateTime', 'startEventDateTime', 'dwcCountry', 'dwcStateProvince',
+                        'dwcVerbatimLatitude', 'dwcVerbatimLongitude', 'geoReferenceAssertions'}
             ce_unmapped = extract_unmapped_attributes(collecting_event.attributes, ce_mapped)
             for attr in ce_unmapped:
                 attr.tag = f"ce_{attr.tag}"

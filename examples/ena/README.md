@@ -1,73 +1,134 @@
 # ENA Submission Examples
 
-This directory contains **notebook-style code examples** for submitting data to the European Nucleotide Archive (ENA). These are simple, self-contained scripts that you can copy into Jupyter notebooks or run directly with Python.
+This directory contains **practical code examples** for submitting DINA data to the European Nucleotide Archive (ENA). Examples range from simple single-entity submissions to complete end-to-end workflows.
 
-## 🆕 JSON vs XML Submission Methods
+## Start Here
 
-ENA supports two submission methods:
+**New to ENA submissions?** Start with:
+1. [`complete_workflow_example.py`](#complete_workflow_examplepy) - Full DINA→ENA workflow with all steps
+2. [`test_ena_submission.py`](#test_ena_submissionpy) - Simple test submission to verify setup
 
-**JSON API** (`submit_project`, `submit_sample`)
-- Simpler payload format
-- Has known bugs (e.g., description field validation)
-- Incomplete XSD coverage (no umbrella_project, related_projects)
+## Key Features
+
+**ActionType Enum** - Type-safe submission actions:
+```python
+from dinapy.ena.models import ActionType
+workflow.submit_project(project, action=ActionType.ADD)  # or MODIFY, VALIDATE, etc.
+```
+
+**Auto-Resolution**:
+- Taxon IDs automatically resolved from scientific names via NCBI API
+- Geographic locations derived from coordinates using reverse geocoding (Nominatim)
+- Unique aliases generated with timestamps to avoid conflicts
+
+**Unmapped Attributes** - DINA fields without ENA equivalents are automatically preserved as generic attributes
+
+## XML Submissions
+
+ENA also supports JSON payloads for limited resources, so XML will be enforced for now
 
 **XML API** (`submit_experiment`, `submit_run`)
-- Complete XSD coverage
-- No known bugs
-- Well-documented via XSD schemas
+- Complete XSD coverage with all features
+- Required for experiments and runs
+- Supports all ENA action types (ADD, MODIFY, VALIDATE, etc.)
 
-## 📋 What's Included
+## What's Included
 
-### Complete Workflow Test
+### Complete Workflows
+
+#### complete_workflow_example.py
+**RECOMMENDED STARTING POINT** - Full DINA→ENA submission workflow.
+
+**Prerequisites:** None (uses embedded test data)
+
+**Demonstrates:**
+- Fetching data from DINA API (or using embedded test data)
+- Deserializing DINA JSON responses into DTOs using schemas
+- Mapping DINA entities to ENA models with auto-resolution
+- Submitting to ENA in correct dependency order
+- Handling accessions and linking entities
+- Uploading sequence files to ENA FTP
+- Complete error handling and receipt parsing
+- Unique alias generation with timestamps
+
+**What it submits:**
+1. Project (study)
+2. Sample (with auto-resolved taxon, reverse-geocoded location)
+3. Experiment (with user-provided sequencing parameters)
+4. Run (with file upload to ENA FTP)
+
+**Run it:**
+```bash
+python complete_workflow_example.py
+```
 
 #### test_ena_submission.py
-End-to-end test that submits both a project and sample to the live ENA test server.
+Simple test for verifying ENA credentials and connectivity.
 
-**Prerequisites:** None (creates new test submissions)
+**Prerequisites:** None (creates minimal test submissions)
 
 **Key concepts:**
-- Complete workflow demonstration
+- Basic workflow validation
 - XML API usage
-- Receipt parsing and validation
-- Automatic unique alias generation
+- Receipt parsing
+- Error handling
 
 **Run it:**
 ```bash
 python test_ena_submission.py
 ```
 
-### JSON API Examples (Legacy/Simple Use Cases)
+#### release_held_data.py
+Demonstrates correct usage of ENA submission action types (ADD, RELEASE, MODIFY, etc.).
 
-#### submit_project.py
-Simple example showing how to submit a project via JSON API.
-
-**Prerequisites:** None (creates new project)
+**Prerequisites:** None (demonstrates concepts and best practices)
 
 **Key concepts:**
-- Creating a `Project` model
-- Using `ENASubmissionWorkflow`
-- Parsing submission receipts
-- JSON API limitations
+- Understanding ActionType enum (ADD, MODIFY, VALIDATE, HOLD, RELEASE, CANCEL)
+- Why RELEASE doesn't work for initial submissions
+- Correct workflow for releasing held data
+- Common mistakes and how to avoid them
+
+**Important - ENA Release Behavior:** 
+- **ADD** (default): Data gets **2-year default hold period** (not public immediately)
+- **ADD + hold_until_date**: Custom embargo period (private until specified date)
+- **RELEASE**: Makes held data public immediately (before scheduled release date)
+
+**To release data immediately**, you have two options:
+1. Set `hold_until_date=date.today().isoformat()` when submitting with ADD
+2. Submit with ADD, then use RELEASE action with the accession
 
 **Run it:**
 ```bash
-python submit_project.py
+python release_held_data.py
 ```
 
-#### submit_sample.py
-Example showing how to submit a sample via JSON API
+### File Upload Example
 
-**Prerequisites:** None (creates new sample)
+#### upload_files_to_ftp.py
+Upload sequencing files to ENA FTP before submitting a RUN.
+
+**Prerequisites:** None (just ENA Webin credentials)
+
+**Demonstrates:**
+- Uploading files to ENA FTP with automatic MD5 calculation
+- Progress bars for large file uploads
+- Resume support for interrupted uploads
+- Retry logic with exponential backoff
+- Manifest file generation (MD5 checksums)
+- Directory upload with pattern matching
+- Dry run mode (compute checksums without uploading)
 
 **Key concepts:**
-- Creating a `Sample` model with `Organism` and attributes
-- Using controlled vocabularies (ENVO ontology)
-- MIxS metadata standards for environmental samples
-- JSON API limitations (description field removed automatically)
+- Files must be uploaded to FTP **before** submitting a RUN
+- Automatic MD5 checksum calculation and verification
+- Manifest files preserve checksums for RUN submission
+- Resume support handles network interruptions
+- Test vs. production FTP servers
 
 **Run it:**
 ```bash
-python submit_sample.py
+python upload_files_to_ftp.py
 ```
 
 ### XML API Examples
@@ -113,21 +174,25 @@ python submit_run.py
 
 ## 🔧 Setup
 
-All examples require ENA Webin credentials. Set them as environment variables:
+All examples require ENA Webin credentials. Create a `.env` file in your working directory:
 
-```bash
-export WEBIN_USERNAME="Webin-12345"
-export WEBIN_PASSWORD="your_password"
-export WEBIN_TEST="true"  # Use test server (default)
-```
-
-Or create a `.env` file in your working directory:
-
-```
+```env
 WEBIN_USERNAME=Webin-12345
 WEBIN_PASSWORD=your_password
 WEBIN_TEST=true
 ```
+
+Or set environment variables:
+```bash
+export WEBIN_USERNAME="Webin-12345"
+export WEBIN_PASSWORD="your_password"
+export WEBIN_TEST="true"  # Use test server (recommended for development)
+```
+
+**Get Webin credentials:**
+1. Register at [ENA Webin Portal](https://www.ebi.ac.uk/ena/submit/webin/)
+2. Use test submissions until ready for production
+3. Test server data is deleted within 24 hours
 
 ## � Submission Dependency Chain
 
@@ -140,16 +205,19 @@ ENA submissions must follow this order:
    ↓ (both project and sample accessions needed)
 3. EXPERIMENT ──→ references PROJECT + SAMPLE
    ↓ (experiment accession needed)
-4. RUN ──→ references EXPERIMENT + uploaded files
+4. UPLOAD FILES to ENA FTP ──→ get MD5 checksums
+   ↓ (files must be on FTP server)
+5. RUN ──→ references EXPERIMENT + uploaded files
 ```
 
 **Important:**
 - Projects and samples are **independent** (can submit in any order)
 - Experiments **require** both project AND sample accessions
-- Runs **require** experiment accession and uploaded sequence files
+- **Files must be uploaded to FTP BEFORE submitting RUN** (see `upload_files_to_ftp.py`)
+- Runs **require** experiment accession and uploaded sequence files with MD5 checksums
 - Use test server (`test=True`) until ready for production
 
-## �🔄 Typical Workflow
+## Typical Workflow
 
 1. **Submit Project** (Study)
    ```python
@@ -159,24 +227,33 @@ ENA submissions must follow this order:
    # → Returns project accession (e.g., PRJEB123456)
    ```
 
-2. **Submit Sample**
+2. **Submit Sample** (with auto-resolution and mapping from DINA)
    ```python
-   # Similar pattern to project submission
-   from dinapy.ena.models import Sample, SampleName, Attribute
+   from dinapy.ena.mappers.dina_to_ena.mappers_dto import material_sample_to_ena
    
-   sample = Sample(
-       alias="sample_001",
-       title="Soil sample from site A",
-       sample_name=SampleName(taxonId=410658, scientificName="soil metagenome"),
-       sampleAttributes=[
-           Attribute(tag="geographic location (country)", value="USA"),
-           Attribute(tag="collection date", value="2023-01-15"),
-           # ... more MIxS attributes
-       ]
+   # Map DINA MaterialSample + CollectingEvent to ENA Sample
+   # Auto-resolves taxon ID from scientific name
+   # Auto-derives geographic location from coordinates if needed
+   ena_sample = material_sample_to_ena(
+       material_sample=material_sample_dto,  # From DINA API
+       collecting_event=collecting_event_dto,  # From DINA API
+       email="researcher@example.com",  # For NCBI taxon lookup
+       include_unmapped=True  # Preserves DINA fields as generic attributes
    )
-   receipt = workflow.submit_sample(sample)
-   # → Returns sample accession (e.g., SAMEA123456)
+   
+   # Add unique timestamp to alias to avoid conflicts
+   timestamp = str(int(time.time()))
+   ena_sample.alias = f"{ena_sample.alias}_{timestamp}"
+   
+   receipt = workflow.submit_sample(ena_sample)
+   sample_accession = receipt.get_accession('SAMPLE')  # e.g., SAMEA123456
    ```
+   
+   **Auto-resolution features:**
+   - Taxon ID: Automatically queries NCBI Taxonomy API using scientific name from DINA
+   - Geographic location: Uses dwcCountry, or reverse-geocodes from coordinates, or falls back to "not provided"
+   - Collection date: Extracted from collecting event (endEventDateTime > startEventDateTime)
+   - Unmapped attributes: All DINA-specific fields preserved as generic ENA attributes
 
 3. **Submit Experiment**
    ```python
@@ -190,11 +267,34 @@ ENA submissions must follow this order:
    # → Returns experiment accession (e.g., ERX123456)
    ```
 
-4. **Upload Reads & Submit Run** (requires experiment accession from step 3)
+4. **Upload Files to ENA FTP** (before submitting RUN)
    ```python
-   # See submit_run.py for full example with upload
-   upload_result = workflow.upload_reads(file_paths=[...])
-   run = Run(experiment_ref={"accession": "ERX123456"}, ...)  # Use accession from step 3
+   # See upload_files_to_ftp.py for detailed example
+   from dinapy.ena.upload import ReadUploader
+   
+   uploader = ReadUploader()
+   result = uploader.prepare_and_upload_reads(
+       file_paths=[Path("reads_R1.fastq.gz"), Path("reads_R2.fastq.gz")],
+       host="webin2.ebi.ac.uk",  # Test server
+       username=username,
+       password=password,
+       save_manifest=True,
+       manifest_path=Path("manifest.txt")
+   )
+   # → Returns manifest with MD5 checksums for each file
+   ```
+
+5. **Submit Run** (requires experiment accession and uploaded files)
+   ```python
+   # See submit_run.py for full example
+   # Use MD5 checksums from upload manifest
+   run = Run(
+       experiment_ref={"accession": "ERX123456"},
+       files=[
+           File(filename="reads_R1.fastq.gz", filetype="fastq", 
+                checksumMethod="MD5", checksum=file_info['md5'])
+       ]
+   )
    receipt = workflow.submit_run(run)
    # → Returns run accession (e.g., ERR123456)
    ```
@@ -208,9 +308,37 @@ For **production** submissions:
 workflow = ENASubmissionWorkflow(test=False)  # or test=False
 ```
 
-⚠️ **Warning**: Production submissions are permanent and will be made public after the embargo period!
+⚠️ **Warning**: Production submissions have **2-year default hold period**. Data is NOT public immediately!
 
-⚠️ **Warning**: Production submissions are permanent and will be made public after the embargo period!
+**Release Data Immediately** (make public now):
+```python
+# Option 1: Set hold date to today
+from datetime import date
+workflow.submit_project_xml(
+    project, 
+    action="ADD",
+    hold_until_date=date.today().isoformat()  # Public immediately
+)
+
+# Option 2: Submit then RELEASE
+workflow.submit_project_xml(project, action="ADD")  # Gets 2-year hold
+# Then immediately release:
+release_xml = build_submission_xml_from_model(
+    submission_alias="release_now",
+    action=[{"type": "RELEASE", "target": "PRJEB123456"}]  # Your accession
+)
+workflow.api.submit_webin_xml(release_xml, path="/submit")
+```
+
+**Custom Embargo Period**:
+```python
+# Hold until specific future date
+workflow.submit_project_xml(
+    project, 
+    action="ADD",
+    hold_until_date="2026-12-31"  # Private until this date
+)
+```
 
 ## Error Handling
 

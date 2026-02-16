@@ -707,6 +707,48 @@ class TestUnmappedAttributes:
         # Complex nested objects should be excluded
         assert 'nestedDict' not in tags
         assert 'nestedList' not in tags
+    
+    def test_extension_values_flattening(self):
+        """Test that extensionValues are flattened with dot notation."""
+        attrs_dict = {
+            'simpleAttr': 'value1',
+            'extensionValues': {
+                'mixs_soil_v4': {
+                    'store_cond': '6months/-80oC',
+                    'env_package': 'Soil'
+                },
+                'mixs_soil_v5': {
+                    'dna_storage_conditons': 'freezer',
+                    'sample_collection_device': 'shovel'
+                }
+            }
+        }
+        
+        unmapped = extract_unmapped_attributes(attrs_dict, set())
+        
+        # Create a dict of tag -> value for easier testing
+        attr_dict = {attr.tag: attr.value for attr in unmapped}
+        
+        # Simple attribute should be present
+        assert 'simpleAttr' in attr_dict
+        assert attr_dict['simpleAttr'] == 'value1'
+        
+        # extensionValues should be flattened with dot notation and prefixed with 'ext_'
+        assert 'ext_mixs_soil_v4.store_cond' in attr_dict
+        assert attr_dict['ext_mixs_soil_v4.store_cond'] == '6months/-80oC'
+        
+        assert 'ext_mixs_soil_v4.env_package' in attr_dict
+        assert attr_dict['ext_mixs_soil_v4.env_package'] == 'Soil'
+        
+        assert 'ext_mixs_soil_v5.dna_storage_conditons' in attr_dict
+        assert attr_dict['ext_mixs_soil_v5.dna_storage_conditons'] == 'freezer'
+        
+        assert 'ext_mixs_soil_v5.sample_collection_device' in attr_dict
+        assert attr_dict['ext_mixs_soil_v5.sample_collection_device'] == 'shovel'
+        
+        # The original nested structure keys should NOT be present
+        assert 'ext_mixs_soil_v4' not in attr_dict
+        assert 'ext_mixs_soil_v5' not in attr_dict
 
 
 # =============================================================================
