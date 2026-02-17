@@ -23,10 +23,10 @@ from dinapy.ena.models import (
 )
 from dinapy.ena.mappers.xml_builder.submission import build_submission_xml_from_model
 from dinapy.ena.mappers.xml_builder.project import build_project_xml_from_model
-from dinapy.ena.mappers.xml_builder.sample import build_sample_xml_from_model
+from dinapy.ena.mappers.xml_builder.sample import build_sample_xml_from_model, build_samples_xml_from_models
 from dinapy.ena.mappers.xml_builder.experiment import build_experiment_xml_from_model
 from dinapy.ena.mappers.xml_builder.run import build_run_xml_from_model
-from dinapy.ena.receipt import ENAReceipt
+from dinapy.ena.receipt import ENAReceipt, ENAObject, ENAMessage
 from dinapy.ena.upload import ReadUploader
 
 logger = logging.getLogger(__name__)
@@ -325,6 +325,89 @@ class ENASubmissionWorkflow:
         
         return self.api.parse_receipt(resp)
     
+    def submit_samples_xml(
+        self,
+        samples: List[Sample],
+        submission_alias: Optional[str] = None,
+        action: Union[ActionType, str] = ActionType.ADD,
+        hold_until_date: Optional[str] = None
+    ) -> ENAReceipt:
+        """
+        Submit multiple samples to ENA in a single batch via Webin v2 XML API.
+        
+        This is more efficient than submitting samples individually when you have
+        many samples from the same study. All samples are submitted in one SAMPLE_SET.
+        
+        Args:
+            samples: List of Sample Pydantic models
+            submission_alias: Unique submission alias (auto-generated if None)
+            action: Submission action (default: ADD for new submissions)
+                - ADD: Submit new objects (use for initial submission)
+                - MODIFY: Update existing objects (requires accessions)
+                - VALIDATE: Validate XML without submitting
+                - HOLD: Set hold date for data release
+                - RELEASE: Release held data (requires existing accessions)
+                - CANCEL: Cancel previous submission
+                
+                WARNING: For initial submissions, always use ADD (default).
+            hold_until_date: Optional hold date (ISO format YYYY-MM-DD). If provided with ADD action,
+                automatically creates ADD + HOLD action list.
+            
+        Returns:
+            Parsed ENAReceipt object with accessions for all submitted samples
+            
+        Example:
+            >>> samples = [sample1, sample2, sample3]
+            >>> receipt = workflow.submit_samples_xml(samples, action=ActionType.ADD)
+            >>> for sample in samples:
+            ...     accession = receipt.get_accession('SAMPLE', sample.alias)
+        """
+        from dinapy.ena.mappers.xml_builder.sample import build_samples_xml_from_models
+        
+        if not samples:
+            raise ValueError("samples list cannot be empty")
+        
+        submission_alias = submission_alias or f"sub_batch_{len(samples)}_samples"
+        
+        # Convert ActionType enum to string if needed
+        action_str = action.value if isinstance(action, ActionType) else action
+
+        # Warn about common mistakes
+        if action_str in ['RELEASE', 'MODIFY', 'HOLD']:
+            logger.warning(
+                f"Action '{action_str}' typically requires existing accessions. "
+                f"For NEW submissions, use action=ActionType.ADD (default)."
+            )
+        
+        # Build actions list
+        if hold_until_date and action_str.upper() == "ADD":
+            # ADD with HOLD date
+            actions = [
+                {"type": "ADD"},
+                {"type": "HOLD", "HoldUntilDate": hold_until_date}
+            ]
+        else:
+            actions = action_str
+            
+        # Build XML using xml_builder functions
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            action=actions,
+            hold_until_date=hold_until_date if action_str.upper() == "HOLD" else None
+        )
+        
+        sample_xml = build_samples_xml_from_models(samples)
+        
+        sample_aliases = [s.alias for s in samples]
+        logger.info(f"Submitting {len(samples)} samples in batch via Webin v2 XML API: {sample_aliases}")
+        resp = self.api.submit_webin_xml(
+            submission_xml=submission_xml,
+            sample_xml=sample_xml,
+            path="/submit"
+        )
+        
+        return self.api.parse_receipt(resp)
+
     def submit_sample_xml(
         self,
         sample: Sample,
@@ -666,9 +749,7 @@ class ENASubmissionWorkflow:
         }
         
         Note: ENA returns plural arrays (samples, projects) not singular objects.
-        """
-        from dinapy.ena.receipt import ENAReceipt, ENAObject, ENAMessage
-        
+        """        
         try:
             data = response.json()
         except Exception:

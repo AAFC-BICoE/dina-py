@@ -27,9 +27,9 @@ workflow.submit_project(project, action=ActionType.ADD)  # or MODIFY, VALIDATE, 
 
 ENA also supports JSON payloads for limited resources, so XML will be enforced for now
 
-**XML API** (`submit_experiment`, `submit_run`)
+**XML API** (`submit_sample_xml`, `submit_samples_xml`, `submit_experiment`, `submit_run`)
 - Complete XSD coverage with all features
-- Required for experiments and runs
+- Required for samples, experiments, and runs
 - Supports all ENA action types (ADD, MODIFY, VALIDATE, etc.)
 
 ## What's Included
@@ -132,6 +132,46 @@ python upload_files_to_ftp.py
 ```
 
 ### XML API Examples
+
+#### submit_sample_xml.py
+Submit a single sample to ENA using XML API.
+
+**Prerequisites:** None (standalone submission)
+
+**Key concepts:**
+- Creating a `Sample` model with organism and attributes
+- MIxS metadata compliance (investigation type, collection date, geographic location, etc.)
+- XML submission for complete XSD coverage
+- Using ActionType enum (ADD, MODIFY, VALIDATE, etc.)
+
+**Run it:**
+```bash
+python submit_sample_xml.py
+```
+
+#### submit_samples_xml.py
+**BATCH SUBMISSION** - Submit multiple samples in a single request.
+
+**Prerequisites:** None (standalone submission)
+
+**Key concepts:**
+- Submitting multiple samples in ONE SAMPLE_SET XML document
+- More efficient than individual submissions for studies with many samples
+- Single API call reduces overhead and improves reliability
+- Unique submission aliases to avoid conflicts
+- Using `submission_alias` with timestamp for uniqueness
+
+**Run it:**
+```bash
+python submit_samples_xml.py
+```
+
+**Benefits of batch submission:**
+- All samples submitted in one transaction
+- Single SAMPLE_SET with multiple SAMPLE elements
+- Better performance for large datasets
+- Consistent submission timestamps across samples
+
 
 #### submit_experiment.py
 Submit an experiment linked to an existing study and sample.

@@ -4,7 +4,7 @@ Complete DINA → ENA Submission Workflow Example
 This example demonstrates the full end-to-end workflow for submitting
 sequencing data from DINA to ENA:
 
-1. Pull data from DINA API
+1. Pull data from DINA API (mocked)
 2. Deserialize into DINA DTOs using schemas  
 3. Map DINA DTOs to ENA models
 4. Submit to ENA and handle receipts
@@ -67,11 +67,7 @@ def complete_submission_workflow():
     print("STEP 1: Fetching data from DINA")
     print("=" * 80)
     
-    # In a real application, you would fetch from DINA API:
-    # from dinapy.client.dina_api_client import DinaApiClient
-    # client = DinaApiClient(base_url="https://dina.example.com/api", api_key="...")
-    # project_response = client.get("project/project-123")
-    
+    # In a real application, you would fetch from DINA API
     # For this example, we'll use mock DINA API responses
     project_response = {
         "data": {
@@ -667,57 +663,6 @@ def complete_submission_workflow():
     print("3. Monitor submission status in Webin Portal")
     print("=" * 80)
 
-
-def workflow_with_batch_samples():
-    """
-    Example showing batch processing of multiple samples.
-    """
-    print("\n" + "=" * 80)
-    print("BATCH PROCESSING EXAMPLE")
-    print("=" * 80)
-    
-    from dinapy.ena.mappers.dina_to_ena.mappers_dto import batch_material_samples_to_ena
-    
-    # Simulate multiple samples from DINA
-    sample_responses = [
-        {
-            "data": {
-                "id": f"sample-{i}",
-                "type": "material-sample",
-                "attributes": {
-                    "materialSampleName": f"SeaWater_ATL_{i:03d}",
-                    "barcode": f"SW-ATL-{i:03d}",
-                    "group": "marine-lab",
-                    "effectiveScientificName": "marine metagenome",
-                    "allowDuplicateName": False,
-                    "isRestricted": False
-                }
-            }
-        }
-        for i in range(1, 6)  # 5 samples
-    ]
-    
-    # Deserialize
-    sample_dtos = [MaterialSampleSchema().load(resp) for resp in sample_responses]
-    print(f"Deserialized {len(sample_dtos)} samples")
-    
-    # Batch map to ENA
-    taxon_ids = {f"sample-{i}": 408172 for i in range(1, 6)}
-    
-    ena_samples = batch_material_samples_to_ena(
-        material_samples=sample_dtos,
-        taxon_ids=taxon_ids,
-        email="researcher@example.com",
-        auto_resolve_taxa=False
-    )
-    
-    print(f"✓ Batch mapped {len(ena_samples)} samples to ENA format")
-    for sample in ena_samples[:3]:  # Show first 3
-        print(f"  - {sample.alias}: {sample.title}")
-    print(f"  ... and {len(ena_samples) - 3} more")
-    print()
-
-
 if __name__ == "__main__":
     print("\n")
     print("╔" + "=" * 78 + "╗")
@@ -729,19 +674,3 @@ if __name__ == "__main__":
     
     # Run complete workflow
     complete_submission_workflow()
-    
-    # Show batch processing example
-    workflow_with_batch_samples()
-    
-    print("\n")
-    print("=" * 80)
-    print("DOCUMENTATION COMPLETE")
-    print("=" * 80)
-    print()
-    print("Key Takeaways:")
-    print("  1. DINA DTOs map to ENA entities with clear relationships")
-    print("  2. Experiment requires user-provided sequencing parameters")
-    print("  3. Submission order: Project → Sample → Experiment → Run")
-    print("  4. Use ENASubmissionWorkflow for simplified submission")
-    print("  5. Upload files before submitting RUN")
-    print()
