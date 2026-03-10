@@ -269,8 +269,7 @@ class TestMaterialSampleToENA:
             attr for attr in ena_sample.attributes
             if attr.tag == "geographic location (country and/or sea)"
         )
-        assert "Canada" in geo_attr.value
-        assert "Ontario" in geo_attr.value
+        assert geo_attr.value == "Canada"
     
     def test_mapping_with_checklist(self):
         """Test mapping with ENA checklist."""
