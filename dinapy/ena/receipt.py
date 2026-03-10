@@ -54,6 +54,29 @@ class ENAReceipt:
                 return obj.accession
         return None
     
+    def get_accession_by_alias(self, object_type: str, alias: str) -> Optional[str]:
+        """
+        Get accession for a specific object type and alias.
+        
+        Useful for batch submissions where multiple objects of the same type are submitted.
+        
+        Args:
+            object_type: Type of object (e.g., 'SAMPLE', 'EXPERIMENT')
+            alias: Object alias used in submission
+            
+        Returns:
+            Accession if found, None otherwise
+            
+        Example:
+            >>> receipt = workflow.submit_samples_xml([sample1, sample2])
+            >>> accession1 = receipt.get_accession_by_alias('SAMPLE', sample1.alias)
+            >>> accession2 = receipt.get_accession_by_alias('SAMPLE', sample2.alias)
+        """
+        for obj in self.objects:
+            if obj.object_type == object_type and obj.alias == alias and obj.accession:
+                return obj.accession
+        return None
+    
     def get_status(self, object_type: str) -> Optional[str]:
         """Get status for a specific object type (e.g., 'EXPERIMENT', 'RUN')."""
         for obj in self.objects:
