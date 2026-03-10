@@ -1,10 +1,30 @@
 from __future__ import annotations
 from typing import List, Optional, Dict, Literal, Union
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+from enum import Enum
 
 # ============================================================================
 # COMMON TYPES
 # ============================================================================
+
+class ActionType(str, Enum):
+    """ENA submission action types.
+    
+    Based on ENA submission XSD:
+    - ADD: Add new objects to ENA
+    - MODIFY: Modify existing objects (requires accession)
+    - CANCEL: Cancel a previous submission
+    - HOLD: Set hold date for data release
+    - RELEASE: Release held data immediately
+    - VALIDATE: Validate XML without submitting
+    """
+    ADD = "ADD"
+    MODIFY = "MODIFY"
+    CANCEL = "CANCEL"
+    HOLD = "HOLD"
+    RELEASE = "RELEASE"
+    VALIDATE = "VALIDATE"
+
 
 class Attribute(BaseModel):
     """Generic tag-value pair for custom attributes."""
@@ -42,7 +62,7 @@ class ObjectRef(BaseModel):
 
 class Action(BaseModel):
     """Submission action."""
-    type: Literal["ADD", "HOLD", "RELEASE", "CANCEL", "VALIDATE"]
+    type: Literal["ADD", "MODIFY", "HOLD", "RELEASE", "CANCEL", "VALIDATE"]
     source: Optional[str] = Field(None, description="Path to XML file for ADD/VALIDATE")
     schema_: Optional[Literal[
         "study", "experiment", "sample", "run", "analysis", "project"

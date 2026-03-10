@@ -371,7 +371,7 @@ class TestReadUpload(unittest.TestCase):
     
     @patch('dinapy.ena.submission.ReadUploader')
     def test_upload_reads(self, mock_uploader_class):
-        """Test read file upload."""
+        """Test read file upload with list of files."""
         # Mock the uploader
         mock_uploader = Mock()
         mock_uploader_class.return_value = mock_uploader
@@ -399,6 +399,53 @@ class TestReadUpload(unittest.TestCase):
         # Verify result
         self.assertEqual(result['uploaded'], 2)
         self.assertEqual(len(result['manifest']), 2)
+    
+    @patch('dinapy.ena.submission.ReadUploader')
+    def test_upload_reads_from_directory(self, mock_uploader_class):
+        """Test read file upload from directory."""
+        # Mock the uploader
+        mock_uploader = Mock()
+        mock_uploader_class.return_value = mock_uploader
+        mock_uploader.prepare_and_upload_reads.return_value = {
+            'uploaded': 3,
+            'results': {
+                'file1.fastq.gz': 'success',
+                'file2.fastq.gz': 'success',
+                'file3.fastq.gz': 'success'
+            },
+            'manifest': [
+                {'filename': 'file1.fastq.gz', 'md5': 'abc123', 'size': 1000},
+                {'filename': 'file2.fastq.gz', 'md5': 'def456', 'size': 2000},
+                {'filename': 'file3.fastq.gz', 'md5': 'ghi789', 'size': 1500}
+            ],
+            'manifest_file': Path('manifest.txt')
+        }
+        
+        # Create a temporary directory with test files
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            (tmpdir_path / 'file1.fastq.gz').touch()
+            (tmpdir_path / 'file2.fastq.gz').touch()
+            (tmpdir_path / 'file3.fastq.gz').touch()
+            (tmpdir_path / 'readme.txt').touch()  # Non-FASTQ file
+            
+            # Upload files from directory with pattern
+            result = self.workflow.upload_reads(
+                file_paths=tmpdir_path,
+                file_pattern='*.fastq.gz'
+            )
+            
+            # Verify upload was called
+            mock_uploader.prepare_and_upload_reads.assert_called_once()
+            
+            # Verify correct number of files were passed (should be 3, not 4)
+            call_args = mock_uploader.prepare_and_upload_reads.call_args
+            uploaded_files = call_args[1]['file_paths']
+            self.assertEqual(len(uploaded_files), 3)
+            
+            # Verify result
+            self.assertEqual(result['uploaded'], 3)
 
 
 class TestJSONResponseParsing(unittest.TestCase):

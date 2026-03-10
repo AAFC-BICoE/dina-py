@@ -8,6 +8,7 @@ from dinapy.ena.models import (
     XrefLink,
     Link,
     ObjectRef,
+    ActionType,
     # Submission
     Action,
     Submission,
@@ -55,6 +56,7 @@ __all__ = [
     "XrefLink",
     "Link",
     "ObjectRef",
+    "ActionType",
     # Models - Submission
     "Action",
     "Submission",

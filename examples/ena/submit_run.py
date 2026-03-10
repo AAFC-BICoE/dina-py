@@ -20,6 +20,7 @@ from dinapy.ena.submission import ENASubmissionWorkflow
 workflow = ENASubmissionWorkflow(test=True)
 
 # Upload sequence files to ENA FTP (automatically calculates MD5)
+# Option 1: Upload specific files
 file_paths = [
     Path("reads_R1.fastq.gz"),
     Path("reads_R2.fastq.gz")
@@ -31,6 +32,14 @@ upload_result = workflow.upload_reads(
     save_manifest=True,        # Saves MD5s to manifest.txt
     manifest_path=Path("manifest.txt")
 )
+
+# Option 2: Upload all FASTQ files from a directory
+# upload_result = workflow.upload_reads(
+#     file_paths=Path("./sequencing_data"),
+#     file_pattern="*.fastq.gz",
+#     save_manifest=True,
+#     manifest_path=Path("manifest.txt")
+# )
 
 print(f"Uploaded {upload_result['uploaded']} files")
 for file_info in upload_result['manifest']:
