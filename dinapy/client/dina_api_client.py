@@ -82,11 +82,10 @@ def upload_file(
     args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path, group
 ):
     response_json: dict = dina_api_client.objectstore_module_api.upload(group, path.as_posix())
-    data = response_json.get('data', {})
     log_response: dict = {
-        "originalFilename": data.get("attributes", {}).get("originalFilename"),
-        "uuid": data.get("id"),
-        "warnings": data.get("meta", {}).get("warnings"),
+        "originalFilename": response_json.get("originalFilename"),
+        "uuid": response_json.get("uuid"),
+        "warnings": response_json.get("meta").get("warnings"),
     }
     print(log_response)
 
@@ -176,12 +175,12 @@ def main():
         path = Path(args.upload_file)
         upload_file(args, dina_api_client, path, group)
     elif args.upload_dir:
-        for entry in os.listdir(Path(args.upload_dir)):
-            entry_path = Path(args.upload_dir) / entry
-            if entry_path.is_file():
-                upload_file(args, dina_api_client, entry_path, group)
+        # .rglob recognizes file patterns
+        pathlist = Path(args.upload_dir).rglob("*.*")
+        for path in pathlist:
+            upload_file(args, dina_api_client, path)
     elif args.create_metadatas:
-        pathlist = Path(args.create_metadatas)
+        pathlist = Path(args.create_metadatas).rglob("*.*")
         dina_api_client.objectstore_module_api.create_metadatas(pathlist, dina_api_config, group)
     elif args.create_form_template:
         path = Path(args.create_form_template)
