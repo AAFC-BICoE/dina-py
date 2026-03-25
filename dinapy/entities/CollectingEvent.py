@@ -1,5 +1,5 @@
 class CollectingEventDTO:
-	def __init__(self, id = None, type = 'collecting-event', attributes = None, relationships = 'undefined'):
+	def __init__(self, id = None, type = 'collecting-event', attributes = None, relationships = None):
 		self.id = id
 		self.type = type
 		self.attributes = attributes
@@ -14,6 +14,9 @@ class CollectingEventDTO:
 	def get_attributes(self):
 		return self.attributes
 	
+	def get_relationships(self):
+		return self.relationships
+	
 class CollectingEventDTOBuilder:
 	def __init__(self):
 		self._id = None
@@ -26,7 +29,7 @@ class CollectingEventDTOBuilder:
 		return self
 
 	def relationships(self, relationships):
-		self._relationships = relationships
+		self._relationships = relationships.to_dict()
 		return self
 
 	def build(self):
