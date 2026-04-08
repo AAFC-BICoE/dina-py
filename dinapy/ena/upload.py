@@ -203,15 +203,55 @@ class ReadUploader:
         verify: bool,
     ) -> bool:
         """Upload a single file via FTP with progress bar and resume support."""
-        ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
         file_size = file_path.stat().st_size
         remote_filename = file_path.name
 
         logger.debug("Connecting to FTP host %s (tls=%s)", host, use_tls)
         
-        with ftp_class(host, timeout=timeout) as ftp:
+        # Try TLS connection, fall back to plain FTP if server doesn't support it
+        try:
+            ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
+            ftp = ftp_class(host, timeout=timeout)
+        except Exception as e:
+            if use_tls:
+                logger.warning(f"FTP TLS failed ({e}), retrying without TLS")
+                return self._upload_single_file_ftp(
+                    file_path=file_path,
+                    host=host,
+                    username=username,
+                    password=password,
+                    remote_dir=remote_dir,
+                    use_tls=False,  # Retry without TLS
+                    passive=passive,
+                    timeout=timeout,
+                    resume=resume,
+                    verify=verify,
+                )
+            else:
+                raise
+        
+        try:
             ftp.login(username, password)
-            
+        except Exception as e:
+            ftp.close()
+            if use_tls:
+                logger.warning(f"FTP TLS login failed ({e}), retrying without TLS")
+                return self._upload_single_file_ftp(
+                    file_path=file_path,
+                    host=host,
+                    username=username,
+                    password=password,
+                    remote_dir=remote_dir,
+                    use_tls=False,  # Retry without TLS
+                    passive=passive,
+                    timeout=timeout,
+                    resume=resume,
+                    verify=verify,
+                )
+            else:
+                raise
+        
+        with ftp:
             if use_tls:
                 try:
                     ftp.prot_p()
@@ -439,3 +479,132 @@ class ReadUploader:
             "results": results,
             "manifest_file": manifest_file_path
         }
+
+    # -----------------------
+    # FTP remote-file listing
+    # -----------------------
+    def list_remote_files(
+        self,
+        host: str,
+        username: str,
+        password: str,
+        remote_dir: Optional[str] = None,
+        use_tls: bool = True,
+        passive: bool = True,
+        timeout: int = 30,
+    ) -> Dict[str, int]:
+        """List files present on the FTP server and return their sizes.
+
+        Useful for verifying that sequence files have already been uploaded
+        before attempting a Run submission.
+
+        Args:
+            host:       FTP server hostname (e.g. ``"webin2.ebi.ac.uk"``).
+            username:   Webin username.
+            password:   Webin password.
+            remote_dir: Optional remote directory to ``cwd`` into before listing.
+            use_tls:    Use FTPS (recommended for ENA Webin).
+            passive:    Use passive mode.
+            timeout:    Connection timeout in seconds.
+
+        Returns:
+            ``{filename: size_in_bytes}`` dict for every file visible in the
+            remote directory.  Directories are excluded.  Returns an empty dict
+            if the connection fails or the directory is empty.
+        """
+        ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
+        result: Dict[str, int] = {}
+
+        def _do_list(ftp_conn) -> Dict[str, int]:
+            """Run the MLSD→NLST listing on an already-logged-in connection."""
+            listing: Dict[str, int] = {}
+            try:
+                for name, facts in ftp_conn.mlsd():
+                    if facts.get("type", "file") == "file":
+                        listing[name] = int(facts.get("size", 0))
+                logger.debug("Listed %d remote files via MLSD", len(listing))
+            except Exception:
+                logger.debug("MLSD not supported, falling back to NLST")
+                try:
+                    for name in ftp_conn.nlst():
+                        listing[name] = 0
+                except Exception as exc:
+                    logger.warning("NLST failed: %s", exc)
+            return listing
+
+        try:
+            with ftp_class(host, timeout=timeout) as ftp:
+                ftp.login(username, password)
+
+                if use_tls:
+                    # Request encrypted data channel; ignore if not supported.
+                    try:
+                        ftp.prot_p()
+                    except Exception:
+                        logger.debug("PROT P not supported, trying PROT C")
+                        try:
+                            ftp.prot_c()
+                        except Exception:
+                            logger.debug("PROT C also not supported, proceeding")
+
+                ftp.set_pasv(passive)
+
+                if remote_dir:
+                    try:
+                        ftp.cwd(remote_dir)
+                    except ftplib.error_perm as exc:
+                        logger.warning("Could not cwd to %s: %s", remote_dir, exc)
+                        return {}
+
+                result = _do_list(ftp)
+
+        except Exception as exc:
+            if use_tls:
+                # TLS not supported by server (e.g. AUTH TLS → 504 on test servers);
+                # retry transparently with plain FTP.
+                logger.warning("FTP TLS failed (%s), retrying without TLS", exc)
+                try:
+                    with ftplib.FTP(host, timeout=timeout) as ftp:
+                        ftp.login(username, password)
+                        ftp.set_pasv(passive)
+                        if remote_dir:
+                            try:
+                                ftp.cwd(remote_dir)
+                            except ftplib.error_perm as exc2:
+                                logger.warning("Could not cwd to %s: %s", remote_dir, exc2)
+                                return {}
+                        result = _do_list(ftp)
+                except Exception as exc2:
+                    logger.error("FTP listing failed (plain fallback): %s", exc2)
+            else:
+                logger.error("FTP listing failed: %s", exc)
+
+        except Exception as exc:
+            logger.error("FTP listing failed: %s", exc)
+
+        return result
+
+    def check_files_on_ftp(
+        self,
+        file_paths: Iterable[Path],
+        host: str,
+        username: str,
+        password: str,
+        remote_dir: Optional[str] = None,
+        use_tls: bool = True,
+    ) -> Dict[str, bool]:
+        """Check which local files are already present on the FTP server.
+
+        Args:
+            file_paths: Local :class:`~pathlib.Path` objects to check.
+            host:       FTP server hostname.
+            username:   Webin username.
+            password:   Webin password.
+            remote_dir: Optional remote directory to check within.
+            use_tls:    Use FTPS.
+
+        Returns:
+            ``{filename: True/False}`` — ``True`` when the file exists on the server.
+        """
+        remote = self.list_remote_files(host, username, password, remote_dir, use_tls)
+        return {Path(p).name: Path(p).name in remote for p in file_paths}
