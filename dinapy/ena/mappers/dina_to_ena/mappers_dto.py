@@ -504,25 +504,25 @@ def extract_unmapped_attributes(
         if is_valid_attribute_value(value):
             attributes.append(Attribute(tag=key, value=str(value)))
     
-    # Always process managedAttributes, preparationManagedAttributes, and extensionValues
-    for managed_field, prefix in [
-        ('managedAttributes', 'managed_'),
-        ('preparationManagedAttributes', 'prep_')
-    ]:
-        managed = safe_get_attr(attributes_obj, managed_field, {})
-        if isinstance(managed, dict):
-            for key, value in managed.items():
-                if key not in exclude_keys and is_valid_attribute_value(value):
-                    attributes.append(Attribute(tag=f"{prefix}{key}", value=str(value)))
-    
-    # Process extensionValues with flattening
-    extension_values = safe_get_attr(attributes_obj, 'extensionValues', {})
-    if isinstance(extension_values, dict):
-        # Flatten the nested structure
-        flattened = flatten_dict(extension_values)
-        for key, value in flattened.items():
-            if key not in exclude_keys and is_valid_attribute_value(value):
-                attributes.append(Attribute(tag=f"ext_{key}", value=str(value)))
+    # # managedAttributes and extensionValues mapping disabled for now (simple mapping mode)
+    # for managed_field, prefix in [
+    #     ('managedAttributes', 'managed_'),
+    #     ('preparationManagedAttributes', 'prep_')
+    # ]:
+    #     managed = safe_get_attr(attributes_obj, managed_field, {})
+    #     if isinstance(managed, dict):
+    #         for key, value in managed.items():
+    #             if key not in exclude_keys and is_valid_attribute_value(value):
+    #                 attributes.append(Attribute(tag=f"{prefix}{key}", value=str(value)))
+    #
+    # # Process extensionValues with flattening
+    # extension_values = safe_get_attr(attributes_obj, 'extensionValues', {})
+    # if isinstance(extension_values, dict):
+    #     # Flatten the nested structure
+    #     flattened = flatten_dict(extension_values)
+    #     for key, value in flattened.items():
+    #         if key not in exclude_keys and is_valid_attribute_value(value):
+    #             attributes.append(Attribute(tag=f"ext_{key}", value=str(value)))
     
     return attributes
 
@@ -699,7 +699,15 @@ def material_sample_to_ena(
                         primary = next((g for g in geo_refs if g.get('isPrimary')), geo_refs[0])
                         lat = primary.get('dwcDecimalLatitude')
                         lon = primary.get('dwcDecimalLongitude')
-                
+
+                # Also try dwcVerbatimCoordinates (format: "lat, lon")
+                if not lat or not lon:
+                    verbatim_coords = safe_get_attr(ce_attrs, 'dwcVerbatimCoordinates')
+                    if verbatim_coords:
+                        parts = str(verbatim_coords).split(',')
+                        if len(parts) == 2:
+                            lat, lon = parts[0].strip(), parts[1].strip()
+
                 if lat and lon:
                     try:
                         lat_float = float(lat)
@@ -716,6 +724,15 @@ def material_sample_to_ena(
                     except (ValueError, TypeError):
                         pass
                 
+                # Try to extract country from dwcVerbatimLocality (e.g., "Garnish River, Canada")
+                if not geographic_location:
+                    verbatim_locality = safe_get_attr(ce_attrs, 'dwcVerbatimLocality')
+                    if verbatim_locality:
+                        # Take the last comma-separated segment as the country
+                        locality_parts = [p.strip() for p in str(verbatim_locality).split(',') if p.strip()]
+                        if locality_parts:
+                            geographic_location = locality_parts[-1]
+
                 # Fall back to "not provided" if still no location
                 if not geographic_location:
                     geographic_location = "not provided"
@@ -746,7 +763,8 @@ def material_sample_to_ena(
         # Add unmapped collecting event attributes with prefix
         if collecting_event:
             ce_mapped = {'endEventDateTime', 'startEventDateTime', 'dwcCountry', 'dwcStateProvince',
-                        'dwcVerbatimLatitude', 'dwcVerbatimLongitude', 'geoReferenceAssertions'}
+                        'dwcVerbatimLatitude', 'dwcVerbatimLongitude', 'geoReferenceAssertions',
+                        'dwcVerbatimCoordinates', 'dwcVerbatimLocality'}
             ce_unmapped = extract_unmapped_attributes(collecting_event.attributes, ce_mapped)
             for attr in ce_unmapped:
                 attr.tag = f"ce_{attr.tag}"

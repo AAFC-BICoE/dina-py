@@ -34,10 +34,28 @@ def build_experiment_xml_from_model(exp_model: Experiment) -> str:
     dd_el = etree.SubElement(design_el, "DESIGN_DESCRIPTION")
     dd_el.text = design["designDescription"]
 
-    # SAMPLE_DESCRIPTOR
-    sample_ref = design["sampleDescriptor"]
-    sample_attrs = {k: v for k, v in sample_ref.items() if v is not None}
-    etree.SubElement(design_el, "SAMPLE_DESCRIPTOR", **sample_attrs)
+    # SAMPLE_DESCRIPTOR — single sample OR pooled multi-sample
+    sample_pool = design.get("samplePool")
+    if sample_pool:
+        # Multiplexed pool: <SAMPLE_DESCRIPTOR><POOL><MEMBER .../></POOL></SAMPLE_DESCRIPTOR>
+        sd_el = etree.SubElement(design_el, "SAMPLE_DESCRIPTOR")
+        pool_el = etree.SubElement(sd_el, "POOL")
+        for member in sample_pool:
+            member_attrs = {}
+            if member.get("accession"):
+                member_attrs["accession"] = member["accession"]
+            if member.get("refname"):
+                member_attrs["refname"] = member["refname"]
+            if member.get("memberName"):
+                member_attrs["member_name"] = member["memberName"]
+            if member.get("proportion") is not None:
+                member_attrs["proportion"] = str(member["proportion"])
+            etree.SubElement(pool_el, "MEMBER", **member_attrs)
+    else:
+        # Single sample: <SAMPLE_DESCRIPTOR accession="SAMEA..."/>
+        sample_ref = design.get("sampleDescriptor") or {}
+        sample_attrs = {k: v for k, v in sample_ref.items() if v is not None}
+        etree.SubElement(design_el, "SAMPLE_DESCRIPTOR", **sample_attrs)
 
     # LIBRARY_DESCRIPTOR
     lib = design["libraryDescriptor"]
