@@ -183,9 +183,26 @@ def ENAWorkflowGUI():
         return name
 
     def render_status_log() -> None:
-        for ts, msg_type, msg in status_messages.value:
-            color = _msg_color(msg_type)
-            solara.Markdown(f"<span style='color:{color}'>[{ts}] {msg}</span>")
+        lines = "".join(
+            f"<div style='color:{_msg_color(msg_type)};white-space:pre-wrap;word-break:break-all'>"
+            f"[{ts}] {msg}</div>"
+            for ts, msg_type, msg in status_messages.value
+        )
+        solara.HTML(
+            tag="div",
+            unsafe_innerHTML=lines,
+            style=(
+                "max-height:320px;"
+                "overflow-y:auto;"
+                "font-family:monospace;"
+                "font-size:0.82em;"
+                "line-height:1.4;"
+                "padding:6px 8px;"
+                "background:rgba(0,0,0,0.04);"
+                "border-radius:4px;"
+                "border:1px solid rgba(0,0,0,0.1);"
+            ),
+        )
 
     def display_receipt_details(receipt, title: str) -> None:
         """Display detailed receipt information"""
@@ -312,23 +329,40 @@ def ENAWorkflowGUI():
                 add_status(
                     f"FTP check: {found_count}/{total_files} file(s) found on server", level
                 )
-                for fname, present in ftp_status.items():
-                    icon = "✓" if present else "✗"
-                    add_status(f"  {icon} {fname}", "success" if present else "warning")
             except Exception as ftp_err:
                 add_status(f"FTP check failed: {ftp_err}", "warning")
                 add_status("Continuing without FTP verification", "info")
 
-            # ── 4. Local MD5 computation ──────────────────────────────────────
-            add_status("Computing local MD5 checksums...", "info")
+            # ── 4. Local MD5 computation (only for files confirmed on FTP) ──────
+            add_status("Computing MD5 checksums for files confirmed on FTP...", "info")
+            md5_count = 0
             for entry in entries:
                 entry["md5s"] = []
                 entry["on_ftp"] = []
                 for f in entry["files"]:
-                    md5 = ReadUploader.compute_md5(f)
-                    entry["md5s"].append(md5)
-                    entry["on_ftp"].append(ftp_status.get(f.name, False))
-                    add_status(f"  {f.name}: MD5={md5[:8]}...", "info")
+                    on_ftp = ftp_status.get(f.name, False)
+                    entry["on_ftp"].append(on_ftp)
+                    if on_ftp:
+                        md5 = ReadUploader.compute_md5(f)
+                        entry["md5s"].append(md5)
+                        md5_count += 1
+                    else:
+                        entry["md5s"].append(None)
+            add_status(f"MD5 computed for {md5_count} file(s)", "info")
+
+            # Drop entries that have any file missing from FTP
+            entries_before = len(entries)
+            entries = [e for e in entries if all(e.get("on_ftp", []))]
+            skipped = entries_before - len(entries)
+            if skipped:
+                add_status(
+                    f"⚠ {skipped} entr(ies) excluded — file(s) not found on FTP. "
+                    f"{len(entries)} entr(ies) will proceed.",
+                    "warning",
+                )
+            if not entries:
+                add_status("No entries have all files confirmed on FTP — nothing to submit.", "warning")
+                return
 
             # ── 5. DINA lookup ────────────────────────────────────────────────
             add_status(
