@@ -108,3 +108,51 @@ class SearchAPI(DinaAPI):
         }
 
         return self._post_search("dina_material_sample_index", query_body)
+
+    def search_object_store_by_filename(
+        self,
+        filename_stem: str,
+        size: int = 25,
+    ) -> dict:
+        """Find object-store metadata records whose originalFilename contains *filename_stem*.
+
+        Uses a case-insensitive wildcard query so that full filenames like
+        ``sample_R1.fastq.gz`` are matched by the stem ``sample``.
+
+        Args:
+            filename_stem: Substring to search for (no leading/trailing wildcards needed).
+            size:          Maximum number of hits to return (default 25).
+
+        Returns:
+            Raw ES response dict with ``hits``, ``total``, etc.
+        """
+        if not filename_stem:
+            return {}
+
+        query_body = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "wildcard": {
+                                "data.attributes.originalFilename.keyword": {
+                                    "value": f"*{filename_stem}*",
+                                    "case_insensitive": True,
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "size": size,
+            "_source": {
+                "includes": [
+                    "data.id",
+                    "data.type",
+                    "data.attributes.originalFilename",
+                    "data.attributes.bucket",
+                ]
+            },
+        }
+
+        return self._post_search("dina_object_store_index", query_body)
