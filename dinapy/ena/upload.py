@@ -17,7 +17,7 @@ import ftplib
 import logging
 import time
 from pathlib import Path
-from typing import Iterable, List, Optional, Dict
+from typing import Callable, Iterable, List, Optional, Dict
 
 try:
     from tqdm import tqdm
@@ -44,7 +44,7 @@ class ReadUploader:
     # Utilities
     # -----------------------
     @staticmethod
-    def compute_md5(path: Path, chunk_size: int = 8192) -> str:
+    def compute_md5(path: Path, chunk_size: int = 4 * 1024 * 1024) -> str:
         """Return MD5 hex digest for `path` with optional progress bar."""
         h = hashlib.md5()
         file_size = path.stat().st_size
@@ -123,6 +123,7 @@ class ReadUploader:
         resume: bool = True,
         verify: bool = True,
         max_retries: int = 3,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> Dict[str, str]:
         """
         Upload local files to an FTP server with progress bars and resume support.
@@ -167,6 +168,7 @@ class ReadUploader:
                         timeout=timeout,
                         resume=resume,
                         verify=verify,
+                        progress_callback=progress_callback,
                     )
                     
                     if success:
@@ -201,6 +203,7 @@ class ReadUploader:
         timeout: int,
         resume: bool,
         verify: bool,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> bool:
         """Upload a single file via FTP with progress bar and resume support."""
         file_size = file_path.stat().st_size
@@ -226,6 +229,7 @@ class ReadUploader:
                     timeout=timeout,
                     resume=resume,
                     verify=verify,
+                    progress_callback=progress_callback,
                 )
             else:
                 raise
@@ -247,6 +251,7 @@ class ReadUploader:
                     timeout=timeout,
                     resume=resume,
                     verify=verify,
+                    progress_callback=progress_callback,
                 )
             else:
                 raise
@@ -283,31 +288,38 @@ class ReadUploader:
             with file_path.open('rb') as f:
                 if start_pos > 0:
                     f.seek(start_pos)
-                
-                if HAS_TQDM:
-                    with tqdm(
+
+                bytes_sent = start_pos
+                cmd = f'APPE {remote_filename}' if start_pos > 0 else f'STOR {remote_filename}'
+
+                pbar = (
+                    tqdm(
                         total=file_size,
                         initial=start_pos,
                         unit='B',
                         unit_scale=True,
                         unit_divisor=1024,
-                        desc=f"Uploading {remote_filename}"
-                    ) as pbar:
-                        def callback(data):
-                            pbar.update(len(data))
-                        
-                        cmd = f'STOR {remote_filename}'
-                        if start_pos > 0:
-                            cmd = f'APPE {remote_filename}'  # Append mode for resume
-                        
-                        ftp.storbinary(cmd, f, blocksize=self.chunk_size, callback=callback)
-                else:
-                    # No progress bar
-                    cmd = f'STOR {remote_filename}'
-                    if start_pos > 0:
-                        cmd = f'APPE {remote_filename}'
-                    
-                    ftp.storbinary(cmd, f, blocksize=self.chunk_size)
+                        desc=f"Uploading {remote_filename}",
+                    )
+                    if HAS_TQDM
+                    else None
+                )
+
+                def _chunk_cb(data):
+                    nonlocal bytes_sent
+                    bytes_sent += len(data)
+                    if pbar is not None:
+                        pbar.update(len(data))
+                    if progress_callback is not None:
+                        progress_callback(remote_filename, bytes_sent, file_size)
+
+                try:
+                    ftp.storbinary(cmd, f, blocksize=self.chunk_size, callback=_chunk_cb)
+                finally:
+                    if pbar is not None:
+                        pbar.close()
+
+                if pbar is None:
                     logger.info(f"Uploaded {remote_filename}")
 
             # Verify upload - try multiple methods

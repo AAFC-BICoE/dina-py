@@ -34,6 +34,7 @@ class ENAReceipt:
     objects: List[ENAObject] = None
     messages: List[ENAMessage] = None
     actions: List[str] = None
+    raw_text: str = ""  # Raw response body for debugging
     
     def __post_init__(self):
         if self.objects is None:

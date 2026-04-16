@@ -750,7 +750,7 @@ def ENAWorkflowGUI():
                 entry["ena_sample_accessions"] = sample_accessions
 
                 # ── [3] Experiment ─────────────────────────────────────────────
-                add_status(f"[3/4] Submitting experiment for {stem}...", "info")
+                add_status(f"[3/4] Validating + submitting experiment for {stem}...", "info")
                 exp_alias = f"exp_{stem}_{timestamp}"
 
                 lib_layout = LibraryLayout(
@@ -803,7 +803,7 @@ def ENAWorkflowGUI():
                     design=design,
                     platform=Platform(instrument_model=instrument_model.value),
                 )
-                receipt = workflow.submit_experiment(ena_experiment, action="ADD")
+                receipt = workflow.submit_experiment(ena_experiment, action="ADD", validate_first=True)
                 if receipt.success:
                     exp_acc = receipt.get_accession("EXPERIMENT")
                     entry["ena_experiment_alias"] = exp_alias
@@ -815,7 +815,7 @@ def ENAWorkflowGUI():
                     raise Exception(f"Experiment submission failed for {stem}")
 
                 # ── [4] Run ────────────────────────────────────────────────────
-                add_status(f"[4/4] Submitting run for {stem}...", "info")
+                add_status(f"[4/4] Validating + submitting run for {stem}...", "info")
                 run_alias = f"run_{stem}_{timestamp}"
                 run_files = [
                     ENAFile(
@@ -832,7 +832,7 @@ def ENAWorkflowGUI():
                     experiment_ref=ObjectRef(refname=exp_alias),
                     data_blocks=[DataBlock(files=run_files)],
                 )
-                receipt = workflow.submit_run(ena_run, action="ADD")
+                receipt = workflow.submit_run(ena_run, action="ADD", validate_first=True)
                 if receipt.success:
                     run_acc = receipt.get_accession("RUN")
                     entry["ena_run_alias"] = run_alias
@@ -1214,4 +1214,594 @@ def ENAWorkflowGUI():
 
             with solara.Row():
                 solara.Button("← Start New Submission", on_click=reset_workflow)
+
+
+@solara.component
+def StudyActionPanel():
+    """
+    Standalone panel for applying lifecycle actions to an existing ENA study.
+
+    Supported actions (based on ActionType in models):
+    - HOLD    – Update the hold/embargo date for a study.
+    - RELEASE – Immediately release held data (make it publicly available).
+    - CANCEL  – Cancel a previously submitted study.
+    - VALIDATE – Validate the action without persisting changes to ENA.
+
+    Credentials are read from the WEBIN_USERNAME, WEBIN_PASSWORD, and
+    WEBIN_TEST environment variables (same as ENAWorkflowGUI).
+
+    Usage::
+
+        >>> from dinapy.ena.workflow_gui import StudyActionPanel
+        >>> StudyActionPanel()
+    """
+
+    import os as _os
+
+    # ── Credential helpers ────────────────────────────────────────────────
+    def _webin_username() -> str:
+        return _os.environ.get("WEBIN_USERNAME", "")
+
+    def _webin_password() -> str:
+        return _os.environ.get("WEBIN_PASSWORD", "")
+
+    def _env_test_server() -> bool:
+        return _os.environ.get("WEBIN_TEST", "true").lower() not in (
+            "false", "0", "no", "off"
+        )
+
+    # ── Component state ───────────────────────────────────────────────────
+    study_accession = solara.use_reactive("")
+    selected_action = solara.use_reactive("RELEASE")
+    new_hold_date = solara.use_reactive(date.today().isoformat())
+    is_processing = solara.use_reactive(False)
+    status_messages = solara.use_reactive([])
+    result_receipt = solara.use_reactive(None)
+
+    AVAILABLE_ACTIONS = ["HOLD", "RELEASE", "CANCEL", "VALIDATE"]
+    ACTION_DESCRIPTIONS = {
+        "HOLD":     "Update the hold/embargo date for this study.",
+        "RELEASE":  "Release held data immediately (make it publicly available).",
+        "CANCEL":   "Cancel this previously submitted study.",
+        "VALIDATE": "Validate the action without persisting any changes to ENA.",
+    }
+
+    # ── Helpers ───────────────────────────────────────────────────────────
+    def _msg_color(msg_type: str) -> str:
+        return {"info": "blue", "success": "green", "warning": "orange", "error": "red"}.get(
+            msg_type, "grey"
+        )
+
+    def add_status(message: str, msg_type: str = "info") -> None:
+        ts = time.strftime("%H:%M:%S")
+        status_messages.value = status_messages.value + [(ts, msg_type, message)]
+
+    def render_status_log() -> None:
+        lines = "".join(
+            f"<div style='color:{_msg_color(t)};white-space:pre-wrap;word-break:break-all'>"
+            f"[{ts}] {msg}</div>"
+            for ts, t, msg in status_messages.value
+        )
+        solara.HTML(
+            tag="div",
+            unsafe_innerHTML=lines,
+            style=(
+                "max-height:240px;overflow-y:auto;font-family:monospace;"
+                "font-size:0.82em;line-height:1.4;padding:6px 8px;"
+                "background:rgba(0,0,0,0.04);border-radius:4px;"
+                "border:1px solid rgba(0,0,0,0.1);"
+            ),
+        )
+
+    # ── Action handler ────────────────────────────────────────────────────
+    def apply_action() -> None:
+        is_processing.value = True
+        status_messages.value = []
+        result_receipt.value = None
+
+        acc = study_accession.value.strip()
+        action = selected_action.value
+        hold_date = new_hold_date.value.strip() if action == "HOLD" else None
+
+        try:
+            if not acc:
+                add_status("Study accession is required.", "error")
+                return
+            if not _webin_username() or not _webin_password():
+                add_status(
+                    "Webin credentials not found. "
+                    "Set WEBIN_USERNAME and WEBIN_PASSWORD environment variables.",
+                    "error",
+                )
+                return
+            if action == "HOLD" and not hold_date:
+                add_status("A hold date is required for the HOLD action.", "error")
+                return
+
+            server_label = "test (wwwdev)" if _env_test_server() else "production"
+            add_status(
+                f"Applying {action} to study {acc} on {server_label} server...", "info"
+            )
+
+            workflow = ENASubmissionWorkflow(
+                username=_webin_username(),
+                password=_webin_password(),
+                test=_env_test_server(),
+            )
+
+            receipt = workflow.update_study_action(
+                accession=acc,
+                action=action,
+                hold_until_date=hold_date,
+            )
+
+            result_receipt.value = receipt
+
+            if receipt.success:
+                add_status(
+                    f"✓ Action {action} applied successfully to {acc}.", "success"
+                )
+                for info in receipt.get_info():
+                    add_status(f"  {info}", "info")
+                for warn in receipt.get_warnings():
+                    add_status(f"  Warning: {warn}", "warning")
+            else:
+                add_status(f"✗ Action {action} failed.", "error")
+                for err in receipt.get_errors():
+                    add_status(f"  ENA: {err}", "error")
+                # Show submission XML sent to ENA (attached by update_study_action)
+                sub_xml = getattr(receipt, "_submission_xml", None)
+                if sub_xml:
+                    add_status("── Submission XML sent ──", "info")
+                    for line in sub_xml.strip().splitlines():
+                        add_status(line, "info")
+                # Show raw ENA response so full error text is always visible
+                raw_text = getattr(receipt, "raw_text", "")
+                if raw_text:
+                    add_status("── Raw ENA response ──", "warning")
+                    for line in raw_text.strip().splitlines():
+                        add_status(line, "warning")
+
+        except ValueError as ve:
+            add_status(f"Validation error: {ve}", "error")
+        except Exception as e:
+            import requests as _requests
+            # requests.HTTPError carries the raw server response — show it
+            http_resp = getattr(e, "response", None)
+            if http_resp is not None:
+                add_status(
+                    f"HTTP {http_resp.status_code} error from ENA.", "error"
+                )
+                add_status("── Raw ENA response ──", "warning")
+                for line in http_resp.text.strip().splitlines():
+                    add_status(line, "warning")
+                # Also show what was sent
+                sub_xml = getattr(e, "_submission_xml", None)
+                if sub_xml:
+                    add_status("── Submission XML sent ──", "info")
+                    for line in sub_xml.strip().splitlines():
+                        add_status(line, "info")
+            else:
+                add_status(f"Error: {e}", "error")
+                for line in traceback.format_exc().split("\n")[-6:-1]:
+                    if line.strip():
+                        add_status(f"  {line}", "error")
+        finally:
+            is_processing.value = False
+
+    # ── Layout ────────────────────────────────────────────────────────────
+    with solara.Card(title="Study / Project Action", elevation=2):
+        solara.Markdown(
+            "Apply a lifecycle action (HOLD, RELEASE, CANCEL, VALIDATE) "
+            "to an **existing** ENA study using its project accession."
+        )
+
+        # Credentials status
+        with solara.Card("Webin Credentials"):
+            if _webin_username():
+                solara.Success(f"✓ Logged in as: {_webin_username()}")
+            else:
+                solara.Warning(
+                    "No Webin credentials detected. "
+                    "Set WEBIN_USERNAME and WEBIN_PASSWORD as environment variables."
+                )
+            if _env_test_server():
+                solara.Info("Server: Test (wwwdev.ebi.ac.uk) — submissions are not permanent")
+            else:
+                solara.Warning("Server: Production (webin.ebi.ac.uk) — submissions are permanent")
+            solara.Markdown(
+                "_Server is controlled by the `WEBIN_TEST` environment variable._"
+            )
+
+        solara.HTML(tag="hr")
+
+        # Inputs
+        solara.InputText(
+            label="Study / Project Accession (e.g. PRJEB12345)",
+            value=study_accession,
+            continuous_update=False,
+        )
+
+        solara.Select(
+            label="Action",
+            value=selected_action,
+            values=AVAILABLE_ACTIONS,
+        )
+
+        solara.Info(ACTION_DESCRIPTIONS.get(selected_action.value, ""))
+
+        if selected_action.value == "HOLD":
+            solara.InputText(
+                label="New Hold Until Date (YYYY-MM-DD)",
+                value=new_hold_date,
+                continuous_update=False,
+            )
+
+        can_submit = (
+            bool(study_accession.value.strip())
+            and bool(_webin_username())
+            and bool(_webin_password())
+            and not is_processing.value
+        )
+
+        with solara.Row():
+            solara.Button(
+                f"Apply {selected_action.value}",
+                on_click=apply_action,
+                color="primary",
+                disabled=not can_submit,
+            )
+
+        # Status log
+        if status_messages.value:
+            with solara.Card("Result Log"):
+                render_status_log()
+
+        # Receipt details
+        if result_receipt.value:
+            from dinapy.ena.receipt import format_receipt_summary
+
+            receipt = result_receipt.value
+            with solara.Card("Receipt"):
+                if receipt.success:
+                    solara.Success("✓ Action completed successfully")
+                else:
+                    solara.Error("✗ Action failed")
+                if receipt.objects:
+                    solara.Markdown("**Accessions:**")
+                    for obj in receipt.objects:
+                        if obj.accession:
+                            solara.Markdown(
+                                f"- {obj.object_type}: `{obj.accession}`"
+                                + (f" (status: {obj.status})" if obj.status else "")
+                            )
+                with solara.Details("View Full Receipt"):
+                    summary = format_receipt_summary(receipt)
+                    solara.Markdown(f"```\n{summary}\n```")
+
+
+@solara.component
+def FTPUploadPanel():
+    """
+    Standalone panel for listing, checking, and uploading sequence files to
+    the ENA Webin FTP server before running an ENA submission.
+
+    Credentials are read from the WEBIN_USERNAME, WEBIN_PASSWORD, and
+    WEBIN_TEST environment variables (same as ENAWorkflowGUI).
+
+    Usage::
+
+        >>> from dinapy.ena.workflow_gui import FTPUploadPanel
+        >>> FTPUploadPanel()
+    """
+
+    import os as _os
+    import threading
+
+    from dinapy.ena.upload import ReadUploader
+
+    # ── Credential helpers ────────────────────────────────────────────────
+    def _webin_username() -> str:
+        return _os.environ.get("WEBIN_USERNAME", "")
+
+    def _webin_password() -> str:
+        return _os.environ.get("WEBIN_PASSWORD", "")
+
+    def _use_test_server() -> bool:
+        return _os.environ.get("WEBIN_TEST", "true").lower() not in ("false", "0", "no", "off")
+
+    def _ftp_host() -> str:
+        return "webin2.ebi.ac.uk" if _use_test_server() else "webin.ebi.ac.uk"
+
+    # ── Component state ───────────────────────────────────────────────────
+    seq_dir         = solara.use_reactive("")
+    remote_dir      = solara.use_reactive("")
+    is_processing   = solara.use_reactive(False)
+    upload_progress = solara.use_reactive(None)   # (filename, bytes_done, total_bytes) | None
+    status_messages = solara.use_reactive([])
+    remote_files    = solara.use_reactive(None)   # dict[name, size] | None
+    presence        = solara.use_reactive(None)   # dict[name, bool]  | None
+
+    # threading.Event is not JSON-serialisable, so store it in a ref (not reactive)
+    cancel_event = solara.use_ref(threading.Event())
+
+    # ── Helpers ───────────────────────────────────────────────────────────
+    def _msg_color(msg_type: str) -> str:
+        return {"info": "blue", "success": "green", "warning": "orange", "error": "red"}.get(
+            msg_type, "grey"
+        )
+
+    def add_status(message: str, msg_type: str = "info") -> None:
+        ts = time.strftime("%H:%M:%S")
+        status_messages.value = status_messages.value + [(ts, msg_type, message)]
+
+    def render_status_log() -> None:
+        lines = "".join(
+            f"<div style='color:{_msg_color(t)};white-space:pre-wrap;word-break:break-all'>"
+            f"[{ts}] {msg}</div>"
+            for ts, t, msg in status_messages.value
+        )
+        solara.HTML(
+            tag="div",
+            unsafe_innerHTML=lines,
+            style=(
+                "max-height:300px;overflow-y:auto;font-family:monospace;"
+                "font-size:0.82em;line-height:1.4;padding:6px 8px;"
+                "background:rgba(0,0,0,0.04);border-radius:4px;"
+                "border:1px solid rgba(0,0,0,0.1);"
+            ),
+        )
+
+    def _check_config() -> tuple:
+        """Return (seq_dir_path, local_files, rdir, host, uploader) or raise ValueError."""
+        if not _webin_username() or not _webin_password():
+            raise ValueError(
+                "Webin credentials not found. "
+                "Set WEBIN_USERNAME and WEBIN_PASSWORD environment variables."
+            )
+        dir_str = seq_dir.value.strip()
+        if not dir_str:
+            raise ValueError("Please enter a local sequence file directory.")
+        seq_path = Path(dir_str)
+        if not seq_path.is_dir():
+            raise ValueError(f"Directory not found: {seq_path}")
+        local_files = sorted(seq_path.glob("*.gz"))
+        if not local_files:
+            raise ValueError(f"No .gz files found in: {seq_path}")
+        rdir = remote_dir.value.strip() or None
+        return seq_path, local_files, rdir, _ftp_host(), ReadUploader()
+
+    def _start_action():
+        """Reset cancel flag and mark processing started."""
+        cancel_event.current.clear()
+        is_processing.value = True
+        status_messages.value = []
+
+    def _finish():
+        is_processing.value = False
+
+    # ── Actions ───────────────────────────────────────────────────────────
+    def action_cancel() -> None:
+        cancel_event.current.set()
+        add_status("Cancelling — waiting for current step to finish...", "warning")
+
+    def action_list_remote() -> None:
+        _start_action()
+        remote_files.value = None
+
+        def _run():
+            try:
+                _, _, rdir, host, uploader = _check_config()
+                add_status(f"Listing files on {host} ({_webin_username()})...", "info")
+                files = uploader.list_remote_files(
+                    host=host,
+                    username=_webin_username(),
+                    password=_webin_password(),
+                    remote_dir=rdir,
+                    use_tls=True,
+                )
+                remote_files.value = files
+                if files:
+                    add_status(f"✓ Found {len(files)} file(s) on FTP:", "success")
+                    for name, size in sorted(files.items()):
+                        size_str = f"{size / (1024**2):.2f} MB" if size > 0 else "n/a"
+                        add_status(f"  {name}  ({size_str})", "info")
+                else:
+                    add_status("FTP account appears empty.", "warning")
+            except Exception as e:
+                add_status(f"Error: {e}", "error")
+            finally:
+                _finish()
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def action_check_presence() -> None:
+        _start_action()
+        presence.value = None
+
+        def _run():
+            try:
+                _, local_files, rdir, host, uploader = _check_config()
+                add_status(
+                    f"Checking {len(local_files)} local file(s) against FTP...", "info"
+                )
+                result = uploader.check_files_on_ftp(
+                    file_paths=local_files,
+                    host=host,
+                    username=_webin_username(),
+                    password=_webin_password(),
+                    remote_dir=rdir,
+                    use_tls=True,
+                )
+                presence.value = result
+                missing = [n for n, found in result.items() if not found]
+                for name, found in result.items():
+                    icon = "✓" if found else "✗"
+                    add_status(f"  {icon} {name}", "success" if found else "warning")
+                if missing:
+                    add_status(
+                        f"{len(missing)}/{len(local_files)} file(s) missing from FTP — "
+                        "use Upload Missing Files to upload them.",
+                        "warning",
+                    )
+                else:
+                    add_status(
+                        "✓ All files confirmed on FTP — ready for submission.", "success"
+                    )
+            except Exception as e:
+                add_status(f"Error: {e}", "error")
+            finally:
+                _finish()
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def action_upload_missing() -> None:
+        _start_action()
+
+        def _run():
+            try:
+                _, local_files, rdir, host, uploader = _check_config()
+                known_presence = presence.value or {}
+                to_upload = [f for f in local_files if not known_presence.get(f.name, False)]
+
+                if not to_upload:
+                    add_status(
+                        "All files are already on FTP — nothing to upload. "
+                        "Run Check File Presence first if unsure.",
+                        "info",
+                    )
+                    return
+
+                add_status(f"Uploading {len(to_upload)} file(s) to {host}...", "info")
+                all_ok = True
+                for f in to_upload:
+                    # Check for cancellation before starting each file
+                    if cancel_event.current.is_set():
+                        add_status("✗ Cancelled by user.", "warning")
+                        return
+
+                    size_mb = f.stat().st_size / (1024 ** 2)
+                    add_status(f"  Computing MD5 for {f.name} ({size_mb:.2f} MB)...", "info")
+                    md5 = uploader.compute_md5(f)
+
+                    # Check again after MD5 (can be slow for large files)
+                    if cancel_event.current.is_set():
+                        add_status("✗ Cancelled by user.", "warning")
+                        return
+
+                    add_status(f"  MD5: {md5[:10]}... — uploading...", "info")
+                    upload_progress.value = (f.name, 0, f.stat().st_size)
+
+                    def _on_progress(filename: str, bytes_done: int, total: int) -> None:
+                        upload_progress.value = (filename, bytes_done, total)
+
+                    result = uploader.upload_via_ftp(
+                        file_paths=[f],
+                        host=host,
+                        username=_webin_username(),
+                        password=_webin_password(),
+                        remote_dir=rdir,
+                        use_tls=True,
+                        progress_callback=_on_progress,
+                    )
+                    upload_progress.value = None
+                    status_str = result.get(f.name, "unknown")
+                    if status_str == "success":
+                        add_status(f"  ✓ {f.name}", "success")
+                    else:
+                        add_status(f"  ✗ {f.name}: {status_str}", "error")
+                        all_ok = False
+
+                if all_ok:
+                    add_status("✓ All files uploaded successfully.", "success")
+                else:
+                    add_status("Some uploads failed — see errors above.", "error")
+
+            except Exception as e:
+                add_status(f"Error: {e}", "error")
+            finally:
+                upload_progress.value = None
+                _finish()
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    # ── Layout ────────────────────────────────────────────────────────────
+    with solara.Card(title="ENA FTP Upload", elevation=2):
+        solara.Markdown(
+            "Upload sequence files to the ENA Webin FTP server **before** running "
+            "an ENA submission."
+        )
+
+        # Credentials status
+        with solara.Card("Webin Credentials"):
+            if _webin_username():
+                solara.Success(f"✓ Logged in as: {_webin_username()}")
+            else:
+                solara.Warning(
+                    "No Webin credentials detected. "
+                    "Set WEBIN_USERNAME and WEBIN_PASSWORD as environment variables."
+                )
+            if _use_test_server():
+                solara.Info("FTP host: webin2.ebi.ac.uk (test)")
+            else:
+                solara.Warning("FTP host: webin.ebi.ac.uk (production)")
+            solara.Markdown("_Host is controlled by the `WEBIN_TEST` environment variable._")
+
+        solara.HTML(tag="hr")
+
+        # Configuration inputs
+        solara.InputText(
+            label="Local sequence file directory (path to folder containing .gz files)",
+            value=seq_dir,
+            continuous_update=False,
+        )
+        solara.InputText(
+            label="Remote subdirectory on FTP (optional, leave blank for root)",
+            value=remote_dir,
+            continuous_update=False,
+        )
+
+        solara.HTML(tag="hr")
+
+        can_act = bool(_webin_username()) and bool(_webin_password()) and not is_processing.value
+
+        with solara.Row():
+            solara.Button(
+                "List Remote Files",
+                on_click=action_list_remote,
+                disabled=not can_act,
+            )
+            solara.Button(
+                "Check File Presence",
+                on_click=action_check_presence,
+                disabled=not can_act,
+            )
+            solara.Button(
+                "Upload Missing Files",
+                on_click=action_upload_missing,
+                color="primary",
+                disabled=not can_act,
+            )
+            if is_processing.value:
+                solara.Button(
+                    "Cancel",
+                    on_click=action_cancel,
+                    color="error",
+                )
+
+        if is_processing.value:
+            prog = upload_progress.value
+            if prog is not None:
+                fname, done, total = prog
+                pct = (done / total * 100) if total > 0 else 0
+                done_mb = done / (1024 ** 2)
+                total_mb = total / (1024 ** 2)
+                solara.Text(f"{fname} — {done_mb:.1f} / {total_mb:.1f} MB ({pct:.0f}%)")
+                solara.ProgressLinear(value=pct, color="primary")
+            else:
+                solara.ProgressLinear(True)
+
+        if status_messages.value:
+            with solara.Card("Log"):
+                render_status_log()
 

@@ -244,7 +244,7 @@ class WebinAPI:
             Submit a single Webin v2 XML document of the form:
 
             <WEBIN>
-                <SUBMISSION_SET>...</SUBMISSION_SET>
+                <SUBMISSION>...</SUBMISSION>
                 [<PROJECT_SET>...</PROJECT_SET>]
                 [<SAMPLE_SET>...</SAMPLE_SET>]
                 [<EXPERIMENT_SET>...</EXPERIMENT_SET>]
@@ -301,7 +301,9 @@ class WebinAPI:
             >>> else:
             ...     print(f"Errors: {receipt.get_errors()}")
         """
-        return parse_receipt_xml(response.text)
+        receipt = parse_receipt_xml(response.text)
+        receipt.raw_text = response.text
+        return receipt
     
     def get_receipt_summary(self, response: requests.Response) -> str:
         """

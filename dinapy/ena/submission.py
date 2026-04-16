@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
 import logging
 import os
+import time
 from dotenv import load_dotenv
 
 from dinapy.apis.webin_api.webin_api import WebinAPI
@@ -477,11 +478,49 @@ class ENASubmissionWorkflow:
         
         return self.api.parse_receipt(resp)
     
+    def _validate_xml(
+        self,
+        label: str,
+        submission_alias: str,
+        **xml_kwargs,
+    ) -> None:
+        """
+        Send XML to ENA with action=VALIDATE and raise ValueError if it fails.
+
+        Args:
+            label: Human-readable name for error messages (e.g. "experiment").
+            submission_alias: Alias to use for the validation submission.
+            **xml_kwargs: Keyword arguments forwarded to ``api.submit_xml``
+                          (e.g. ``experiment_xml=...``, ``run_xml=...``).
+
+        Raises:
+            ValueError: If ENA reports validation errors.
+        """
+        val_submission_xml = build_submission_xml_from_model(
+            submission_alias=f"{submission_alias}_validate",
+            action="VALIDATE",
+        )
+        logger.info(f"Pre-validating {label} XML with ENA VALIDATE action")
+        val_resp = self.api.submit_xml(
+            submission_xml=val_submission_xml,
+            test=self.test,
+            **xml_kwargs,
+        )
+        val_receipt = self.api.parse_receipt(val_resp)
+        if not val_receipt.success:
+            errors = val_receipt.get_errors()
+            raise ValueError(
+                f"ENA validation failed for {label}: "
+                + (";".join(errors) if errors else "(no error detail returned)")
+            )
+        logger.info(f"{label.capitalize()} XML passed ENA pre-validation")
+
     def submit_experiment(
         self,
         experiment: Experiment,
         submission_alias: Optional[str] = None,
-        action: Union[ActionType, str] = ActionType.ADD
+        action: Union[ActionType, str] = ActionType.ADD,
+        validate_first: bool = False,
     ) -> ENAReceipt:
         """
         Submit an experiment to ENA via drop-box XML API.
@@ -495,6 +534,9 @@ class ENASubmissionWorkflow:
                 - VALIDATE: Validate XML without submitting
                 
                 WARNING: For initial submissions, always use ADD (default).
+            validate_first: If True, send the XML with action=VALIDATE before
+                the real submission. Raises ValueError if ENA rejects the XML,
+                allowing callers to abort early before any objects are persisted.
             
         Returns:
             Parsed ENAReceipt object
@@ -511,12 +553,21 @@ class ENASubmissionWorkflow:
                 f"For NEW submissions, use action=ActionType.ADD (default)."
             )
         
+        experiment_xml = build_experiment_xml_from_model(experiment)
+
+        # Pre-validate before committing
+        if validate_first and action_str not in ("VALIDATE",):
+            self._validate_xml(
+                label="experiment",
+                submission_alias=submission_alias,
+                experiment_xml=experiment_xml,
+            )
+
         # Build XML using xml_builder functions
         submission_xml = build_submission_xml_from_model(
             submission_alias=submission_alias,
             action=action_str
         )
-        experiment_xml = build_experiment_xml_from_model(experiment)
         
         logger.info(f"Submitting experiment '{experiment.alias}' via drop-box XML API")
         resp = self.api.submit_xml(
@@ -532,7 +583,8 @@ class ENASubmissionWorkflow:
         run: Run,
         submission_alias: Optional[str] = None,
         center_name: Optional[str] = None,
-        action: Union[ActionType, str] = ActionType.ADD
+        action: Union[ActionType, str] = ActionType.ADD,
+        validate_first: bool = False,
     ) -> ENAReceipt:
         """
         Submit a run to ENA via drop-box XML API.
@@ -550,6 +602,9 @@ class ENASubmissionWorkflow:
                 - VALIDATE: Validate XML without submitting
                 
                 WARNING: For initial submissions, always use ADD (default).
+            validate_first: If True, send the XML with action=VALIDATE before
+                the real submission. Raises ValueError if ENA rejects the XML,
+                allowing callers to abort before any objects are persisted.
             
         Returns:
             Parsed ENAReceipt object
@@ -566,13 +621,22 @@ class ENASubmissionWorkflow:
                 f"For NEW submissions, use action=ActionType.ADD (default)."
             )
         
+        run_xml = build_run_xml_from_model(run)
+
+        # Pre-validate before committing
+        if validate_first and action_str not in ("VALIDATE",):
+            self._validate_xml(
+                label="run",
+                submission_alias=submission_alias,
+                run_xml=run_xml,
+            )
+
         # Build XML
         submission_xml = build_submission_xml_from_model(
             submission_alias=submission_alias,
             center_name=center_name,
             action=action_str
         )
-        run_xml = build_run_xml_from_model(run)
         
         logger.info(f"Submitting run '{run.alias}' via drop-box XML API")
         resp = self.api.submit_xml(
@@ -733,6 +797,90 @@ class ENASubmissionWorkflow:
         logger.info(f"Upload complete: {result['uploaded']} files uploaded")
         return result
     
+    def update_study_action(
+        self,
+        accession: str,
+        action: Union[ActionType, str],
+        hold_until_date: Optional[str] = None,
+        submission_alias: Optional[str] = None,
+    ) -> ENAReceipt:
+        """
+        Apply a lifecycle action to an existing ENA study/project.
+
+        Use this to update the hold/embargo date (HOLD), immediately release
+        held data (RELEASE), cancel a previous submission (CANCEL), or
+        validate the action without persisting (VALIDATE).
+
+        Args:
+            accession: ENA project accession (e.g. PRJEB12345).
+            action: One of HOLD, RELEASE, CANCEL, VALIDATE (from ActionType).
+                    ADD and MODIFY are not supported here — use submit_project_xml
+                    for those.
+            hold_until_date: New hold/embargo date (YYYY-MM-DD).  Required when
+                             action is HOLD.
+            submission_alias: Optional unique alias for this submission.  A
+                              timestamped alias is auto-generated when omitted.
+
+        Returns:
+            Parsed ENAReceipt object.
+
+        Raises:
+            ValueError: If action is HOLD but hold_until_date is not provided, or
+                        if action is ADD/MODIFY (unsupported by this method).
+
+        Example:
+            # Release a previously held study immediately
+            receipt = workflow.update_study_action("PRJEB12345", action="RELEASE")
+
+            # Move the embargo date forward
+            receipt = workflow.update_study_action(
+                "PRJEB12345", action="HOLD", hold_until_date="2027-01-01"
+            )
+        """
+        action_str = action.value if isinstance(action, ActionType) else str(action).upper()
+
+        if action_str in ("ADD", "MODIFY"):
+            raise ValueError(
+                f"Action '{action_str}' is not supported by update_study_action. "
+                "Use submit_project_xml() to add or modify study metadata."
+            )
+
+        if action_str == "HOLD" and not hold_until_date:
+            raise ValueError("hold_until_date is required for HOLD action.")
+
+        submission_alias = submission_alias or (
+            f"sub_{action_str.lower()}_{accession}_{int(time.time())}"
+        )
+
+        # Build the action dict.  The 'target' attribute on the element tells ENA
+        # which object to affect; HoldUntilDate is added for HOLD.
+        action_config: Dict[str, Any] = {"type": action_str, "target": accession}
+        if action_str == "HOLD":
+            action_config["HoldUntilDate"] = hold_until_date
+
+        submission_xml = build_submission_xml_from_model(
+            submission_alias=submission_alias,
+            action=[action_config],
+        )
+
+        logger.info(f"Applying {action_str} action to study {accession}")
+        logger.debug("Submission XML:\n%s", submission_xml)
+        try:
+            resp = self.api.submit_webin_xml(
+                submission_xml=submission_xml,
+                path="/submit",
+            )
+        except Exception as e:
+            # Attach the generated XML so callers can display it for debugging
+            e._submission_xml = submission_xml
+            raise
+        logger.debug("Response status: %s", resp.status_code)
+        logger.debug("Response body:\n%s", resp.text)
+        receipt = self.api.parse_receipt(resp)
+        # Attach generated XML for GUI-level debugging
+        receipt._submission_xml = submission_xml
+        return receipt
+
     def _parse_json_response(self, response, object_type: str) -> ENAReceipt:
         """
         Parse JSON response from Webin v2 JSON endpoints into ENAReceipt format.
