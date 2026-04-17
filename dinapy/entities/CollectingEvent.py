@@ -29,7 +29,7 @@ class CollectingEventDTOBuilder:
 		return self
 
 	def relationships(self, relationships):
-		self._relationships = relationships.to_dict()
+		self._relationships = relationships
 		return self
 
 	def build(self):

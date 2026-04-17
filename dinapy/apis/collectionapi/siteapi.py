@@ -1,11 +1,11 @@
 """Defines basic Collection Module API calls"""
-from dinapy.dinaapi import DinaAPI
+from .collectionapi import CollectionModuleApi
 
-class SiteApi(DinaAPI):
+class SiteApi(CollectionModuleApi):
 
 	def __init__(self, base_url: str = None) -> None:
 		super().__init__(base_url)
-		self.base_url += "collection-api/site"
+		self.base_url += "site"
 		
 	def get_entity(self, entity_id):
 		"""Retrieves an entity
