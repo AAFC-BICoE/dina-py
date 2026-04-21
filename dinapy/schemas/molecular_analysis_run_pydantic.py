@@ -14,7 +14,7 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 class MolecularAnalysisRunAttributes(BaseModel):
     createdBy: str | None = None
     createdOn: str | None = None
-    group: str | None = None
+    group: str
     name: str | None = None
 
 

@@ -17,8 +17,8 @@ class ProjectAttributes(BaseModel):
     createdBy: str | None = None
     createdOn: datetime | None = None
     contributors: list[dict[str, Any]] | None = None
-    group: str | None = None
-    name: str | None = None
+    group: str
+    name: str
     startDate: str | None = None
     endDate: str | None = None
     status: str | None = None

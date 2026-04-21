@@ -15,7 +15,7 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 class SplitConfigurationAttributes(BaseModel):
     createdBy: str | None = None
     createdOn: datetime | None = None
-    group: str | None = None
+    group: str
     name: str | None = None
     strategy: str | None = None
     conditionalOnMaterialSampleTypes: list[str] | None = None

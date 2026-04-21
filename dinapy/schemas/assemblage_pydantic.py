@@ -16,7 +16,7 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 class AssemblageAttributes(BaseModel):
     createdBy: str | None = None
     createdOn: datetime | None = None
-    group: str | None = None
+    group: str
     name: str | None = None
     managedAttributes: dict[str, Any] | None = None
     multilingualTitle: dict[str, Any] | None = None

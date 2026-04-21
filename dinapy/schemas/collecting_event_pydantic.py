@@ -47,7 +47,7 @@ class CollectingEventAttributes(BaseModel):
     createdOn: datetime | None = None
 
     # Core fields
-    group: str | None = None
+    group: str
     startEventDateTime: str | None = None
     endEventDateTime: str | None = None
     verbatimEventDateTime: str | None = None

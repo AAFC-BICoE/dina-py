@@ -16,7 +16,7 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 class MetadataAttributes(BaseModel):
     createdOn: datetime | None = None
     createdBy: str | None = None
-    bucket: str | None = None
+    bucket: str
     filename: str | None = None
     fileIdentifier: str | None = None
     fileExtension: str | None = None

@@ -14,12 +14,12 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 
 
 class PersonAttributes(BaseModel):
-    displayName: str | None = None
+    displayName: str
+    familyNames: str
     email: str | None = None
     createdBy: str | None = None
     createdOn: datetime | None = None
     givenNames: str | None = None
-    familyNames: str | None = None
     aliases: list[str] | None = None
     webpage: str | None = None
     remarks: str | None = None

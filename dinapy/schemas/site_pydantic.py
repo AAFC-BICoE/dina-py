@@ -16,8 +16,8 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 class SiteAttributes(BaseModel):
     createdOn: datetime | None = None
     createdBy: str | None = None
-    group: str | None = None
-    name: str | None = None
+    group: str
+    name: str
     code: str | None = None
     siteGeom: dict[str, Any] | None = None
     multilingualDescription: dict[str, Any] | None = None

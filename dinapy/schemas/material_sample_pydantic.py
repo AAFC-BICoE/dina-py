@@ -15,7 +15,7 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 
 class MaterialSampleAttributes(BaseModel):
     version: int | None = None
-    group: str | None = None
+    group: str
     createdOn: datetime | None = None
     createdBy: str | None = None
     dwcCatalogNumber: str | None = None

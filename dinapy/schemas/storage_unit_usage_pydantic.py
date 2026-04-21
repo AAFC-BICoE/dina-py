@@ -14,10 +14,10 @@ from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 
 class StorageUnitUsageAttributes(BaseModel):
     usageType: str | None = None
-    wellRow: str | None = None
-    wellColumn: int | None = None
+    wellRow: str
+    wellColumn: int
+    storageUnitName: str
     cellNumber: int | None = None
-    storageUnitName: str | None = None
     createdOn: datetime | None = None
     createdBy: str | None = None
 
