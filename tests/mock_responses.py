@@ -1,3 +1,12 @@
+TEST_ENV_VARS = {
+	"KEYCLOAK_USERNAME": "test-user",
+	"KEYCLOAK_PASSWORD": "test-password",
+	"KEYCLOAK_URL": "https://keycloak.example.com",
+	"CLIENT_ID": "test-client",
+	"REALM_NAME": "test-realm",
+	"SECURE": "true",
+}
+
 MOCK_VALID_COLLECTING_EVENT_DATA = {
 	"data": {
 		"id": "f08516e5-add2-4baa-89bc-5b8abd0ec8ba",
