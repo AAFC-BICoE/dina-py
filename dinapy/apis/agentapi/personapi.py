@@ -4,7 +4,6 @@
 import logging
 
 from ...dinaapi import DinaAPI
-from dinapy.schemas.personschema import PersonSchema
 
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""
@@ -19,9 +18,55 @@ class PersonAPI(DinaAPI):
         super().__init__(base_url)
         self.base_url += "agent-api/person"
 
-    # TODO: return deserialized object or return response or model (Person object)?
+    # ── Standard CRUD interface (used by DinaResource façade) ─────────────────
+
+    def get_entity(self, entity_id: str):
+        """Retrieve one person by UUID."""
+        full_url = self.base_url + "/" + str(entity_id)
+        try:
+            return self.get_req_dina(full_url)
+        except Exception as exc:
+            logging.error(f"Failed to find person with UUID {entity_id}: {exc}")
+            raise
+
+    def create_entity(self, json_data: dict):
+        """Create a new person."""
+        try:
+            return self.post_req_dina(self.base_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to create person: {exc}")
+            raise
+
+    def update_entity(self, entity_id: str, json_data: dict):
+        """Update a person by UUID using PATCH."""
+        full_url = self.base_url + "/" + str(entity_id)
+        try:
+            return self.patch_req_dina(full_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to update person with UUID {entity_id}: {exc}")
+            raise
+
+    def remove_entity(self, entity_id: str):
+        """Delete a person by UUID."""
+        full_url = self.base_url + "/" + str(entity_id)
+        try:
+            return self.delete_req_dina(full_url)
+        except Exception as exc:
+            logging.error(f"Failed to delete person with UUID {entity_id}: {exc}")
+            raise
+
+    def get_entity_by_param(self, param: dict = None):
+        """List persons filtered by params."""
+        try:
+            return self.get_req_dina(self.base_url, params=param)
+        except Exception as exc:
+            logging.error(f"Failed to list persons with params {param}: {exc}")
+            raise
+
+    # ── Legacy methods (kept for backward compatibility) ──────────────────────
+
     def find(self, uuid: str) -> dict:
-        """Returns the deserialized GET response of a person with the given UUID.
+        """Returns the GET response of a person with the given UUID.
 
         Parameters:
             uuid (str): The UUID of the person to find.
@@ -29,7 +74,7 @@ class PersonAPI(DinaAPI):
         Returns:
             dict: A deserialized object of the Person GET response.
         """
-        full_url = self.base_url + uuid
+        full_url = self.base_url + "/" + uuid
 
         try:
             response_data = self.get_req_dina(full_url)
@@ -37,10 +82,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to find person with UUID {uuid}: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
+        return response_data.json()
     
     def bulk_update(self, json_data: dict) -> dict:
         """Updates person records providing a bulk payload using a PATCH request.
@@ -115,10 +157,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to create person: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
+        return response_data.json()
 
     def delete(self, uuid: str) -> None:
         """Deletes a person with the given UUID.
@@ -154,7 +193,4 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to update person with UUID {uuid}: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
+        return response_data.json()

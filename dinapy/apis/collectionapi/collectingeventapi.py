@@ -1,7 +1,6 @@
 """Class that extracts common functionality for collecting event entity"""
 
 from .collectionapi import CollectionModuleApi
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
 import logging
 
 class CollectingEventAPI(CollectionModuleApi):

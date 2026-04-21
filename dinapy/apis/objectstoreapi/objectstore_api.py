@@ -2,13 +2,12 @@
 
 import logging
 from dinapy.dinaapi import DinaAPI
-from dinapy.entities.Relationships import RelationshipDTO
 from datetime import datetime
 import os
 
 from requests import HTTPError
-from dinapy.entities.Metadata import MetadataDTOBuilder
-from dinapy.schemas.metadata_schema import MetadataSchema
+from dinapy.schemas.metadata_pydantic import MetadataDocument, MetadataData, MetadataAttributes
+from dinapy.schemas.pydantic_base import RelationshipData, RelationshipLinkage
 
 class ObjectStoreAPI(DinaAPI):
     def __init__(self, base_url: str = None) -> None:
@@ -140,18 +139,14 @@ class ObjectStoreAPI(DinaAPI):
                 "relationships",
                 "dcCreator",
             )
-            relationships = (
-                RelationshipDTO.Builder()
-                .add_relationship(
-                    "acMetadataCreator",
-                    "person",
-                    acMetadataCreator.get("data").get("id"),
-                )
-                .add_relationship(
-                    "dcCreator", "person", dcCreator.get("data").get("id")
-                )
-                .build()
-            )
+            relationships = {
+                "acMetadataCreator": RelationshipLinkage(
+                    type="person", id=acMetadataCreator.get("data").get("id")
+                ),
+                "dcCreator": RelationshipLinkage(
+                    type="person", id=dcCreator.get("data").get("id")
+                ),
+            }
 
             # Get the creation time as a float
             acDigitizationDate = os.path.getctime(path)
@@ -168,17 +163,17 @@ class ObjectStoreAPI(DinaAPI):
             attributes["bucket"] = upload_file_response.get("data").get("attributes").get("bucket")
             attributes["fileIdentifier"] = upload_file_response.get("data").get("id")
             attributes["acDigitizationDate"] = localizedAcDigitizationDate
-
-            dto = (
-                MetadataDTOBuilder()
-                .set_attributes(attributes)
-                .set_relationships(relationships)
-                .build()
-            )
-
-            schema = MetadataSchema()
-
-            serialized_metadata = schema.dump(dto)
+            
+            serialized_metadata = MetadataDocument(
+                data=MetadataData(
+                    type="metadata",
+                    attributes=MetadataAttributes(**attributes.items()),
+                    relationships={
+                        name: RelationshipData(data=linkage)
+                        for name, linkage in relationships.items()
+                    },
+                )
+            ).serialize()
 
             try:
                 response = self.create_entity(serialized_metadata, "metadata")

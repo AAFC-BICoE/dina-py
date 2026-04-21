@@ -80,3 +80,18 @@ class SeqDBApi(DinaAPI):
 			filter_value += f'{k}=={fields[k]};'
 		new_params = {'filter[rsql]': filter_value[0:-1]}
 		return self.get_entity_by_param(new_params)
+
+	def update_entity(self, entity_id, json_data):
+		"""Updates an entity using a PATCH request.
+
+		Args:
+			entity_id (string): entity id
+			json_data (dict): JSON data to be sent in the request body.
+
+		Returns:
+			json response: updated entity, or empty string if not found
+		"""
+		entity_id = str(entity_id) if isinstance(entity_id, int) else entity_id
+		new_request_url = self.base_url + '/' + str(entity_id)
+		jsn_resp = self.patch_req_dina(new_request_url, json_data)
+		return jsn_resp if jsn_resp else ''
