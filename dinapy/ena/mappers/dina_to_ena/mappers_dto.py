@@ -1,4 +1,3 @@
-# dinapy/ena/mappers/dina_to_ena/mappers_dto.py
 """
 Mappers for converting DINA Pydantic data objects to ENA XML models.
 

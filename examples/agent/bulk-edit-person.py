@@ -2,16 +2,15 @@
 import json
 import sys
 import os
-from marshmallow.exceptions import ValidationError
+from pydantic import ValidationError
 
 # Set up the project root path to allow importing local modules
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Import DINA-related modules and utilities
-from dinapy.entities.CollectingEvent import *
 from dinapy.apis.agentapi.personapi import PersonAPI
-from dinapy.schemas.personschema import PersonSchema
+from dinapy.schemas.person_pydantic import PersonDocument
 from dinapy.utils import *
 
 # Set environment variables for authentication (replace with actual credentials or use a secure method)
@@ -29,10 +28,10 @@ def main():
     persons = []
     for record in records[:2]:
         try:
-            # Deserialize the record using Marshmallow schema
+            # Deserialize the record using Pydantic schema
             print(record)
-            person = PersonSchema().load({"data": record})
-            persons.append(person)
+            doc = PersonDocument.deserialize({"data": record})
+            persons.append(doc.data)
         except ValidationError as e:
             # Print validation errors and skip invalid records
             print(f"Validation error: {e}")
@@ -41,9 +40,9 @@ def main():
     print(f"Successfully parsed {len(persons)} persons")
 
     # Modify a specific field in each person
-    for record in persons:
-        # Set the 'lastName' attribute to a new value
-        record.attributes["familyNames"] = "test-family-name"
+    for person in persons:
+        # Set the 'familyNames' attribute to a new value
+        person.attributes.familyNames = "test-family-name"
 
     # Prepare the payload for bulk update, including only the modified field
     bulk_payload = prepare_bulk_payload(

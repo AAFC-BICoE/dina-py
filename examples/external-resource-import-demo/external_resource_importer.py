@@ -1,10 +1,8 @@
 from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreAPI
-from dinapy.entities.Metadata import MetadataAttributesDTOBuilder, MetadataDTOBuilder
-from dinapy.schemas.metadata_schema import MetadataSchema
+from dinapy.schemas.metadata_pydantic import MetadataDocument, MetadataData, MetadataAttributes
 from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
-from dinapy.entities.MaterialSample import MaterialSampleDTOBuilder, MaterialSampleAttributesDTOBuilder
-from dinapy.schemas.materialsampleschema import MaterialSampleSchema
-from dinapy.entities.Relationships import RelationshipDTO
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument, MaterialSampleData, MaterialSampleAttributes
+from dinapy.schemas.pydantic_base import RelationshipData, RelationshipLinkage
 
 import traceback
 import os
@@ -27,19 +25,25 @@ def main():
                 # Take the last split for the filename
                 file_name = line.split("/")[-1].split("\n")[0]
 
-                # Set metadata attributes
+                # Set metadata attributes and serialize
                 # Change as needed
-                metadata_attributes = MetadataAttributesDTOBuilder(                        
-                    ).set_dcType("DATASET").set_acCaption(file_name).set_acSubtype("SEQUENCE FILE"
-                    ).set_dcFormat("application/gzip").set_resourceExternalURL(f"file:/{line}").set_fileExtension(".fastq.gz"
-                    ).set_bucket("aafc").set_originalFilename(file_name).build()
-                file_metadata = MetadataDTOBuilder().set_attributes(metadata_attributes).build()
-
                 file_metadata_api = ObjectStoreAPI()
-                file_metadata_schema = MetadataSchema()
+                metadata_payload = MetadataDocument(
+                    data=MetadataData(
+                        type="metadata",
+                        attributes=MetadataAttributes(
+                            dcType="DATASET",
+                            acCaption=file_name,
+                            acSubtype="SEQUENCE FILE",
+                            dcFormat="application/gzip",
+                            resourceExternalURL=f"file:/{line}",
+                            fileExtension=".fastq.gz",
+                            bucket="aafc",
+                            originalFilename=file_name
+                        )
+                    )
+                ).serialize()
 
-                # Build Metadata JSON object
-                metadata_payload = file_metadata_schema.dump(file_metadata)
                 # Upload to DINA instance
                 extern_res_response = file_metadata_api.create_entity(metadata_payload, 'metadata')
 
@@ -49,35 +53,29 @@ def main():
                     print(extern_res_uuid, file=ff)
                 print(f"External Resource URL {extern_res_uuid} Created")
 
-                # Build relationship to External Resource
-                link_to_url = (
-                    RelationshipDTO.Builder()
-                        .add_relationship(
-                            "attachment",       # Makes an attachment relationship
-                            "metadata",         # The type of object to be attached
-                            extern_res_uuid     # Object UUID
-                        )
-                    .build()
-                )
-
                 # Get Material Sample info from file name
                 # Parsing done for a sample .txt file
                 # Change as needed
                 sample_name = file_name.split(".")[0]
 
-                # Create Material Samples
+                # Create Material Samples with relationship to External Resource (attachment)
                 material_sample_api = MaterialSampleAPI()
-                material_sample_schema = MaterialSampleSchema()
-                # Define Material Sample Attributes based on variables
-                # Change as needed
-                material_sample_attributes = MaterialSampleAttributesDTOBuilder(
-                    ).createdBy("dina-admin").group("aafc").materialSampleName(sample_name
-                    ).materialSampleRemarks(f"File Name: {file_name}").build()
-                # Build Material Sample
-                material_sample = MaterialSampleDTOBuilder(
-                    ).attributes(material_sample_attributes).relationships(link_to_url).build()
-                
-                serialized_material_sample = material_sample_schema.dump(material_sample)
+                serialized_material_sample = MaterialSampleDocument(
+                    data=MaterialSampleData(
+                        type="material-sample",
+                        attributes=MaterialSampleAttributes(
+                            createdBy="dina-admin",
+                            group="aafc",
+                            materialSampleName=sample_name,
+                            materialSampleRemarks=f"File Name: {file_name}"
+                        ),
+                        relationships={
+                            "attachment": RelationshipData(
+                                data=[RelationshipLinkage(type="metadata", id=extern_res_uuid)]
+                            )
+                        }
+                    )
+                ).serialize()
 
                 # Create DINA object
                 mat_sample_response = material_sample_api.create_entity(serialized_material_sample)
