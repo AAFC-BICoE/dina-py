@@ -12,7 +12,7 @@ from dinapy.apis.collectionapi.collectionapi import CollectionModuleApi
 
 from dinapy.entities.MaterialSample import MaterialSampleAttributesDTOBuilder, MaterialSampleDTOBuilder
 from dinapy.schemas.materialsampleschema import MaterialSampleSchema
-from mock_responses import *
+from .mock_responses import *
 
 class TestMaterialSampleAPI(unittest.TestCase):
 

@@ -114,10 +114,34 @@ sudo apt install python3-pip
 
 ## 🔧 Installation & Setup
 
+### Installation
+
+Install the package using pip:
+
+```bash
+# Basic installation
+pip install .
+
+# Editable/development mode (recommended for contributors)
+pip install -e .
+
+# With optional dependencies for Jupyter notebooks
+pip install .[notebook]
+
+# With test dependencies
+pip install .[test]
+
+# Multiple optional dependencies
+pip install -e .[notebook,test]
+```
+
+**Note:** This package uses modern Python packaging with `pyproject.toml` as the single source of truth for dependencies and metadata (PEP 517/518).
+
+### Configuration
+
 To help you configure your environment and credentials, we've provided an interactive Jupyter notebook:
 
 👉 [Installation & Setup Notebook](notebooks/installation_guide.ipynb)
-
 
 This notebook will guide you through:
 - Entering your Keycloak credentials

@@ -26,7 +26,7 @@ class DcCreator(BaseSchema):
 class MetadataSchema(Schema):
     """Schema for a Metadata used for serializing and deserializing JSON."""
 
-    id = fields.Str(load_only=True, )
+    id = fields.Str()
     createdOn = SkipUndefinedField(
         fields.DateTime, load_only=True, attribute="attributes.createdOn"
     )

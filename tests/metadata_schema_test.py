@@ -1,3 +1,4 @@
+import json
 import unittest
 import pprint
 
@@ -106,15 +107,17 @@ class MetadataSchemaTest(unittest.TestCase):
         schema = MetadataSchema()
 
         serialized_metadata = schema.dump(dto)
+
+        print("Serialized Metadata:", serialized_metadata)
         expected = {
             "data": {
-                # "id": "0190e0df-abef-7cf5-baa2-9453ec6f012d",
                 "type": "metadata",
+                "id": None,
                 "attributes": {
+                    "filename": "test_filename",
                     "bucket": "aafc",
                     "fileIdentifier": "0190e0df-0809-71a3-b8e5-036cfbfec914",
                     "fileExtension": ".png",
-                    "filename": "test_filename",
                     "resourceExternalURL": None,
                     "dcFormat": "image/png",
                     "dcType": "IMAGE",
@@ -134,19 +137,21 @@ class MetadataSchemaTest(unittest.TestCase):
                 "relationships": {
                     "acMetadataCreator": {
                         "data": {
-                            "id": "3c47203f-9833-4945-b673-ece4e3bd4f9a",
                             "type": "person",
+                            "id": "3c47203f-9833-4945-b673-ece4e3bd4f9a",
                         }
                     },
                     "dcCreator": {
                         "data": {
-                            "id": "afcf0bcc-c6c8-40c5-b97b-1855ce5d1729",
                             "type": "person",
+                            "id": "afcf0bcc-c6c8-40c5-b97b-1855ce5d1729",
                         }
                     },
                 },
             },
         }
+        print("Expected Metadata:", expected)
+        print("Pretty Printed Serialized Metadata:", json.dumps(serialized_metadata, indent=4))
         self.assertIsInstance(serialized_metadata, dict)
         self.assertDictEqual(serialized_metadata, expected)
 
