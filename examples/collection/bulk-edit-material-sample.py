@@ -29,7 +29,7 @@ def main():
     for record in records[:5]:  # Limit to first 5 records for testing
         try:
             # Deserialize the record using Pydantic schema
-            doc = MaterialSampleDocument.deserialize({"data": record})
+            doc = MaterialSampleDocument.deserialize(record)
             material_samples.append(doc.data)
         except ValidationError as e:
             # Print validation errors and skip invalid records

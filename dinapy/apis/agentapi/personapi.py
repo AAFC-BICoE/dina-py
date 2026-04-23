@@ -18,8 +18,6 @@ class PersonAPI(DinaAPI):
         super().__init__(base_url)
         self.base_url += "agent-api/person"
 
-    # ── Standard CRUD interface (used by DinaResource façade) ─────────────────
-
     def get_entity(self, entity_id: str):
         """Retrieve one person by UUID."""
         full_url = self.base_url + "/" + str(entity_id)

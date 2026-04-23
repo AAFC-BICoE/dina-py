@@ -29,7 +29,7 @@ def main():
     for record in records[:10]:
         try:
             # Deserialize the record using Pydantic schema
-            doc = CollectingEventDocument.deserialize({"data": record})
+            doc = CollectingEventDocument.deserialize(record)
             collecting_events.append(doc.data)
         except ValidationError as e:
             # Print validation errors and skip invalid records
