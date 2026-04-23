@@ -129,19 +129,30 @@ class SearchAPI(DinaAPI):
         if not filename_stem:
             return {}
 
+        # Some records store the filename in `originalFilename`, others (e.g.
+        # external-resource records created by migration) store it in `filename`
+        # with `originalFilename` left null.  Search both fields so either case
+        # is matched.
+        wildcard_clause = {
+            "value": f"*{filename_stem}*",
+            "case_insensitive": True,
+        }
         query_body = {
             "query": {
                 "bool": {
-                    "must": [
+                    "should": [
                         {
                             "wildcard": {
-                                "data.attributes.originalFilename.keyword": {
-                                    "value": f"*{filename_stem}*",
-                                    "case_insensitive": True,
-                                }
+                                "data.attributes.originalFilename.keyword": wildcard_clause,
                             }
-                        }
-                    ]
+                        },
+                        {
+                            "wildcard": {
+                                "data.attributes.filename.keyword": wildcard_clause,
+                            }
+                        },
+                    ],
+                    "minimum_should_match": 1,
                 }
             },
             "size": size,
@@ -150,6 +161,7 @@ class SearchAPI(DinaAPI):
                     "data.id",
                     "data.type",
                     "data.attributes.originalFilename",
+                    "data.attributes.filename",
                     "data.attributes.bucket",
                 ]
             },

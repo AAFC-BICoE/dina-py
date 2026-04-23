@@ -44,11 +44,26 @@ class ReadUploader:
     # Utilities
     # -----------------------
     @staticmethod
-    def compute_md5(path: Path, chunk_size: int = 4 * 1024 * 1024) -> str:
-        """Return MD5 hex digest for `path` with optional progress bar."""
+    def compute_md5(
+        path: Path,
+        chunk_size: int = 4 * 1024 * 1024,
+        cancel_event=None,
+        progress_callback=None,
+    ) -> str:
+        """Return MD5 hex digest for `path`.
+
+        Args:
+            path: Path to the file.
+            chunk_size: Read chunk size in bytes.
+            cancel_event: Optional ``threading.Event``. When set, raises
+                ``InterruptedError`` so the caller can handle cancellation.
+            progress_callback: Optional callable ``(bytes_done: int, total_bytes: int)``
+                invoked after every chunk so callers can report progress.
+        """
         h = hashlib.md5()
         file_size = path.stat().st_size
-        
+        bytes_done = 0
+
         with path.open("rb") as fh:
             if HAS_TQDM and file_size > 10 * 1024 * 1024:  # Show progress for files > 10MB
                 with tqdm(
@@ -59,12 +74,22 @@ class ReadUploader:
                     desc=f"Computing MD5 for {path.name}"
                 ) as pbar:
                     for chunk in iter(lambda: fh.read(chunk_size), b""):
+                        if cancel_event is not None and cancel_event.is_set():
+                            raise InterruptedError("MD5 computation cancelled")
                         h.update(chunk)
+                        bytes_done += len(chunk)
                         pbar.update(len(chunk))
+                        if progress_callback is not None:
+                            progress_callback(bytes_done, file_size)
             else:
                 for chunk in iter(lambda: fh.read(chunk_size), b""):
+                    if cancel_event is not None and cancel_event.is_set():
+                        raise InterruptedError("MD5 computation cancelled")
                     h.update(chunk)
-        
+                    bytes_done += len(chunk)
+                    if progress_callback is not None:
+                        progress_callback(bytes_done, file_size)
+
         return h.hexdigest()
 
     @staticmethod

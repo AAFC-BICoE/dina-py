@@ -71,6 +71,8 @@ from dinapy.ena.upload import ReadUploader
 def ENAWorkflowGUI():
     """Sequence-oriented GUI for the DINA → ENA submission workflow."""
 
+    import threading
+
     solara.lab.ThemeToggle()
 
     # ── Navigation ─────────────────────────────────────────────────────────
@@ -118,12 +120,20 @@ def ENAWorkflowGUI():
     # Pre-mapped ENA sample data (fetched + mapped in precompute step; editable by user).
     # Structure: List[{stem, samples: [{alias, title, taxon_id, attributes: [{tag, value}]}]}]
     mapped_entries_preview = solara.use_reactive([])
+    # Phase-1 results: entries after directory scan + FTP check (before MD5 / DINA lookup)
+    ftp_scanned_entries = solara.use_reactive([])
+    # Stems the user has selected to proceed with MD5 + DINA lookup
+    selected_stems = solara.use_reactive([])
+    # Snapshot of status_messages captured at the end of run_md5_and_lookup;
+    # preserved so Step 4 can show the scan/lookup log for inspection.
+    scan_log_messages = solara.use_reactive([])
 
     # ── Submit state ───────────────────────────────────────────────────────
     project_accession = solara.use_reactive("")
     project_receipt = solara.use_reactive(None)
     status_messages = solara.use_reactive([])
     is_processing = solara.use_reactive(False)
+    cancel_event = solara.use_ref(threading.Event())
 
     # ── Step labels ─────────────────────────────────────────────────────
     STEP_NAMES = [
@@ -254,291 +264,382 @@ def ENAWorkflowGUI():
     # Step 3 action: Scan → FTP check → MD5 → DINA lookup
     # ══════════════════════════════════════════════════════════════════════════
 
-    def scan_verify_and_lookup() -> None:
-        """Scan directory, verify files on FTP, compute MD5s, look up DINA samples."""
+    # ══════════════════════════════════════════════════════════════════════════
+    # Step 3 helpers: entry selection
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _select_all_entries() -> None:
+        selected_stems.value = [e["stem"] for e in ftp_scanned_entries.value]
+
+    def _clear_all_entries() -> None:
+        selected_stems.value = []
+
+    def _toggle_entry(stem: str, checked: bool) -> None:
+        current = list(selected_stems.value)
+        if checked and stem not in current:
+            selected_stems.value = current + [stem]
+        elif not checked and stem in current:
+            selected_stems.value = [s for s in current if s != stem]
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Step 3 action — Phase 1: Scan directory + FTP check
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def scan_and_check_ftp() -> None:
+        """Phase 1: Scan directory, group entries, check FTP presence."""
+        cancel_event.current.clear()
+        is_processing.value = True
+        status_messages.value = []
+        ftp_scanned_entries.value = []
+        selected_stems.value = []
+
+        def _run():
+            try:
+                # ── 1. Scan local directory ───────────────────────────────────
+                dir_path = Path(sequence_directory.value)
+                if not dir_path.exists():
+                    add_status(f"Directory not found: {sequence_directory.value}", "error")
+                    return
+
+                matching_files = sorted(dir_path.glob(file_pattern.value))
+                if not matching_files:
+                    add_status(
+                        f"No files matching '{file_pattern.value}' found in {dir_path}", "warning"
+                    )
+                    return
+
+                add_status(f"Found {len(matching_files)} file(s) matching pattern", "info")
+
+                # ── 2. Group into sequence entries ────────────────────────────
+                entries: List[dict] = []
+
+                if library_layout_val.value == "PAIRED":
+                    pairs: dict = {}
+                    unpaired: list = []
+                    for f in matching_files:
+                        raw = f.name
+                        for ext in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
+                            if raw.endswith(ext):
+                                raw = raw[: -len(ext)]
+                                break
+                        if raw.endswith(r1_suffix.value):
+                            stem = raw[: -len(r1_suffix.value)]
+                            pairs.setdefault(stem, {})["r1"] = f
+                        elif raw.endswith(r2_suffix.value):
+                            stem = raw[: -len(r2_suffix.value)]
+                            pairs.setdefault(stem, {})["r2"] = f
+                        else:
+                            unpaired.append(f)
+
+                    for stem, pair in pairs.items():
+                        files = [f for key in ("r1", "r2") if key in pair for f in [pair[key]]]
+                        entries.append({"stem": stem, "files": files})
+
+                    for f in unpaired:
+                        add_status(f"⚠ Could not pair: {f.name} — treating as single", "warning")
+                        entries.append({"stem": f.stem, "files": [f]})
+                else:
+                    for f in matching_files:
+                        entries.append({"stem": f.stem, "files": [f]})
+
+                add_status(f"Grouped into {len(entries)} sequence entr(ies)", "info")
+
+                # ── 3. FTP check ──────────────────────────────────────────────
+                add_status(
+                    f"Connecting to ENA FTP ({_ftp_host()}) to verify files are present...", "info"
+                )
+                uploader = ReadUploader()
+                all_entry_files = [f for e in entries for f in e["files"]]
+                ftp_status: dict = {}
+                try:
+                    ftp_status = uploader.check_files_on_ftp(
+                        file_paths=all_entry_files,
+                        host=_ftp_host(),
+                        username=_webin_username(),
+                        password=_webin_password(),
+                    )
+                    found_count = sum(1 for v in ftp_status.values() if v)
+                    total_files = len(all_entry_files)
+                    level = "success" if found_count == total_files else "warning"
+                    add_status(
+                        f"FTP check: {found_count}/{total_files} file(s) found on server", level
+                    )
+                except Exception as ftp_err:
+                    add_status(f"FTP check failed: {ftp_err}", "warning")
+                    add_status("Continuing without FTP verification", "info")
+
+                # Populate on_ftp and stub remaining fields
+                for entry in entries:
+                    entry["on_ftp"] = [ftp_status.get(f.name, False) for f in entry["files"]]
+                    entry["md5s"] = [None] * len(entry["files"])
+                    entry["dina_samples"] = []
+                    entry["attachment_uuids"] = []
+                    entry.setdefault("ena_sample_accessions", [])
+                    entry.setdefault("ena_experiment_alias", None)
+                    entry.setdefault("ena_experiment_accession", None)
+                    entry.setdefault("ena_run_alias", None)
+                    entry.setdefault("ena_run_accession", None)
+
+                ftp_scanned_entries.value = entries
+                # Pre-select all entries so the user can just click Proceed if they want all
+                selected_stems.value = [e["stem"] for e in entries]
+                add_status(
+                    f"✓ FTP check complete — {len(entries)} entr(ies) found. "
+                    "Select which ones to process and click Proceed.",
+                    "success",
+                )
+
+            except Exception as e:
+                add_status(f"Fatal scan error: {e}", "error")
+                for line in traceback.format_exc().split("\n")[-6:-1]:
+                    if line.strip():
+                        add_status(f"  {line}", "error")
+            finally:
+                is_processing.value = False
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Step 3 action — Phase 2: MD5 + DINA lookup for selected entries only
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def run_md5_and_lookup() -> None:
+        """Phase 2: Compute MD5s and look up DINA samples for selected entries."""
+        cancel_event.current.clear()
         is_processing.value = True
         status_messages.value = []
 
-        try:
-            # ── 1. Scan local directory ───────────────────────────────────────
-            dir_path = Path(sequence_directory.value)
-            if not dir_path.exists():
-                add_status(f"Directory not found: {sequence_directory.value}", "error")
-                return
-
-            matching_files = sorted(dir_path.glob(file_pattern.value))
-            if not matching_files:
-                add_status(
-                    f"No files matching '{file_pattern.value}' found in {dir_path}", "warning"
-                )
-                return
-
-            add_status(f"Found {len(matching_files)} file(s) matching pattern", "info")
-
-            # ── 2. Group into sequence entries ────────────────────────────────
-            entries: List[dict] = []
-
-            if library_layout_val.value == "PAIRED":
-                pairs: dict = {}
-                unpaired: list = []
-                for f in matching_files:
-                    raw = f.name
-                    for ext in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
-                        if raw.endswith(ext):
-                            raw = raw[: -len(ext)]
-                            break
-                    if raw.endswith(r1_suffix.value):
-                        stem = raw[: -len(r1_suffix.value)]
-                        pairs.setdefault(stem, {})["r1"] = f
-                    elif raw.endswith(r2_suffix.value):
-                        stem = raw[: -len(r2_suffix.value)]
-                        pairs.setdefault(stem, {})["r2"] = f
-                    else:
-                        unpaired.append(f)
-
-                for stem, pair in pairs.items():
-                    files = [f for key in ("r1", "r2") if key in pair for f in [pair[key]]]
-                    entries.append({"stem": stem, "files": files})
-
-                for f in unpaired:
-                    add_status(f"⚠ Could not pair: {f.name} — treating as single", "warning")
-                    entries.append({"stem": f.stem, "files": [f]})
-            else:
-                for f in matching_files:
-                    entries.append({"stem": f.stem, "files": [f]})
-
-            add_status(f"Grouped into {len(entries)} sequence entr(ies)", "info")
-
-            # ── 3. FTP check ──────────────────────────────────────────────────
-            add_status(
-                f"Connecting to ENA FTP ({_ftp_host()}) to verify files are present...", "info"
-            )
-            uploader = ReadUploader()
-            all_entry_files = [f for e in entries for f in e["files"]]
-            ftp_status: dict = {}
+        def _run():
             try:
-                ftp_status = uploader.check_files_on_ftp(
-                    file_paths=all_entry_files,
-                    host=_ftp_host(),
-                    username=_webin_username(),
-                    password=_webin_password(),
-                )
-                found_count = sum(1 for v in ftp_status.values() if v)
-                total_files = len(all_entry_files)
-                level = "success" if found_count == total_files else "warning"
-                add_status(
-                    f"FTP check: {found_count}/{total_files} file(s) found on server", level
-                )
-            except Exception as ftp_err:
-                add_status(f"FTP check failed: {ftp_err}", "warning")
-                add_status("Continuing without FTP verification", "info")
+                chosen_stems = set(selected_stems.value)
+                # Deep-copy entries so we don't mutate ftp_scanned_entries
+                entries = [
+                    {k: list(v) if isinstance(v, list) else v for k, v in e.items()}
+                    for e in ftp_scanned_entries.value
+                    if e["stem"] in chosen_stems
+                ]
 
-            # ── 4. Local MD5 computation (only for files confirmed on FTP) ──────
-            add_status("Computing MD5 checksums for files confirmed on FTP...", "info")
-            md5_count = 0
-            for entry in entries:
-                entry["md5s"] = []
-                entry["on_ftp"] = []
-                for f in entry["files"]:
-                    on_ftp = ftp_status.get(f.name, False)
-                    entry["on_ftp"].append(on_ftp)
-                    if on_ftp:
-                        md5 = ReadUploader.compute_md5(f)
-                        entry["md5s"].append(md5)
-                        md5_count += 1
-                    else:
-                        entry["md5s"].append(None)
-            add_status(f"MD5 computed for {md5_count} file(s)", "info")
+                if not entries:
+                    add_status("No entries selected — please select at least one.", "warning")
+                    return
 
-            # Drop entries that have any file missing from FTP
-            entries_before = len(entries)
-            entries = [e for e in entries if all(e.get("on_ftp", []))]
-            skipped = entries_before - len(entries)
-            if skipped:
-                add_status(
-                    f"⚠ {skipped} entr(ies) excluded — file(s) not found on FTP. "
-                    f"{len(entries)} entr(ies) will proceed.",
-                    "warning",
-                )
-            if not entries:
-                add_status("No entries have all files confirmed on FTP — nothing to submit.", "warning")
-                return
+                add_status(f"Processing {len(entries)} selected entr(ies)...", "info")
 
-            # ── 5. DINA lookup ────────────────────────────────────────────────
-            add_status(
-                "Looking up DINA material samples via object-store + search API...", "info"
-            )
-            # NOTE: ObjectStoreAPI() and SearchAPI() constructors DO attempt a
-            # network connection: DinaAPI.__init__ → set_keycloak() →
-            # generate_token() → keycloak.token() (HTTP request to Keycloak).
-            dina_available = False
-            object_store_api = None
-            search_api = None
-            try:
-                from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreAPI
-                from dinapy.apis.searchapi.search_api import SearchAPI
-            except Exception as import_err:
-                add_status(
-                    f"DINA API import failed ({type(import_err).__name__}: {import_err})",
-                    "error",
-                )
-                for line in traceback.format_exc().splitlines():
-                    if line.strip():
-                        add_status(f"  {line}", "error")
+                # ── MD5 computation (only for files confirmed on FTP) ─────────
+                add_status("Computing MD5 checksums for files confirmed on FTP...", "info")
+                md5_count = 0
+                for entry in entries:
+                    for i, f in enumerate(entry["files"]):
+                        on_ftp = entry["on_ftp"][i]
+                        if on_ftp:
+                            if cancel_event.current.is_set():
+                                add_status("✗ Cancelled by user.", "warning")
+                                return
+                            size_mb = f.stat().st_size / (1024 ** 2)
+                            add_status(f"  Computing MD5 for {f.name} ({size_mb:.2f} MB)...", "info")
+                            try:
+                                md5 = ReadUploader.compute_md5(
+                                    f, cancel_event=cancel_event.current
+                                )
+                            except InterruptedError:
+                                add_status("✗ Cancelled by user during MD5.", "warning")
+                                return
+                            add_status(f"  ✓ MD5 done: {f.name}", "success")
+                            entry["md5s"][i] = md5
+                            md5_count += 1
+                add_status(f"MD5 computed for {md5_count} file(s)", "info")
 
-            if object_store_api is None and 'ObjectStoreAPI' in dir():
-                try:
-                    add_status("Initialising ObjectStoreAPI (connects to Keycloak)...", "info")
-                    object_store_api = ObjectStoreAPI()
-                    add_status("✓ ObjectStoreAPI initialised", "success")
-                except Exception as err:
+                # Drop entries with files missing from FTP
+                entries_before = len(entries)
+                entries = [e for e in entries if all(e.get("on_ftp", []))]
+                skipped = entries_before - len(entries)
+                if skipped:
                     add_status(
-                        f"ObjectStoreAPI init failed ({type(err).__name__}: {err})",
+                        f"⚠ {skipped} entr(ies) excluded — file(s) not found on FTP. "
+                        f"{len(entries)} entr(ies) will proceed.",
+                        "warning",
+                    )
+                if not entries:
+                    add_status("No entries have all files confirmed on FTP — nothing to submit.", "warning")
+                    return
+
+                # ── DINA lookup ───────────────────────────────────────────────
+                add_status(
+                    "Looking up DINA material samples via object-store + search API...", "info"
+                )
+                dina_available = False
+                object_store_api = None
+                search_api = None
+                try:
+                    from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreAPI
+                    from dinapy.apis.searchapi.search_api import SearchAPI
+                except Exception as import_err:
+                    add_status(
+                        f"DINA API import failed ({type(import_err).__name__}: {import_err})",
                         "error",
                     )
                     for line in traceback.format_exc().splitlines():
                         if line.strip():
                             add_status(f"  {line}", "error")
 
-            if search_api is None and 'SearchAPI' in dir():
-                try:
-                    add_status("Initialising SearchAPI (connects to Keycloak)...", "info")
-                    search_api = SearchAPI()
-                    add_status("✓ SearchAPI initialised", "success")
-                except Exception as err:
-                    add_status(
-                        f"SearchAPI init failed ({type(err).__name__}: {err})",
-                        "error",
-                    )
-                    for line in traceback.format_exc().splitlines():
-                        if line.strip():
-                            add_status(f"  {line}", "error")
-
-            dina_available = object_store_api is not None and search_api is not None
-            if not dina_available:
-                add_status(
-                    "DINA API unavailable — all samples will use minimal ENA records",
-                    "warning",
-                )
-
-            for entry in entries:
-                entry["dina_samples"] = []
-                entry["attachment_uuids"] = []
-                if not dina_available:
-                    continue
-
-                seen_sample_ids: set = set()
-                for f in entry["files"]:
+                if object_store_api is None and 'ObjectStoreAPI' in dir():
                     try:
-                        # Step 1: Look up attachment by filename in ObjectStore.
-                        # Use a wildcard search via the search API so that full
-                        # filenames (e.g. sample_R1.fastq.gz) are matched by the
-                        # stripped stem (e.g. sample).
-                        filename_no_ext = _get_objectstore_filename(f)  # strips ext + R1/R2
+                        add_status("Initialising ObjectStoreAPI (connects to Keycloak)...", "info")
+                        object_store_api = ObjectStoreAPI()
+                        add_status("✓ ObjectStoreAPI initialised", "success")
+                    except Exception as err:
                         add_status(
-                            f"  Searching object store for '{filename_no_ext}' (from {f.name})...",
-                            "info",
+                            f"ObjectStoreAPI init failed ({type(err).__name__}: {err})",
+                            "error",
                         )
-                        os_resp = search_api.search_object_store_by_filename(filename_no_ext)
-                        os_hits = (
-                            os_resp.get("hits", {}).get("hits", [])
-                            if os_resp
-                            else []
-                        )
-                        if not os_hits:
-                            add_status(
-                                f"    ✗ No object-store records found for '{filename_no_ext}'",
-                                "warning",
-                            )
-                            continue
+                        for line in traceback.format_exc().splitlines():
+                            if line.strip():
+                                add_status(f"  {line}", "error")
 
-                        records = [h.get("_source", {}).get("data", {}) for h in os_hits]
+                if search_api is None and 'SearchAPI' in dir():
+                    try:
+                        add_status("Initialising SearchAPI (connects to Keycloak)...", "info")
+                        search_api = SearchAPI()
+                        add_status("✓ SearchAPI initialised", "success")
+                    except Exception as err:
                         add_status(
-                            f"    ✓ Found {len(records)} object-store record(s) matching stem",
+                            f"SearchAPI init failed ({type(err).__name__}: {err})",
+                            "error",
+                        )
+                        for line in traceback.format_exc().splitlines():
+                            if line.strip():
+                                add_status(f"  {line}", "error")
+
+                dina_available = object_store_api is not None and search_api is not None
+                if not dina_available:
+                    add_status(
+                        "DINA API unavailable — entries without DINA samples will be excluded",
+                        "warning",
+                    )
+
+                for entry in entries:
+                    entry["dina_samples"] = []
+                    entry["attachment_uuids"] = []
+                    if not dina_available:
+                        continue
+
+                    seen_sample_ids: set = set()
+                    for f in entry["files"]:
+                        try:
+                            filename_no_ext = _get_objectstore_filename(f)
+                            add_status(
+                                f"  Searching object store for '{filename_no_ext}' (from {f.name})...",
+                                "info",
+                            )
+                            os_resp = search_api.search_object_store_by_filename(filename_no_ext)
+                            os_hits = (
+                                os_resp.get("hits", {}).get("hits", [])
+                                if os_resp
+                                else []
+                            )
+                            if not os_hits:
+                                add_status(
+                                    f"    ✗ No object-store records found for '{filename_no_ext}'",
+                                    "warning",
+                                )
+                                continue
+
+                            records = [h.get("_source", {}).get("data", {}) for h in os_hits]
+                            add_status(
+                                f"    ✓ Found {len(records)} object-store record(s) matching stem",
+                                "success",
+                            )
+
+                            attachment_uuid = records[0].get("id")
+                            if not attachment_uuid:
+                                add_status(f"    ✗ No attachment UUID in metadata for '{filename_no_ext}'", "warning")
+                                continue
+                            entry["attachment_uuids"].append(attachment_uuid)
+                            add_status(
+                                f"    ✓ Found attachment {attachment_uuid[:8]}... ({len(records)} record(s))", "success"
+                            )
+
+                            add_status(f"  Searching for material samples linked to attachment...", "info")
+                            search_resp = search_api.search_material_samples_by_attachment(
+                                attachment_uuid
+                            )
+                            hits = (
+                                search_resp.get("hits", {}).get("hits", [])
+                                if search_resp
+                                else []
+                            )
+
+                            if not hits:
+                                total = search_resp.get("hits", {}).get("total", {})
+                                total_value = total.get("value", 0) if isinstance(total, dict) else total
+                                add_status(f"    ✗ No material samples found for attachment (total={total_value})", "warning")
+                            else:
+                                add_status(f"    ✓ Found {len(hits)} material sample hit(s)", "success")
+
+                            for hit in hits:
+                                src = hit.get("_source", {})
+                                data_field = src.get("data", {})
+                                sample_docs = (
+                                    data_field
+                                    if isinstance(data_field, list)
+                                    else [data_field]
+                                )
+                                for sample_doc in sample_docs:
+                                    sid = sample_doc.get("id")
+                                    if sid and sid not in seen_sample_ids:
+                                        seen_sample_ids.add(sid)
+                                        entry["dina_samples"].append(sample_doc)
+
+                        except Exception as lookup_err:
+                            add_status(f"  ✗ Lookup error for {f.name}: {lookup_err}", "warning")
+
+                    if entry["dina_samples"]:
+                        names = [
+                            s.get("attributes", {}).get(
+                                "materialSampleName", s.get("id", "?")
+                            )
+                            for s in entry["dina_samples"]
+                        ]
+                        add_status(
+                            f"  {entry['stem']}: {len(entry['dina_samples'])} DINA sample(s) → "
+                            + ", ".join(names),
                             "success",
                         )
-
-                        attachment_uuid = records[0].get("id")
-                        if not attachment_uuid:
-                            add_status(f"    ✗ No attachment UUID in metadata for '{filename_no_ext}'", "warning")
-                            continue
-                        entry["attachment_uuids"].append(attachment_uuid)
+                    else:
                         add_status(
-                            f"    ✓ Found attachment {attachment_uuid[:8]}... ({len(records)} record(s))", "success"
+                            f"  {entry['stem']}: no DINA samples found — will be excluded from submission",
+                            "warning",
                         )
 
-                        # Step 2: Search for material samples linked to this attachment
-                        add_status(f"  Searching for material samples linked to attachment...", "info")
-                        search_resp = search_api.search_material_samples_by_attachment(
-                            attachment_uuid
-                        )
-                        hits = (
-                            search_resp.get("hits", {}).get("hits", [])
-                            if search_resp
-                            else []
-                        )
-                        
-                        if not hits:
-                            total = search_resp.get("hits", {}).get("total", {})
-                            total_value = total.get("value", 0) if isinstance(total, dict) else total
-                            add_status(f"    ✗ No material samples found for attachment (total={total_value})", "warning")
-                        else:
-                            add_status(f"    ✓ Found {len(hits)} material sample hit(s)", "success")
-                        
-                        for hit in hits:
-                            src = hit.get("_source", {})
-                            data_field = src.get("data", {})
-                            sample_docs = (
-                                data_field
-                                if isinstance(data_field, list)
-                                else [data_field]
-                            )
-                            for sample_doc in sample_docs:
-                                sid = sample_doc.get("id")
-                                if sid and sid not in seen_sample_ids:
-                                    seen_sample_ids.add(sid)
-                                    entry["dina_samples"].append(sample_doc)
-
-                    except Exception as lookup_err:
-                        add_status(f"  ✗ Lookup error for {f.name}: {lookup_err}", "warning")
-
-                if entry["dina_samples"]:
-                    names = [
-                        s.get("attributes", {}).get(
-                            "materialSampleName", s.get("id", "?")
-                        )
-                        for s in entry["dina_samples"]
-                    ]
+                # Drop entries with no DINA samples
+                entries_before = len(entries)
+                entries = [e for e in entries if e.get("dina_samples")]
+                excluded = entries_before - len(entries)
+                if excluded:
                     add_status(
-                        f"  {entry['stem']}: {len(entry['dina_samples'])} DINA sample(s) → "
-                        + ", ".join(names),
-                        "success",
-                    )
-                else:
-                    add_status(
-                        f"  {entry['stem']}: no DINA samples found — minimal sample will be created",
-                        "info",
+                        f"⚠ {excluded} entr(ies) excluded — no DINA samples found. "
+                        f"{len(entries)} entr(ies) will proceed.",
+                        "warning",
                     )
 
-            # ── 6. Initialise per-entry submit fields ─────────────────────────
-            for entry in entries:
-                entry.setdefault("ena_sample_accessions", [])
-                entry.setdefault("ena_experiment_alias", None)
-                entry.setdefault("ena_experiment_accession", None)
-                entry.setdefault("ena_run_alias", None)
-                entry.setdefault("ena_run_accession", None)
+                if not entries:
+                    add_status("No entries have associated DINA samples — nothing to submit.", "warning")
+                    return
 
-            sequence_entries.value = entries
-            add_status(f"✓ Scan complete — {len(entries)} entr(ies) ready for review", "success")
-            current_step.value = 4
+                sequence_entries.value = entries
+                add_status(f"✓ Processing complete — {len(entries)} entr(ies) ready for review", "success")
+                scan_log_messages.value = list(status_messages.value)
+                current_step.value = 4
 
-        except Exception as e:
-            add_status(f"Fatal scan error: {e}", "error")
-            for line in traceback.format_exc().split("\n")[-6:-1]:
-                if line.strip():
-                    add_status(f"  {line}", "error")
-        finally:
-            is_processing.value = False
+            except Exception as e:
+                add_status(f"Fatal error: {e}", "error")
+                for line in traceback.format_exc().split("\n")[-6:-1]:
+                    if line.strip():
+                        add_status(f"  {line}", "error")
+            finally:
+                is_processing.value = False
+
+        threading.Thread(target=_run, daemon=True).start()
 
     # ══════════════════════════════════════════════════════════════════════════
     # Step 5 action: Submit Study → Samples → Experiments → Runs
@@ -683,36 +784,18 @@ def ENAWorkflowGUI():
                             ena_samples.append(ena_s)
                         except Exception as map_err:
                             add_status(
-                                f"  Mapping error for DINA sample {sample_id[:8]}: {map_err} — using minimal",
-                                "warning",
+                                f"  Mapping error for DINA sample {sample_id[:8]}: {map_err} — skipping entry",
+                                "error",
                             )
-                            sname = dina_s.get("attributes", {}).get(
-                                "materialSampleName", stem
-                            )
-                            ena_samples.append(
-                                Sample(
-                                    alias=f"{sname}_{timestamp}",
-                                    title=sname,
-                                    organism=Organism(taxon_id=default_taxon_id.value),
-                                    attributes=[
-                                        Attribute(tag="collection date", value="not provided"),
-                                        Attribute(tag="geographic location (country and/or sea)", value="not provided"),
-                                    ],
-                                )
+                            raise Exception(
+                                f"Could not map DINA sample {sample_id[:8]} for {stem}: {map_err}"
                             )
                 else:
-                    add_status(f"[2/4] Creating minimal sample for {stem}...", "info")
-                    ena_samples = [
-                        Sample(
-                            alias=f"{stem}_{timestamp}",
-                            title=stem,
-                            organism=Organism(taxon_id=default_taxon_id.value),
-                            attributes=[
-                                Attribute(tag="collection date", value="not provided"),
-                                Attribute(tag="geographic location (country and/or sea)", value="not provided"),
-                            ],
-                        )
-                    ]
+                    add_status(
+                        f"[2/4] Skipping {stem} — no DINA samples found.",
+                        "warning",
+                    )
+                    continue
 
                 if len(ena_samples) == 1:
                     receipt = workflow.submit_sample_xml(
@@ -915,13 +998,6 @@ def ENAWorkflowGUI():
                     solara.Info("A minimal study will be created automatically at submission time.")
 
             with solara.Card("Defaults"):
-                solara.InputInt(
-                    label="Default NCBI Taxon ID for minimal samples",
-                    value=default_taxon_id,
-                )
-                solara.Markdown(
-                    "*256318 = metagenome. Used when no DINA sample is found for a sequence.*"
-                )
                 solara.InputText(
                     label="Hold Until Date (YYYY-MM-DD)",
                     value=hold_date,
@@ -1034,43 +1110,79 @@ def ENAWorkflowGUI():
         # ── Step 3: Verify & Lookup ────────────────────────────────────────────
         elif current_step.value == 3:
             solara.Markdown("## Step 3: Verify & Lookup")
-            solara.Markdown(
-                "Click **Run Scan & Verify** to:\n"
-                "1. Scan the local directory and group files into sequence entries\n"
-                "2. Connect to ENA FTP and confirm each file is present on the server\n"
-                "3. Compute local MD5 checksums (required for Run submission)\n"
-                "4. Look up DINA material samples linked to each file via "
-                "object-store + search API"
-            )
 
-            if sequence_entries.value:
-                with solara.Card("Scan Results"):
-                    for entry in sequence_entries.value:
+            has_scan_results = bool(ftp_scanned_entries.value)
+
+            if has_scan_results and not is_processing.value:
+                # ── Selection UI (phase 1 done, awaiting user choice) ─────────
+                solara.Markdown(
+                    "FTP check complete. Select which entries to process "
+                    "(MD5 computation + DINA lookup + submit)."
+                )
+                with solara.Card("Sequence Entries — select entries to proceed"):
+                    with solara.Row():
+                        solara.Button("Select All", on_click=_select_all_entries)
+                        solara.Button("Clear All", on_click=_clear_all_entries)
+                    solara.HTML(tag="hr")
+                    for entry in ftp_scanned_entries.value:
+                        _stem = entry["stem"]
                         ftp_ok = all(entry.get("on_ftp", [False]))
                         ftp_icon = "✓" if ftp_ok else "⚠"
-                        dina_n = len(entry.get("dina_samples", []))
-                        dina_label = (
-                            f"{dina_n} DINA sample(s)"
-                            if dina_n
-                            else "no DINA — minimal sample"
-                        )
                         file_names = ", ".join(f.name for f in entry["files"])
-                        solara.Markdown(
-                            f"**{entry['stem']}** | {file_names} | FTP: {ftp_icon} | {dina_label}"
+                        is_checked = _stem in selected_stems.value
+
+                        def _toggle(val, s=_stem):
+                            _toggle_entry(s, val)
+
+                        with solara.Row():
+                            solara.Checkbox(value=is_checked, on_value=_toggle, label="")
+                            solara.Markdown(
+                                f"**{_stem}** — {file_names} &nbsp;&nbsp; FTP: {ftp_icon}"
+                            )
+
+                if status_messages.value:
+                    with solara.Card("Scan Log"):
+                        render_status_log()
+
+                n_selected = len(selected_stems.value)
+                with solara.Row():
+                    solara.Button("← Back", on_click=lambda: setattr(current_step, "value", 2))
+                    solara.Button("Re-scan", on_click=scan_and_check_ftp)
+                    solara.Button(
+                        f"Proceed with {n_selected} Selected →",
+                        on_click=run_md5_and_lookup,
+                        color="primary",
+                        disabled=n_selected == 0,
+                    )
+
+            else:
+                # ── Initial state or phase 1/2 in progress ────────────────────
+                if not is_processing.value:
+                    solara.Markdown(
+                        "Click **Scan & Check FTP** to:\n"
+                        "1. Scan the local directory and group files into sequence entries\n"
+                        "2. Connect to ENA FTP and confirm which files are present\n\n"
+                        "You will then select which entries to process."
+                    )
+
+                if status_messages.value:
+                    with solara.Card("Log"):
+                        render_status_log()
+
+                with solara.Row():
+                    solara.Button("← Back", on_click=lambda: setattr(current_step, "value", 2))
+                    solara.Button(
+                        "Scan & Check FTP",
+                        on_click=scan_and_check_ftp,
+                        color="primary",
+                        disabled=is_processing.value,
+                    )
+                    if is_processing.value:
+                        solara.Button(
+                            "Cancel",
+                            on_click=lambda: cancel_event.current.set(),
+                            color="error",
                         )
-
-            if status_messages.value:
-                with solara.Card("Lookup Log"):
-                    render_status_log()
-
-            with solara.Row():
-                solara.Button("← Back", on_click=lambda: setattr(current_step, "value", 2))
-                solara.Button(
-                    "Run Scan & Verify",
-                    on_click=scan_verify_and_lookup,
-                    color="primary",
-                    disabled=is_processing.value,
-                )
 
         # ── Step 4: Review ─────────────────────────────────────────────────────
         elif current_step.value == 4:
@@ -1115,12 +1227,33 @@ def ENAWorkflowGUI():
                         elif dina_n == 1:
                             sample_plan = "1 DINA sample → mapped ENA sample"
                         else:
-                            sample_plan = f"Minimal sample (taxon ID: {default_taxon_id.value})"
+                            sample_plan = "⚠ No DINA samples — entry will be skipped"
                         solara.Markdown(
                             f"**{i}. {entry['stem']}**  \n"
                             f"Files: {files_str}  \n"
                             f"FTP: {ftp_str}  \n"
                             f"Samples: {sample_plan}"
+                        )
+
+            if scan_log_messages.value:
+                with solara.Details(summary="Step 3 Scan / Lookup Log"):
+                    with solara.Card():
+                        lines = "".join(
+                            f"<div style='color:{_msg_color(msg_type)};white-space:pre-wrap;word-break:break-all'>"
+                            f"[{ts}] {msg}</div>"
+                            for ts, msg_type, msg in scan_log_messages.value
+                        )
+                        solara.HTML(
+                            tag="div",
+                            unsafe_innerHTML=lines,
+                            style=(
+                                "max-height:320px;"
+                                "overflow-y:auto;"
+                                "font-family:monospace;"
+                                "font-size:0.82em;"
+                                "line-height:1.4;"
+                                "padding:6px 8px;"
+                            ),
                         )
 
             with solara.Row():
@@ -1552,13 +1685,19 @@ def FTPUploadPanel():
             ),
         )
 
-    def _check_config() -> tuple:
-        """Return (seq_dir_path, local_files, rdir, host, uploader) or raise ValueError."""
+    def _check_credentials() -> tuple:
+        """Return (rdir, host, uploader) after validating credentials only."""
         if not _webin_username() or not _webin_password():
             raise ValueError(
                 "Webin credentials not found. "
                 "Set WEBIN_USERNAME and WEBIN_PASSWORD environment variables."
             )
+        rdir = remote_dir.value.strip() or None
+        return rdir, _ftp_host(), ReadUploader()
+
+    def _check_config() -> tuple:
+        """Return (seq_dir_path, local_files, rdir, host, uploader) or raise ValueError."""
+        rdir, host, uploader = _check_credentials()
         dir_str = seq_dir.value.strip()
         if not dir_str:
             raise ValueError("Please enter a local sequence file directory.")
@@ -1568,8 +1707,7 @@ def FTPUploadPanel():
         local_files = sorted(seq_path.glob("*.gz"))
         if not local_files:
             raise ValueError(f"No .gz files found in: {seq_path}")
-        rdir = remote_dir.value.strip() or None
-        return seq_path, local_files, rdir, _ftp_host(), ReadUploader()
+        return seq_path, local_files, rdir, host, uploader
 
     def _start_action():
         """Reset cancel flag and mark processing started."""
@@ -1591,7 +1729,7 @@ def FTPUploadPanel():
 
         def _run():
             try:
-                _, _, rdir, host, uploader = _check_config()
+                rdir, host, uploader = _check_credentials()
                 add_status(f"Listing files on {host} ({_webin_username()})...", "info")
                 files = uploader.list_remote_files(
                     host=host,
@@ -1682,7 +1820,29 @@ def FTPUploadPanel():
 
                     size_mb = f.stat().st_size / (1024 ** 2)
                     add_status(f"  Computing MD5 for {f.name} ({size_mb:.2f} MB)...", "info")
-                    md5 = uploader.compute_md5(f)
+
+                    _last_pct = [-1]
+
+                    def _md5_progress(bytes_done: int, total: int, _fname=f.name) -> None:
+                        pct = int(bytes_done / total * 100) if total > 0 else 0
+                        milestone = (pct // 10) * 10
+                        if milestone > _last_pct[0]:
+                            _last_pct[0] = milestone
+                            done_mb = bytes_done / (1024 ** 2)
+                            add_status(
+                                f"    MD5 {_fname}: {milestone}% ({done_mb:.1f}/{total / (1024**2):.1f} MB)",
+                                "info",
+                            )
+
+                    try:
+                        md5 = uploader.compute_md5(
+                            f,
+                            cancel_event=cancel_event.current,
+                            progress_callback=_md5_progress,
+                        )
+                    except InterruptedError:
+                        add_status("✗ Cancelled by user during MD5.", "warning")
+                        return
 
                     # Check again after MD5 (can be slow for large files)
                     if cancel_event.current.is_set():
@@ -1763,7 +1923,9 @@ def FTPUploadPanel():
 
         solara.HTML(tag="hr")
 
-        can_act = bool(_webin_username()) and bool(_webin_password()) and not is_processing.value
+        has_creds = bool(_webin_username()) and bool(_webin_password())
+        can_act = has_creds and not is_processing.value
+        can_act_dir = can_act and bool(seq_dir.value.strip())
 
         with solara.Row():
             solara.Button(
@@ -1774,13 +1936,13 @@ def FTPUploadPanel():
             solara.Button(
                 "Check File Presence",
                 on_click=action_check_presence,
-                disabled=not can_act,
+                disabled=not can_act_dir,
             )
             solara.Button(
                 "Upload Missing Files",
                 on_click=action_upload_missing,
                 color="primary",
-                disabled=not can_act,
+                disabled=not can_act_dir,
             )
             if is_processing.value:
                 solara.Button(
