@@ -4,6 +4,7 @@
 import logging
 
 from ...dinaapi import DinaAPI
+from ...schemas.person_pydantic import PersonDocument
 
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""
@@ -70,7 +71,7 @@ class PersonAPI(DinaAPI):
             uuid (str): The UUID of the person to find.
 
         Returns:
-            dict: A deserialized object of the Person GET response.
+            response_data: json content of the response
         """
         full_url = self.base_url + "/" + uuid
 
@@ -101,7 +102,7 @@ class PersonAPI(DinaAPI):
             raise  # Re-raise the exception
 
         return response_data.json()
-    
+
     # TODO: everything below is untested
     def find_many(self, search_query: str = None, sort_order: str = None, offset: int = None, limit: int = None) -> list:
         """Retrieves a list of persons based on filters, sorting, and paging.
@@ -113,7 +114,7 @@ class PersonAPI(DinaAPI):
             limit (int, optional): Maximum number of records to return when paging (default: None).
 
         Returns:
-            list: List of deserialized objects representing persons.
+            response_data: List of dicts representing persons.
         """
         full_url = self.base_url
         params = {}
@@ -156,6 +157,27 @@ class PersonAPI(DinaAPI):
             raise  # Re-raise the exception
 
         return response_data.json()
+
+    def create_bulk(self, json_data: dict) -> dict:
+        """Creates a new person by sending a POST request.
+
+        Parameters:
+            json_data (dict): JSON data for creating a person.
+
+        Returns:
+            dict: A deserialized object of the POST response.
+        """
+        full_url = self.base_url + "/bulk/"
+
+        try:
+            response_data = self.post_req_dina(full_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to create person: {exc}")
+            raise  # Re-raise the exception
+
+        deserialized_data = [PersonDocument.deserialize({"data": item}) for item in response_data.json()["data"]]
+
+        return deserialized_data
 
     def delete(self, uuid: str) -> None:
         """Deletes a person with the given UUID.

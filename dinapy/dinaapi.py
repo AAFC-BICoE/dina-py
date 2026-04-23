@@ -61,13 +61,13 @@ class DinaAPI:
 
         # Load environment variables first
         self._load_env_vars()
-        
+
         # Check if all required environment variables are present
         if self._check_env_vars():
             self._load_config_from_env()
         else:
             self.set_configs(config_path)
-        
+
         self.set_keycloak()
 
     def _load_env_vars(self):
@@ -89,63 +89,63 @@ class DinaAPI:
             return get_ipython() is not None
         except ImportError:
             return False
-        
+
     def _load_config_from_env(self):
         """Load configuration from environment variables.
-        
+
         Raises:
             ValueError: If any required environment variable is missing or empty.
         """
         required_vars = {
             'KEYCLOAK_USERNAME': 'keycloak_username',
-            'KEYCLOAK_PASSWORD': 'keycloak_password', 
+            'KEYCLOAK_PASSWORD': 'keycloak_password',
             'KEYCLOAK_URL': 'url',
             'CLIENT_ID': 'client_id',
             'REALM_NAME': 'realm_name',
             'SECURE': 'secure'
         }
-        
+
         self.configs = {}
-        
+
         for env_var, config_key in required_vars.items():
             value = os.getenv(env_var)
             if value is None or value.strip() == '':
                 raise ValueError(f"Required environment variable {env_var} is not set or is empty")
-            
+
             if config_key == 'secure':
                 self.configs[config_key] = value.lower() in ('true', '1', 'yes', 'on')
             else:
                 self.configs[config_key] = value
-        
+
         # Set keycloak user environment variables
         os.environ["keycloak_username"] = self.configs["keycloak_username"]
         os.environ["keycloak_password"] = self.configs["keycloak_password"]
-        
+
         # Set base URL
         if self.configs["url"]:
             self.base_url = f'{self.configs["url"]}/api/'
 
     def _check_env_vars(self) -> bool:
         """Check if all required environment variables are present and not empty.
-        
+
         Returns:
             bool: True if all required environment variables are present and not empty, False otherwise.
         """
         required_vars = [
             'KEYCLOAK_USERNAME',
-            'KEYCLOAK_PASSWORD', 
+            'KEYCLOAK_PASSWORD',
             'KEYCLOAK_URL',
             'CLIENT_ID',
             'REALM_NAME',
             'SECURE'
         ]
-        
+
         for var in required_vars:
             value = os.getenv(var)
             if value is None or value.strip() == '':
                 logging.info(f"Environment variable {var} is not set or is empty, falling back to config file")
                 return False
-        
+
         return True
 
     def set_configs(self, config_path: str):
@@ -178,7 +178,7 @@ class DinaAPI:
             logging.error("Error in configuration file. Cannot execute.")
             logging.error(exc)
             raise
-        
+
     def set_keycloak(self):
         """
         Creates a Keycloak token based on configurations and environment variables.
@@ -193,7 +193,7 @@ class DinaAPI:
         if not DinaAPI.token:
             print(f'User: {os.environ.get("keycloak_username")}')
             self.generate_token()
-    
+
     def generate_token(self):
         try:
             DinaAPI.token = self.keycloak.token(
@@ -286,7 +286,7 @@ class DinaAPI:
             response.raise_for_status()  # Raise an exception for 4xx and 5xx status codes
         except requests.exceptions.RequestException as exc:
             # Handle the exception here, e.g., log the error or raise a custom exception
-            logging.error(f"Failed to fetch data from {full_url}: {exc}")
+            logging.error(f"Failed to fetch data from {full_url}: {exc} {response.text}")
             raise  # Re-raise the exception
 
         return response
