@@ -60,7 +60,7 @@ class CollectingEventSchema(Schema):
 	dwcVerbatimCoordinates = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimCoordinates")
 	dwcRecordedBy = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcRecordedBy")
 	dwcVerbatimSRS = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.dwcVerbatimSRS")
-	startEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.startEventDateTime")
+	startEventDateTime = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.startEventDateTime")
 	substrate = SkipUndefinedField(fields.Str,allow_none=True, attribute="attributes.substrate")
 	tags = SkipUndefinedField(fields.List,fields.Str(), allow_none=True, required=False, attribute="attributes.tags")
 	endEventDateTime = SkipUndefinedField(fields.DateTime,allow_none=True, attribute="attributes.endEventDateTime")
