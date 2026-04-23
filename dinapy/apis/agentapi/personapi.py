@@ -41,7 +41,7 @@ class PersonAPI(DinaAPI):
         deserialized_data = person_schema.load(response_data.json())
 
         return deserialized_data
-    
+
     def bulk_update(self, json_data: dict) -> dict:
         """Updates person records providing a bulk payload using a PATCH request.
 
@@ -61,7 +61,7 @@ class PersonAPI(DinaAPI):
             raise  # Re-raise the exception
 
         return response_data.json()
-    
+
     # TODO: everything below is untested
     def find_many(self, search_query: str = None, sort_order: str = None, offset: int = None, limit: int = None) -> list:
         """Retrieves a list of persons based on filters, sorting, and paging.
@@ -117,6 +117,32 @@ class PersonAPI(DinaAPI):
 
         person_schema = PersonSchema()
         deserialized_data = person_schema.load(response_data.json())
+
+        return deserialized_data
+
+    def create_bulk(self, json_data: dict) -> dict:
+        """Creates a new person by sending a POST request.
+
+        Parameters:
+            json_data (dict): JSON data for creating a person.
+
+        Returns:
+            dict: A deserialized object of the POST response.
+        """
+        full_url = self.base_url + "/bulk/"
+
+        try:
+            response_data = self.post_req_dina(full_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to create person: {exc}")
+            raise  # Re-raise the exception
+
+        person_schema = PersonSchema()
+        person_bulk_response = response_data.json()["data"]
+        for item in person_bulk_response:
+            if "meta" in item["attributes"]:
+                item["attributes"].pop("meta")
+        deserialized_data = [person_schema.load({"data":item}) for item in person_bulk_response]
 
         return deserialized_data
 

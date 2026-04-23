@@ -12,11 +12,11 @@ class PersonSchema(Schema):
     createdBy = SkipUndefinedField(fields.Str, load_only=True, attribute="attributes.createdBy")
     createdOn = SkipUndefinedField(fields.DateTime, load_only=True, attribute="attributes.createdOn")
     givenNames = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.givenNames")
-    familyNames = SkipUndefinedField(fields.Str, required=True, attribute="attributes.familyNames")
+    familyNames = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.familyNames")
     aliases = SkipUndefinedField(fields.List, fields.Str(), allow_none=True, required=False, attribute="attributes.aliases")
     webpage = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.webpage")
     remarks = SkipUndefinedField(fields.Str, allow_none=True, attribute="attributes.remarks")
-    
+
     identifiers = fields.Relationship(
         self_url="/api/v1/person/{id}/relationships/identifiers",
         self_url_kwargs={"id": "<id>"},
@@ -25,7 +25,7 @@ class PersonSchema(Schema):
         many=True,
         type_="identifiers",
     )
-    
+
     organizations = fields.Relationship(
         self_url="/api/v1/person/{id}/relationships/organizations",
         self_url_kwargs={"id": "<id>"},
@@ -36,7 +36,7 @@ class PersonSchema(Schema):
     )
 
     meta = fields.DocumentMeta()
-    
+
     class Meta:
         type_ = "person"
         self_url = "/api/v1/person/{id}"
@@ -46,13 +46,13 @@ class PersonSchema(Schema):
     @post_dump
     def remove_skipped_fields(self, data, many, **kwargs):
         return {key: value for key, value in data.items() if value is not SkipUndefinedField(fields.Field).SKIP_MARKER}
-    
+
     @post_dump
     def remove_meta(self, data, many, **kwargs):
         if 'meta' in data:
             del(data['meta'])
         return data
-    
+
     @post_load
     def set_none_to_undefined(self, data, **kwargs):
         for attr in data.attributes:

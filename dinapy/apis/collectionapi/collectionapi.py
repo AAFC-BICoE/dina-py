@@ -6,7 +6,7 @@ class CollectionModuleApi(DinaAPI):
 	def __init__(self, base_url: str = None) -> None:
 		super().__init__(base_url)
 		self.base_url += "collection-api/"
-		
+
 	def get_entity(self, entity_id):
 		"""Retrieves an entity
 
@@ -20,7 +20,7 @@ class CollectionModuleApi(DinaAPI):
 		new_request_url = self.base_url + '/' + str(entity_id)
 		jsn_resp = self.get_req_dina(new_request_url)
 		return jsn_resp if jsn_resp else ''
-	
+
 	def create_entity(self, json_data):
 		"""Creates a DINA collection module entity
 
@@ -31,6 +31,18 @@ class CollectionModuleApi(DinaAPI):
 			Response: The response post request
 		"""
 		return self.post_req_dina(self.base_url, json_data)
+
+	def create_bulk(self, json_data):
+		"""Creates a DINA collection module entity as bulk
+
+		Args:
+			json_data (json object): the request body with bulk data
+
+		Returns:
+			Response: The response post request
+		"""
+		new_request_url = self.base_url + '/bulk/'
+		return self.post_req_dina(new_request_url, json_data)
 
 	def get_entity_by_param(self, param):
 		jsn_resp = self.get_req_dina(self.base_url, param)
