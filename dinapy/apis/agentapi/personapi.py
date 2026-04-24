@@ -4,7 +4,7 @@
 import logging
 
 from ...dinaapi import DinaAPI
-from dinapy.schemas.personschema import PersonSchema
+from ...schemas.person_pydantic import PersonDocument
 
 class PersonAPI(DinaAPI):
     """Class for handling person DINA API requests."""
@@ -19,17 +19,61 @@ class PersonAPI(DinaAPI):
         super().__init__(base_url)
         self.base_url += "agent-api/person"
 
-    # TODO: return deserialized object or return response or model (Person object)?
+    def get_entity(self, entity_id: str):
+        """Retrieve one person by UUID."""
+        full_url = self.base_url + "/" + str(entity_id)
+        try:
+            return self.get_req_dina(full_url)
+        except Exception as exc:
+            logging.error(f"Failed to find person with UUID {entity_id}: {exc}")
+            raise
+
+    def create_entity(self, json_data: dict):
+        """Create a new person."""
+        try:
+            return self.post_req_dina(self.base_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to create person: {exc}")
+            raise
+
+    def update_entity(self, entity_id: str, json_data: dict):
+        """Update a person by UUID using PATCH."""
+        full_url = self.base_url + "/" + str(entity_id)
+        try:
+            return self.patch_req_dina(full_url, json_data)
+        except Exception as exc:
+            logging.error(f"Failed to update person with UUID {entity_id}: {exc}")
+            raise
+
+    def remove_entity(self, entity_id: str):
+        """Delete a person by UUID."""
+        full_url = self.base_url + "/" + str(entity_id)
+        try:
+            return self.delete_req_dina(full_url)
+        except Exception as exc:
+            logging.error(f"Failed to delete person with UUID {entity_id}: {exc}")
+            raise
+
+    def get_entity_by_param(self, param: dict = None):
+        """List persons filtered by params."""
+        try:
+            return self.get_req_dina(self.base_url, params=param)
+        except Exception as exc:
+            logging.error(f"Failed to list persons with params {param}: {exc}")
+            raise
+
+    # ── Legacy methods (kept for backward compatibility) ──────────────────────
+
     def find(self, uuid: str) -> dict:
-        """Returns the deserialized GET response of a person with the given UUID.
+        """Returns the GET response of a person with the given UUID.
 
         Parameters:
             uuid (str): The UUID of the person to find.
 
         Returns:
-            dict: A deserialized object of the Person GET response.
+            response_data: json content of the response
         """
-        full_url = self.base_url + uuid
+        full_url = self.base_url + "/" + uuid
 
         try:
             response_data = self.get_req_dina(full_url)
@@ -37,11 +81,8 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to find person with UUID {uuid}: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
-
+        return response_data.json()
+    
     def bulk_update(self, json_data: dict) -> dict:
         """Updates person records providing a bulk payload using a PATCH request.
 
@@ -73,7 +114,7 @@ class PersonAPI(DinaAPI):
             limit (int, optional): Maximum number of records to return when paging (default: None).
 
         Returns:
-            list: List of deserialized objects representing persons.
+            response_data: List of dicts representing persons.
         """
         full_url = self.base_url
         params = {}
@@ -115,10 +156,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to create person: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
+        return response_data.json()
 
     def create_bulk(self, json_data: dict) -> dict:
         """Creates a new person by sending a POST request.
@@ -137,12 +175,7 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to create person: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        person_bulk_response = response_data.json()["data"]
-        for item in person_bulk_response:
-            if "meta" in item["attributes"]:
-                item["attributes"].pop("meta")
-        deserialized_data = [person_schema.load({"data":item}) for item in person_bulk_response]
+        deserialized_data = [PersonDocument.deserialize({"data": item}) for item in response_data.json()["data"]]
 
         return deserialized_data
 
@@ -180,7 +213,4 @@ class PersonAPI(DinaAPI):
             logging.error(f"Failed to update person with UUID {uuid}: {exc}")
             raise  # Re-raise the exception
 
-        person_schema = PersonSchema()
-        deserialized_data = person_schema.load(response_data.json())
-
-        return deserialized_data
+        return response_data.json()

@@ -100,10 +100,10 @@ def get_dina_records_by_params(api,params,step_size=150):
     return data
 
 def prepare_bulk_payload(entities: list, include_fields: list = None, include_relationships: list = None) -> dict:
-    """Prepares a minimal bulk payload from a list of entities.
+    """Prepares a minimal bulk payload from a list of Pydantic JsonApiData entities.
     
     Args:
-        entities (list): List of entity objects to be included in bulk operation
+        entities (list): List of JsonApiData objects to be included in bulk operation
         include_fields (list, optional): List of attribute fields to include in payload.
             If None, includes all fields.
             
@@ -113,23 +113,28 @@ def prepare_bulk_payload(entities: list, include_fields: list = None, include_re
     bulk_data = []
     
     for entity in entities:
-        # Create minimal payload structure
+        attrs_dict = entity.attributes.model_dump(exclude_none=True, exclude_unset=True)
+
         minimal = {
-            "id": entity.get_id(),
-            "type": entity.get_type(),
+            "id": entity.id,
+            "type": entity.type,
             "attributes": {}
         }
         
         # Only include specified fields
         if include_fields:
             for field in include_fields:
-                if field in entity.attributes:
-                    minimal["attributes"][field] = entity.get_attributes().get(field)
+                if field in attrs_dict:
+                    minimal["attributes"][field] = attrs_dict.get(field)
+        else:
+            minimal["attributes"] = attrs_dict
+
         if include_relationships:
-                minimal["relationships"] = {}
-                for relationship in include_relationships:
-                    if relationship in entity.relationships:
-                        minimal["relationships"][relationship] = entity.get_relationships().get(relationship)
+            minimal["relationships"] = {}
+            rels = entity.relationships or {}
+            for relationship in include_relationships:
+                if relationship in rels:
+                    minimal["relationships"][relationship] = rels[relationship].model_dump(exclude_none=True)
             
         bulk_data.append(minimal)
         

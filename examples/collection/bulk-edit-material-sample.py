@@ -2,16 +2,15 @@
 import json
 import sys
 import os
-from marshmallow.exceptions import ValidationError
+from pydantic import ValidationError
 
 # Set up the project root path to allow importing local modules
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Import DINA-related modules and utilities
-from dinapy.entities.MaterialSample import *
 from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
-from dinapy.schemas.materialsampleschema import MaterialSampleSchema
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument
 from dinapy.utils import *
 
 # Set environment variables for authentication (replace with actual credentials or use a secure method)
@@ -29,9 +28,9 @@ def main():
     material_samples = []
     for record in records[:5]:  # Limit to first 5 records for testing
         try:
-            # Deserialize the record using Marshmallow schema
-            material_sample = MaterialSampleSchema().load({"data": record})
-            material_samples.append(material_sample)
+            # Deserialize the record using Pydantic schema
+            doc = MaterialSampleDocument.deserialize(record)
+            material_samples.append(doc.data)
         except ValidationError as e:
             # Print validation errors and skip invalid records
             print(f"Validation error: {e}")
@@ -39,13 +38,13 @@ def main():
 
     print(f"Successfully parsed {len(material_samples)} material samples")
 
-    # Re-initialize API and schema (optional, could reuse previous instances)
+    # Re-initialize API (optional, could reuse previous instance)
     material_sample_api = MaterialSampleAPI()
 
     # Modify a specific field in each material sample
-    for record in material_samples:
-        # Set the 'dwcVerbatimElevation' attribute to a new value
-        record.attributes["preparationRemarks"] = "test-preparation-remarks"
+    for material_sample in material_samples:
+        # Set the 'preparationRemarks' attribute to a new value
+        material_sample.attributes.preparationRemarks = "test-preparation-remarks"
 
     # Prepare the payload for bulk update, including only the modified field
     bulk_payload = prepare_bulk_payload(

@@ -2,16 +2,15 @@
 import json
 import sys
 import os
-from marshmallow.exceptions import ValidationError
+from pydantic import ValidationError
 
 # Set up the project root path to allow importing local modules
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Import DINA-related modules and utilities
-from dinapy.entities.CollectingEvent import *
 from dinapy.apis.collectionapi.collectingeventapi import CollectingEventAPI
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
+from dinapy.schemas.collecting_event_pydantic import CollectingEventDocument
 from dinapy.utils import *
 
 # Set environment variables for authentication (replace with actual credentials or use a secure method)
@@ -29,9 +28,9 @@ def main():
     collecting_events = []
     for record in records[:10]:
         try:
-            # Deserialize the record using Marshmallow schema
-            collecting_event = CollectingEventSchema().load({"data": record})
-            collecting_events.append(collecting_event)
+            # Deserialize the record using Pydantic schema
+            doc = CollectingEventDocument.deserialize(record)
+            collecting_events.append(doc.data)
         except ValidationError as e:
             # Print validation errors and skip invalid records
             print(f"Validation error: {e}")
@@ -39,14 +38,13 @@ def main():
 
     print(f"Successfully parsed {len(collecting_events)} collecting events")
 
-    # Re-initialize API and schema (optional, could reuse previous instances)
+    # Re-initialize API (optional, could reuse previous instance)
     collecting_event_api = CollectingEventAPI()
-    collecting_event_schema = CollectingEventSchema()
 
     # Modify a specific field in each collecting event
-    for record in collecting_events:
+    for collecting_event in collecting_events:
         # Set the 'dwcVerbatimElevation' attribute to a new value
-        record.attributes["dwcVerbatimElevation"] = "0.15"
+        collecting_event.attributes.dwcVerbatimElevation = "0.15"
 
     # Prepare the payload for bulk update, including only the modified field
     bulk_payload = prepare_bulk_payload(

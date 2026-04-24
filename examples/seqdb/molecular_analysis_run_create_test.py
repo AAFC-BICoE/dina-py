@@ -10,35 +10,42 @@ sys.path.insert(0, project_root)
 
 # Molecular Analysis Run Imports
 from dinapy.apis.seqdbapi.molecular_analysis_run_api import MolecularAnalysisRunApi
-from dinapy.entities.MolecularAnalysisRun import MolecularAnalysisRunDTOBuilder, MolecularAnalysisRunAttributesDTOBuilder
-from dinapy.schemas.molecular_analysis_run_schema import MolecularAnalysisRunSchema
+from dinapy.schemas.molecular_analysis_run_pydantic import (
+    MolecularAnalysisRunDocument, MolecularAnalysisRunData, MolecularAnalysisRunAttributes
+)
 # Molecular Analysis Run Item Imports
 from dinapy.apis.seqdbapi.molecular_analysis_run_item_api import MolecularAnalysisRunItemApi
-from dinapy.entities.MolecularAnalysisRunItem import MolecularAnalysisRunItemDTOBuilder, MolecularAnalysisRunItemAttributesDTOBuilder
-from dinapy.schemas.molecular_analysis_run_item_schema import MolecularAnalysisRunItemSchema
+from dinapy.schemas.molecular_analysis_run_item_pydantic import (
+    MolecularAnalysisRunItemDocument, MolecularAnalysisRunItemData, MolecularAnalysisRunItemAttributes
+)
 # Seq Reaction Imports
 from dinapy.apis.seqdbapi.seqreactionapi import SeqReactionApi
-from dinapy.entities.SeqReaction import SeqReactionDTOBuilder, SeqReactionAttributesDTOBuilder
-from dinapy.schemas.seq_reaction_schema import SeqReactionSchema
+from dinapy.schemas.seq_reaction_pydantic import (
+    SeqReactionDocument, SeqReactionData, SeqReactionAttributes
+)
 # Molecular Analysis Result Imports
 from dinapy.apis.seqdbapi.molecular_analysis_result_api import MolecularAnalysisResultApi
-from dinapy.entities.MolecularAnalysisResult import MolecularAnalysisResultDTOBuilder, MolecularAnalysisResultAttributesDTOBuilder
-from dinapy.schemas.molecular_analysis_result_schema import MolecularAnalysisResultSchema
+from dinapy.schemas.molecular_analysis_result_pydantic import (
+    MolecularAnalysisResultDocument, MolecularAnalysisResultData, MolecularAnalysisResultAttributes
+)
 
-from dinapy.entities.Relationships import RelationshipDTO
+from dinapy.schemas.pydantic_base import RelationshipData, RelationshipLinkage
 
 def main():
     # Create a Molecular Analysis Run
     MOCK_RUN_NAME = "test run with results"
 
     molecular_analysis_run_api = MolecularAnalysisRunApi()
-    molecular_analysis_run_attributes = MolecularAnalysisRunAttributesDTOBuilder(
-        ).set_createdBy("dina-admin").set_name(MOCK_RUN_NAME).set_group("aafc").build()
-    molecular_analysis_run = MolecularAnalysisRunDTOBuilder(
-        ).set_attributes(molecular_analysis_run_attributes).build()
-    molecular_analysis_run_schema = MolecularAnalysisRunSchema()
-
-    serialized_molecular_analysis_run = molecular_analysis_run_schema.dump(molecular_analysis_run)
+    serialized_molecular_analysis_run = MolecularAnalysisRunDocument(
+        data=MolecularAnalysisRunData(
+            type="molecular-analysis-run",
+            attributes=MolecularAnalysisRunAttributes(
+                createdBy="dina-admin",
+                name=MOCK_RUN_NAME,
+                group="aafc"
+            )
+        )
+    ).serialize()
 
     run_response = molecular_analysis_run_api.create_entity(serialized_molecular_analysis_run)
     run_id = run_response.json()['data']['id']
@@ -48,68 +55,63 @@ def main():
     for i in range(10):
         # Create a Molecular Analysis Result
         molecular_analysis_result_api = MolecularAnalysisResultApi()
-        molecular_analysis_result_attributes = MolecularAnalysisResultAttributesDTOBuilder(
-            ).set_createdBy("dina-admin").set_group("aafc").build()
-        molecular_analysis_result = MolecularAnalysisResultDTOBuilder(
-            ).set_attributes(molecular_analysis_result_attributes).build()
-        molecular_analysis_result_schema = MolecularAnalysisResultSchema()
-
-        serialized_molecular_analysis_result = molecular_analysis_result_schema.dump(molecular_analysis_result)
+        serialized_molecular_analysis_result = MolecularAnalysisResultDocument(
+            data=MolecularAnalysisResultData(
+                type="molecular-analysis-result",
+                attributes=MolecularAnalysisResultAttributes(
+                    createdBy="dina-admin",
+                    group="aafc"
+                )
+            )
+        ).serialize()
 
         result_response = molecular_analysis_result_api.create_entity(serialized_molecular_analysis_result)
         result_id = result_response.json()['data']['id']
         print("Result " + str(i) + ": " + result_id)
 
-        # Create Relationships for each Run Item
-        run_item_relationships = (
-            RelationshipDTO.Builder()
-                .add_relationship(
-                    "molecular-analysis-run",   # Relationship Name
-                    "run",                      # Type
-                    run_id                      # UUID
-                )
-                .add_relationship(
-                    "molecular-analysis-result",    # Relationship Name
-                    "result",                       # Type
-                    result_id                       # UUID
-                )
-            .build()
-        )
-
-        # Create Molecular Analysis Run Item
+        # Create Molecular Analysis Run Item with relationships to Run and Result
         molecular_analysis_run_item_api = MolecularAnalysisRunItemApi()
-        molecular_analysis_run_item_attributes = MolecularAnalysisRunItemAttributesDTOBuilder(
-            ).set_createdBy("dina-admin").set_usageType("seq-reaction").build()
-        molecular_analysis_run_item = MolecularAnalysisRunItemDTOBuilder(
-            ).set_attributes(molecular_analysis_run_item_attributes).set_relationships(run_item_relationships).build()
-        molecular_analysis_run_item_schema = MolecularAnalysisRunItemSchema()
-
-        serialized_molecular_analysis_run_item = molecular_analysis_run_item_schema.dump(molecular_analysis_run_item)
+        serialized_molecular_analysis_run_item = MolecularAnalysisRunItemDocument(
+            data=MolecularAnalysisRunItemData(
+                type="molecular-analysis-run-item",
+                attributes=MolecularAnalysisRunItemAttributes(
+                    createdBy="dina-admin",
+                    usageType="seq-reaction"
+                ),
+                relationships={
+                    "molecular-analysis-run": RelationshipData(
+                        data=RelationshipLinkage(type="run", id=run_id)
+                    ),
+                    "molecular-analysis-result": RelationshipData(
+                        data=RelationshipLinkage(type="result", id=result_id)
+                    )
+                }
+            )
+        ).serialize()
 
         item_response = molecular_analysis_run_item_api.create_entity(serialized_molecular_analysis_run_item)
         item_id = item_response.json()['data']['id']
         print("Run Item " + str(i) + ": " + item_id)
 
-        # Create Relationships for each Seq Reaction
-        item_to_seqr_relationship = (
-            RelationshipDTO.Builder()
-                .add_relationship(
-                    "molecular-analysis-run-item",  # Relationship Name
-                    "molecular-analysis-run-item",  # Type
-                    item_id                         # UUID
-            )
-            .build()
-        )
-
-        # Create Seq Reaction
+        # Create Seq Reaction with relationship to Run Item
         seq_reaction_api = SeqReactionApi()
-        seq_reaction_attributes = SeqReactionAttributesDTOBuilder(
-            ).set_createdBy("dina-admin").set_group("aafc").build()
-        seq_reaction = SeqReactionDTOBuilder(
-            ).set_attributes(seq_reaction_attributes).set_relationships(item_to_seqr_relationship).build()
-        seq_reaction_schema = SeqReactionSchema()
-
-        serialized_seq_reaction = seq_reaction_schema.dump(seq_reaction)
+        serialized_seq_reaction = SeqReactionDocument(
+            data=SeqReactionData(
+                type="seq-reaction",
+                attributes=SeqReactionAttributes(
+                    createdBy="dina-admin",
+                    group="aafc"
+                ),
+                relationships={
+                    "molecular-analysis-run-item": RelationshipData(
+                        data=RelationshipLinkage(
+                            type="molecular-analysis-run-item",
+                            id=item_id
+                        )
+                    )
+                }
+            )
+        ).serialize()
 
         seqr_response = seq_reaction_api.create_entity(serialized_seq_reaction)
         seqr_id = seqr_response.json()['data']['id']

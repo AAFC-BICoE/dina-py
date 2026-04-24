@@ -9,8 +9,7 @@ sys.path.insert(0, project_root)
 
 from dinapy.apis.collectionapi.collectingeventapi import CollectingEventAPI
 from dinapy.apis.collectionapi.collectionapi import CollectionModuleApi
-from dinapy.entities.CollectingEvent import CollectingEventDTOBuilder, CollectingEventAttributesDTOBuilder
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
+from dinapy.schemas.collecting_event_pydantic import CollectingEventDocument, CollectingEventData, CollectingEventAttributes
 from .mock_responses import *
 
 class TestCollectingEventAPI(unittest.TestCase):
@@ -25,21 +24,21 @@ class TestCollectingEventAPI(unittest.TestCase):
 
 		dina_collecting_event_api = MockCollectionModuleApi.return_value
 
-		collecting_event_attributes = CollectingEventAttributesDTOBuilder().group("aafc").build()
-		collecting_event = CollectingEventDTOBuilder().attributes(collecting_event_attributes).build()
-		collecting_event_schema = CollectingEventSchema()
-
-		# Serialize the collecting event
-		serialized_collecting_event = collecting_event_schema.dump(collecting_event)
+		serialized_collecting_event = CollectingEventDocument(
+			data=CollectingEventData(
+				type="collecting-event",
+				attributes=CollectingEventAttributes(group="aafc"),
+			)
+		).serialize()
 
 		# Update the entity
 		response = dina_collecting_event_api.update_entity(id, serialized_collecting_event)
 
 		# Assertions
 		self.assertEqual(response.status_code, 200)
-		deserialized_collecting_event = collecting_event_schema.load(response.json())
-		self.assertEqual(deserialized_collecting_event.id, "f08516e5-add2-4baa-89bc-5b8abd0ec8ba")
-		self.assertEqual(deserialized_collecting_event.attributes["group"], "phillips-lab")
+		deserialized_collecting_event = CollectingEventDocument.deserialize(response.json())
+		self.assertEqual(deserialized_collecting_event.data.id, "f08516e5-add2-4baa-89bc-5b8abd0ec8ba")
+		self.assertEqual(deserialized_collecting_event.data.attributes.group, "phillips-lab")
 
 if __name__ == '__main__':
 	unittest.main()

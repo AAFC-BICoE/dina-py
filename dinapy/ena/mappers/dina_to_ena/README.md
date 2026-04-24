@@ -4,7 +4,7 @@ Mappers for converting DINA entities to ENA XML models for submission to the Eur
 
 ## Overview
 
-These mappers convert DINA data entities (deserialized via schemas) into ENA submission-ready models:
+These mappers convert DINA data entities (deserialized via Pydantic models) into ENA submission-ready models:
 
 - **Project** → ENA Project/Study
 - **MaterialSample** + **CollectingEvent** → ENA Sample (with auto-resolution)
@@ -23,17 +23,17 @@ These mappers convert DINA data entities (deserialized via schemas) into ENA sub
 
 ## Installation & Setup
 
-The mappers work with DINA DTOs that are deserialized from JSON API responses using the marshmallow schemas in `dinapy.schemas`.
+The mappers work with DINA Pydantic data objects deserialized from JSON API responses using the `*Document` classes in `dinapy.schemas`.
 
 ```python
-from dinapy.schemas.materialsampleschema import MaterialSampleSchema
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument
 from dinapy.ena.mappers.dina_to_ena.mappers_dto import material_sample_to_ena
 
 # Deserialize DINA API response
-material_sample_dto = MaterialSampleSchema().load(api_response)
+material_sample_data = MaterialSampleDocument.deserialize(api_response).data
 
 # Map to ENA Sample
-ena_sample = material_sample_to_ena(material_sample_dto, taxon_id=408172)
+ena_sample = material_sample_to_ena(material_sample_data, taxon_id=408172)
 ```
 
 ## Field Mappings
@@ -133,15 +133,15 @@ ena_sample = material_sample_to_ena(material_sample_dto, taxon_id=408172)
 ### Single Entity Mapping
 
 ```python
-from dinapy.schemas.project_schema import ProjectSchema
+from dinapy.schemas.project_pydantic import ProjectDocument
 from dinapy.ena.mappers.dina_to_ena.mappers_dto import project_to_ena
 
 # Deserialize DINA API response
-project_dto = ProjectSchema().load(dina_api_response)
+project_data = ProjectDocument.deserialize(dina_api_response).data
 
 # Map to ENA Project
 ena_project = project_to_ena(
-    project=project_dto,
+    project=project_data,
     description_override="Study of marine microbial communities"
 )
 ```
@@ -149,19 +149,19 @@ ena_project = project_to_ena(
 ### Mapping with Auto-Resolution
 
 ```python
-from dinapy.schemas.materialsampleschema import MaterialSampleSchema
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument
+from dinapy.schemas.collecting_event_pydantic import CollectingEventDocument
 from dinapy.ena.mappers.dina_to_ena.mappers_dto import material_sample_to_ena
 import time
 
 # Deserialize both entities
-material_sample_dto = MaterialSampleSchema().load(sample_response)
-collecting_event_dto = CollectingEventSchema().load(event_response)
+material_sample_data = MaterialSampleDocument.deserialize(sample_response).data
+collecting_event_data = CollectingEventDocument.deserialize(event_response).data
 
 # Map to ENA Sample with auto-resolution
 ena_sample = material_sample_to_ena(
-    material_sample=material_sample_dto,
-    collecting_event=collecting_event_dto,
+    material_sample=material_sample_data,
+    collecting_event=collecting_event_data,
     # taxon_id is optional - will auto-resolve from scientific name if not provided
     email="researcher@example.com",  # Recommended for NCBI API
     checklist="ERC000050",  # Optional: GSC MIxS water checklist
@@ -183,10 +183,11 @@ print(f"Location: {geo_attr.value}")  # e.g., "Canada" or "not provided"
 ### Batch Mapping
 
 ```python
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument
 from dinapy.ena.mappers.dina_to_ena.mappers_dto import batch_material_samples_to_ena
 
 # Deserialize multiple samples
-material_sample_dtos = [MaterialSampleSchema().load(r) for r in responses]
+material_sample_dtos = [MaterialSampleDocument.deserialize(r).data for r in responses]
 
 # Prepare taxon IDs (resolve externally)
 taxon_ids = {
@@ -206,15 +207,15 @@ ena_samples = batch_material_samples_to_ena(
 ### Complete Experiment Mapping
 
 ```python
-from dinapy.schemas.molecular_analysis_run_schema import MolecularAnalysisRunSchema
+from dinapy.schemas.molecular_analysis_run_pydantic import MolecularAnalysisRunDocument
 from dinapy.ena.mappers.dina_to_ena.mappers_dto import molecular_analysis_run_to_ena
 
 # Deserialize
-molecular_run_dto = MolecularAnalysisRunSchema().load(run_response)
+molecular_run_data = MolecularAnalysisRunDocument.deserialize(run_response).data
 
 # Map with library configuration
 ena_experiment = molecular_analysis_run_to_ena(
-    molecular_run=molecular_run_dto,
+    molecular_run=molecular_run_data,
     study_accession="PRJEB12345",       # From previous ENA submission
     sample_accession="ERS567890",        # From previous ENA submission
     library_strategy="AMPLICON",         # User selection/config
@@ -269,20 +270,20 @@ ena_experiment = molecular_analysis_run_to_ena(
 ### Core Mappers
 
 #### `project_to_ena(project, description_override)`
-Maps DINA ProjectDTO to ENA Project.
+Maps DINA `ProjectData` to ENA Project.
 
 **Parameters:**
-- `project` (ProjectDTO): Deserialized DINA project
+- `project` (`ProjectData`): Deserialized DINA project
 - `description_override` (str, optional): Override project description
 
 **Returns:** `Project` - ENA Project model
 
 #### `material_sample_to_ena(material_sample, collecting_event, taxon_id, checklist, geographic_location, organism_data, email, taxon_cache, include_unmapped)`
-Maps DINA MaterialSampleDTO to ENA Sample with auto-resolution.
+Maps DINA `MaterialSampleData` to ENA Sample with auto-resolution.
 
 **Parameters:**
-- `material_sample` (MaterialSampleDTO): Deserialized DINA material sample (**required**)
-- `collecting_event` (CollectingEventDTO, optional): Related collecting event (provides collection date and location)
+- `material_sample` (`MaterialSampleData`): Deserialized DINA material sample (**required**)
+- `collecting_event` (`CollectingEventData`, optional): Related collecting event (provides collection date and location)
 - `taxon_id` (int, optional): NCBI Taxonomy ID - if not provided, auto-resolved from scientific name
 - `checklist` (str, optional): ENA checklist ID (e.g., "ERC000011")
 - `geographic_location` (str, optional): Override auto-resolved location
@@ -300,10 +301,10 @@ Maps DINA MaterialSampleDTO to ENA Sample with auto-resolution.
 - All unmapped DINA fields preserved as generic ENA attributes
 
 #### `molecular_analysis_run_to_ena(molecular_run, study_accession, sample_accession, ...)`
-Maps DINA MolecularAnalysisRunDTO to ENA Experiment.
+Maps DINA `MolecularAnalysisRunData` to ENA Experiment.
 
 **Required Parameters:**
-- `molecular_run` (MolecularAnalysisRunDTO): Deserialized run
+- `molecular_run` (`MolecularAnalysisRunData`): Deserialized run
 - `study_accession` (str): ENA study accession
 - `sample_accession` (str): ENA sample accession
 - `library_strategy` (str): Library strategy
@@ -315,10 +316,10 @@ Maps DINA MolecularAnalysisRunDTO to ENA Experiment.
 **Returns:** `Experiment` - ENA Experiment model
 
 #### `metadata_to_ena_run(metadata, experiment_accession, filetype, checksum, checksum_method)`
-Maps DINA MetadataDTO to ENA Run.
+Maps DINA `MetadataData` to ENA Run.
 
 **Parameters:**
-- `metadata` (MetadataDTO): Deserialized metadata
+- `metadata` (`MetadataData`): Deserialized metadata
 - `experiment_accession` (str): ENA experiment accession
 - `filetype` (str, optional): Override file type
 - `checksum` (str, optional): Override checksum

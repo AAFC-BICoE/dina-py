@@ -4,9 +4,9 @@ Tests for DINA to ENA mappers using real material sample data.
 import pytest
 import copy
 from unittest.mock import patch, MagicMock
-from dinapy.schemas.materialsampleschema import MaterialSampleSchema
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
-from dinapy.schemas.project_schema import ProjectSchema
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument
+from dinapy.schemas.collecting_event_pydantic import CollectingEventDocument
+from dinapy.schemas.project_pydantic import ProjectDocument
 from dinapy.ena.mappers.dina_to_ena.mappers_dto import (
     material_sample_to_ena,
     extract_scientific_name_from_material_sample,
@@ -180,8 +180,7 @@ class TestScientificNameExtraction:
     
     def test_extract_from_effective_scientific_name(self):
         """Test extraction from effectiveScientificName attribute."""
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(MATERIAL_SAMPLE_JSON)
+        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
         
         scientific_name = extract_scientific_name_from_material_sample(sample_dto)
         
@@ -194,8 +193,7 @@ class TestScientificNameExtraction:
         sample_json["data"]["attributes"]["effectiveScientificName"] = None
         sample_json["data"]["attributes"]["targetOrganismPrimaryScientificName"] = None
         
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(sample_json)
+        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
         scientific_name = extract_scientific_name_from_material_sample(
             sample_dto,
@@ -213,8 +211,7 @@ class TestScientificNameExtraction:
             "scientificName": "Aspergillus niger"
         }
         
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(sample_json)
+        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
         scientific_name = extract_scientific_name_from_material_sample(sample_dto)
         
@@ -230,8 +227,7 @@ class TestMaterialSampleToENA:
     
     def test_basic_mapping_with_provided_taxon_id(self):
         """Test basic mapping with a pre-provided taxon ID."""
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(MATERIAL_SAMPLE_JSON)
+        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
         
         # Map with provided taxon ID (Fusarium poae = 5126)
         ena_sample = material_sample_to_ena(
@@ -247,11 +243,8 @@ class TestMaterialSampleToENA:
     
     def test_mapping_with_collecting_event(self):
         """Test mapping with collecting event data."""
-        schema = MaterialSampleSchema()
-        ce_schema = CollectingEventSchema()
-        
-        sample_dto = schema.load(MATERIAL_SAMPLE_JSON)
-        ce_dto = ce_schema.load(COLLECTING_EVENT_JSON)
+        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
+        ce_dto = CollectingEventDocument.deserialize(COLLECTING_EVENT_JSON).data
         
         ena_sample = material_sample_to_ena(
             material_sample=sample_dto,
@@ -274,8 +267,7 @@ class TestMaterialSampleToENA:
     
     def test_mapping_with_checklist(self):
         """Test mapping with ENA checklist."""
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(MATERIAL_SAMPLE_JSON)
+        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
         
         ena_sample = material_sample_to_ena(
             material_sample=sample_dto,
@@ -297,8 +289,7 @@ class TestMaterialSampleToENA:
         # Mock the NCBI API call
         mock_resolve.return_value = 5126  # Fusarium poae
         
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(MATERIAL_SAMPLE_JSON)
+        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
         
         # Don't provide taxon_id - should auto-resolve
         ena_sample = material_sample_to_ena(
@@ -322,8 +313,7 @@ class TestMaterialSampleToENA:
         sample_json["data"]["attributes"]["targetOrganismPrimaryScientificName"] = None
         sample_json["data"]["attributes"]["managedAttributes"] = {}
         
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(sample_json)
+        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
         ena_sample = material_sample_to_ena(
             material_sample=sample_dto
@@ -462,13 +452,12 @@ class TestBatchMapping:
         mock_resolve.side_effect = cache_aware_resolve
         
         # Create multiple samples with same scientific name
-        schema = MaterialSampleSchema()
-        sample1 = schema.load(MATERIAL_SAMPLE_JSON)
+        sample1 = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
         
         sample2_json = copy.deepcopy(MATERIAL_SAMPLE_JSON)
         sample2_json["data"]["id"] = "sample-2"
         sample2_json["data"]["attributes"]["materialSampleName"] = "CHEM1222-4"
-        sample2 = schema.load(sample2_json)
+        sample2 = MaterialSampleDocument.deserialize(sample2_json).data
         
         samples = [sample1, sample2]
         
@@ -586,8 +575,7 @@ class TestUnmappedAttributes:
             "customField1": "Custom Value 1"
         }
         
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(sample_json)
+        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
         ena_sample = material_sample_to_ena(
             material_sample=sample_dto,
@@ -610,8 +598,7 @@ class TestUnmappedAttributes:
             "customField1": "Custom Value 1"
         }
         
-        schema = MaterialSampleSchema()
-        sample_dto = schema.load(sample_json)
+        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
         ena_sample = material_sample_to_ena(
             material_sample=sample_dto,
@@ -631,11 +618,8 @@ class TestUnmappedAttributes:
             "elevation": "500m"
         }
         
-        schema = MaterialSampleSchema()
-        ce_schema = CollectingEventSchema()
-        
-        sample_dto = schema.load(MATERIAL_SAMPLE_JSON)
-        ce_dto = ce_schema.load(ce_json)
+        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
+        ce_dto = CollectingEventDocument.deserialize(ce_json).data
         
         ena_sample = material_sample_to_ena(
             material_sample=sample_dto,
@@ -657,6 +641,7 @@ class TestUnmappedAttributes:
                 "type": "project",
                 "attributes": {
                     "name": "Test Project",
+                    "group": "test-group",
                     "multilingualDescription": {
                         "descriptions": [
                             {"desc": "A test project", "lang": "en"}
@@ -673,8 +658,7 @@ class TestUnmappedAttributes:
             }
         }
         
-        schema = ProjectSchema()
-        project_dto = schema.load(project_json)
+        project_dto = ProjectDocument.deserialize(project_json).data
         
         ena_project = project_to_ena(
             project=project_dto,

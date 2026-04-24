@@ -6,15 +6,17 @@ import os
 
 # Import for Metagenomics Batch
 from dinapy.apis.seqdbapi.metagenomics_batch_api import MetagenomicsBatchApi
-from dinapy.schemas.metagenomics_batch_schema import MetagenomicsBatchSchema
-from dinapy.entities.MetagenomicsBatch import *
+from dinapy.schemas.metagenomics_batch_pydantic import (
+    MetagenomicsBatchDocument, MetagenomicsBatchData, MetagenomicsBatchAttributes
+)
 
 # Import for Metagenomics Batch Item
 from dinapy.apis.seqdbapi.metagenomics_batch_item_api import MetagenomicsBatchItemApi
-from dinapy.schemas.metagenomics_batch_item_schema import MetagenomicsBatchItemSchema
-from dinapy.entities.MetagenomicsBatchItem import *
+from dinapy.schemas.metagenomics_batch_item_pydantic import (
+    MetagenomicsBatchItemDocument, MetagenomicsBatchItemData, MetagenomicsBatchItemAttributes
+)
 
-from dinapy.entities.Relationships import RelationshipDTO
+from dinapy.schemas.pydantic_base import RelationshipData, RelationshipLinkage
 
 # Add the root directory of the project to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,28 +32,23 @@ PCR_BATCH_ITEMS = [
     ]
 
 def main():
-    # Build Relationship for Metagenomics Batch
-    # using a pre-made Index Set in DINA-dev2
-    batch_relationship = (
-        RelationshipDTO.Builder()
-            .add_relationship(
-                "indexSet",
-                "index-set",
-                "456036bc-6fa6-4779-b028-ec26a7b7e6dd"
-            ).build()
-    )
-
     # Set Metagenomics Batch Attributes and Relationships
     metagenomics_batch_api = MetagenomicsBatchApi()
-    metagenomics_batch_schema = MetagenomicsBatchSchema()
-    metagenomics_batch_attributes = MetagenomicsBatchAttributesDTOBuilder(
-      ).set_createdBy("dina-admin").set_group("aafc").set_name("metagenomics-batch-test").build()
-    metagenomics_batch = MetagenomicsBatchDTOBuilder(
-      ).set_relationships(batch_relationship).set_attributes(metagenomics_batch_attributes).build()
-
-    serialized_metagenomics_batch = metagenomics_batch_schema.dump(metagenomics_batch)
-
-    # print(f"{serialized_metagenomics_batch}\n")
+    serialized_metagenomics_batch = MetagenomicsBatchDocument(
+        data=MetagenomicsBatchData(
+            type="metagenomics-batch",
+            attributes=MetagenomicsBatchAttributes(
+                createdBy="dina-admin",
+                group="aafc",
+                name="metagenomics-batch-test"
+            ),
+            relationships={
+                "indexSet": RelationshipData(
+                    data=RelationshipLinkage(type="index-set", id="456036bc-6fa6-4779-b028-ec26a7b7e6dd")
+                )
+            }
+        )
+    ).serialize()
 
     # Create Metagenomics Batch
     metagenomics_batch_response = metagenomics_batch_api.create_entity(serialized_metagenomics_batch)
@@ -59,31 +56,24 @@ def main():
     print(f"Metagenomics Batch: {batch_id} created\n")
 
     for item in PCR_BATCH_ITEMS:
-        # Build Relationships for Metagenomics Batch Items
-        batch_item_relationship = (
-            RelationshipDTO.Builder()
-                .add_relationship(
-                    "metagenomicsBatch",
-                    "metagenomics-batch",
-                    batch_id
-                ).add_relationship(
-                    "pcrBatchItem",
-                    "pcr-batch-item",
-                    item
-                ).build()
-        )
-
         # Set Metagenomics Batch Item Attributes and Relationships
         metagenomics_batch_item_api = MetagenomicsBatchItemApi()
-        metagenomics_batch_item_schema = MetagenomicsBatchItemSchema()
-        metagenomics_batch_item_attributes = MetagenomicsBatchItemAttributesDTOBuilder(
-            ).set_createdBy("dina-admin").build()
-        metagenomics_batch_item = MetagenomicsBatchItemDTOBuilder(
-            ).set_relationships(batch_item_relationship).set_attributes(metagenomics_batch_item_attributes).build()
-
-        serialized_metagenomics_batch_item = metagenomics_batch_item_schema.dump(metagenomics_batch_item)
-
-        # print(f"{serialized_metagenomics_batch_item}\n")
+        serialized_metagenomics_batch_item = MetagenomicsBatchItemDocument(
+            data=MetagenomicsBatchItemData(
+                type="metagenomics-batch-item",
+                attributes=MetagenomicsBatchItemAttributes(
+                    createdBy="dina-admin"
+                ),
+                relationships={
+                    "metagenomicsBatch": RelationshipData(
+                        data=RelationshipLinkage(type="metagenomics-batch", id=batch_id)
+                    ),
+                    "pcrBatchItem": RelationshipData(
+                        data=RelationshipLinkage(type="pcr-batch-item", id=item)
+                    )
+                }
+            )
+        ).serialize()
 
         # Create Metagenomics Batch Item
         metagenomics_batch_item_response = metagenomics_batch_item_api.create_entity(serialized_metagenomics_batch_item)
