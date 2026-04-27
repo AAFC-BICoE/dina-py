@@ -37,10 +37,18 @@ Usage:
     >>> ENAWorkflowGUI()  # Launch the interactive Solara GUI
 """
 
+import csv
+import hashlib
 import importlib
+import io
+import json
+import os
 import re
+import tempfile
+import threading
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from pathlib import Path
 from typing import List
@@ -63,15 +71,53 @@ from dinapy.ena.models import (
     Run,
     Sample,
 )
+from dinapy.ena.receipt import format_receipt_summary
 from dinapy.ena.submission import ENASubmissionWorkflow
 from dinapy.ena.upload import ReadUploader
+
+
+# ── Status display ────────────────────────────────────────────────────────────
+
+def _msg_color(msg_type: str) -> str:
+    """Map a status message type to a display colour."""
+    return {"info": "blue", "success": "green", "warning": "orange", "error": "red"}.get(
+        msg_type, "grey"
+    )
+
+
+# ── MD5 cache helpers ──────────────────────────────────────────────────────────
+
+def _md5_cache_path(directory: Path) -> Path:
+    """Return a per-directory MD5 cache file in the system temp dir."""
+    dir_hash = hashlib.md5(str(directory.resolve()).encode()).hexdigest()[:12]
+    return Path(tempfile.gettempdir()) / f"dina_md5_cache_{dir_hash}.json"
+
+
+def _load_md5_cache(cache_path: Path) -> dict:
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_md5_cache(cache_path: Path, cache: dict) -> None:
+    try:
+        cache_path.write_text(json.dumps(cache), encoding="utf-8")
+    except Exception:
+        pass  # cache write failures are non-fatal
+
+
+def _md5_cache_key(path: Path) -> str:
+    """Cache key: absolute path + size + mtime — invalidates if file changes."""
+    stat = path.stat()
+    return f"{path.resolve()}:{stat.st_size}:{stat.st_mtime}"
 
 
 @solara.component
 def ENAWorkflowGUI():
     """Sequence-oriented GUI for the DINA → ENA submission workflow."""
-
-    import threading
 
     solara.lab.ThemeToggle()
 
@@ -82,16 +128,18 @@ def ENAWorkflowGUI():
     # Webin credentials are read from os.environ on every render so that
     # loading the .env in a notebook cell takes effect immediately without
     # needing to restart the kernel or the component.
-    import os as _os
     def _webin_username() -> str:
-        return _os.environ.get("WEBIN_USERNAME", "")
+        return os.environ.get("WEBIN_USERNAME", "")
     def _webin_password() -> str:
-        return _os.environ.get("WEBIN_PASSWORD", "")
+        return os.environ.get("WEBIN_PASSWORD", "")
     def _use_test_server() -> bool:
-        return _os.environ.get("WEBIN_TEST", "true").lower() not in ("false", "0", "no", "off")
+        return os.environ.get("WEBIN_TEST", "true").lower() not in ("false", "0", "no", "off")
 
     study_mode = solara.use_reactive("new")           # "new" | "existing"
     existing_study_accession = solara.use_reactive("")
+    new_study_name = solara.use_reactive("")
+    new_study_title = solara.use_reactive("")
+    new_study_description = solara.use_reactive("")
     default_taxon_id = solara.use_reactive(256318)    # metagenome
     hold_date = solara.use_reactive(date.today().isoformat())
 
@@ -127,6 +175,10 @@ def ENAWorkflowGUI():
     # Snapshot of status_messages captured at the end of run_md5_and_lookup;
     # preserved so Step 4 can show the scan/lookup log for inspection.
     scan_log_messages = solara.use_reactive([])
+    # Step 3 list pagination / filtering
+    step3_page = solara.use_reactive(0)
+    step3_filter = solara.use_reactive("all")  # "all" | "ftp_ok" | "ftp_missing"
+    step3_search = solara.use_reactive("")
 
     # ── Submit state ───────────────────────────────────────────────────────
     project_accession = solara.use_reactive("")
@@ -156,11 +208,6 @@ def ENAWorkflowGUI():
 
     def _ftp_host() -> str:
         return "webin2.ebi.ac.uk" if _use_test_server() else "webin.ebi.ac.uk"
-
-    def _msg_color(msg_type: str) -> str:
-        return {"info": "blue", "success": "green", "warning": "orange", "error": "red"}.get(
-            msg_type, "grey"
-        )
 
     def _get_objectstore_filename(file_path: Path) -> str:
         """
@@ -216,8 +263,6 @@ def ENAWorkflowGUI():
 
     def display_receipt_details(receipt, title: str) -> None:
         """Display detailed receipt information"""
-        from dinapy.ena.receipt import format_receipt_summary
-        
         if not receipt:
             return
         
@@ -259,10 +304,6 @@ def ENAWorkflowGUI():
             with solara.Details("View Full Receipt"):
                 summary = format_receipt_summary(receipt)
                 solara.Markdown(f"```\n{summary}\n```")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # Step 3 action: Scan → FTP check → MD5 → DINA lookup
-    # ══════════════════════════════════════════════════════════════════════════
 
     # ══════════════════════════════════════════════════════════════════════════
     # Step 3 helpers: entry selection
@@ -425,29 +466,61 @@ def ENAWorkflowGUI():
 
                 add_status(f"Processing {len(entries)} selected entr(ies)...", "info")
 
-                # ── MD5 computation (only for files confirmed on FTP) ─────────
-                add_status("Computing MD5 checksums for files confirmed on FTP...", "info")
+                # ── MD5 computation (cache-aware, throttled status updates) ──
+                _first_file = next(
+                    (f for e in entries for f in e["files"]), None
+                )
+                _cache_path = _md5_cache_path(_first_file.parent) if _first_file else None
+                _md5_cache = _load_md5_cache(_cache_path) if _cache_path else {}
+                _total_md5_files = sum(
+                    1 for e in entries for i, f in enumerate(e["files"]) if e["on_ftp"][i]
+                )
+                add_status(
+                    f"Computing MD5 for {_total_md5_files} file(s) "
+                    f"— cache: {_cache_path} "
+                    f"({len(_md5_cache)} entr(ies) already cached)",
+                    "info",
+                )
+                _MD5_LOG_INTERVAL = 100  # emit a progress line every N files
                 md5_count = 0
+                _cached_count = 0
+                _computed_count = 0
                 for entry in entries:
                     for i, f in enumerate(entry["files"]):
-                        on_ftp = entry["on_ftp"][i]
-                        if on_ftp:
-                            if cancel_event.current.is_set():
-                                add_status("✗ Cancelled by user.", "warning")
-                                return
-                            size_mb = f.stat().st_size / (1024 ** 2)
-                            add_status(f"  Computing MD5 for {f.name} ({size_mb:.2f} MB)...", "info")
+                        if not entry["on_ftp"][i]:
+                            continue
+                        if cancel_event.current.is_set():
+                            add_status("✗ Cancelled by user.", "warning")
+                            return
+                        _key = _md5_cache_key(f)
+                        if _key in _md5_cache:
+                            entry["md5s"][i] = _md5_cache[_key]
+                            _cached_count += 1
+                        else:
                             try:
                                 md5 = ReadUploader.compute_md5(
                                     f, cancel_event=cancel_event.current
                                 )
                             except InterruptedError:
-                                add_status("✗ Cancelled by user during MD5.", "warning")
+                                add_status("✗ Cancelled during MD5.", "warning")
                                 return
-                            add_status(f"  ✓ MD5 done: {f.name}", "success")
                             entry["md5s"][i] = md5
-                            md5_count += 1
-                add_status(f"MD5 computed for {md5_count} file(s)", "info")
+                            _md5_cache[_key] = md5
+                            if _cache_path:
+                                _save_md5_cache(_cache_path, _md5_cache)
+                            _computed_count += 1
+                        md5_count += 1
+                        if md5_count % _MD5_LOG_INTERVAL == 0 or md5_count == _total_md5_files:
+                            add_status(
+                                f"  MD5 progress: {md5_count}/{_total_md5_files} "
+                                f"({_cached_count} cached, {_computed_count} computed)",
+                                "info",
+                            )
+                add_status(
+                    f"MD5 complete: {md5_count} file(s) "
+                    f"({_cached_count} from cache, {_computed_count} newly computed)",
+                    "info",
+                )
 
                 # Drop entries with files missing from FTP
                 entries_before = len(entries)
@@ -467,70 +540,48 @@ def ENAWorkflowGUI():
                 add_status(
                     "Looking up DINA material samples via object-store + search API...", "info"
                 )
-                dina_available = False
-                object_store_api = None
-                search_api = None
                 try:
                     from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreAPI
                     from dinapy.apis.searchapi.search_api import SearchAPI
-                except Exception as import_err:
+                    add_status("Initialising DINA APIs (connecting to Keycloak)...", "info")
+                    object_store_api = ObjectStoreAPI()
+                    search_api = SearchAPI()
+                    add_status("✓ DINA APIs initialised", "success")
+                    dina_available = True
+                except Exception as err:
                     add_status(
-                        f"DINA API import failed ({type(import_err).__name__}: {import_err})",
-                        "error",
-                    )
-                    for line in traceback.format_exc().splitlines():
-                        if line.strip():
-                            add_status(f"  {line}", "error")
-
-                if object_store_api is None and 'ObjectStoreAPI' in dir():
-                    try:
-                        add_status("Initialising ObjectStoreAPI (connects to Keycloak)...", "info")
-                        object_store_api = ObjectStoreAPI()
-                        add_status("✓ ObjectStoreAPI initialised", "success")
-                    except Exception as err:
-                        add_status(
-                            f"ObjectStoreAPI init failed ({type(err).__name__}: {err})",
-                            "error",
-                        )
-                        for line in traceback.format_exc().splitlines():
-                            if line.strip():
-                                add_status(f"  {line}", "error")
-
-                if search_api is None and 'SearchAPI' in dir():
-                    try:
-                        add_status("Initialising SearchAPI (connects to Keycloak)...", "info")
-                        search_api = SearchAPI()
-                        add_status("✓ SearchAPI initialised", "success")
-                    except Exception as err:
-                        add_status(
-                            f"SearchAPI init failed ({type(err).__name__}: {err})",
-                            "error",
-                        )
-                        for line in traceback.format_exc().splitlines():
-                            if line.strip():
-                                add_status(f"  {line}", "error")
-
-                dina_available = object_store_api is not None and search_api is not None
-                if not dina_available:
-                    add_status(
-                        "DINA API unavailable — entries without DINA samples will be excluded",
+                        f"DINA API unavailable ({type(err).__name__}: {err}) — "
+                        "entries without DINA samples will be excluded",
                         "warning",
                     )
+                    object_store_api = None
+                    search_api = None
+                    dina_available = False
 
-                for entry in entries:
+                _LOOKUP_LOG_INTERVAL = 100
+                _lookup_ok = 0        # entries with ≥1 DINA sample found
+                _lookup_none = 0      # entries with no DINA sample found
+                _lookup_errors = 0    # entries that hit an exception
+                _n_lookup = len(entries)
+
+                for _lookup_idx, entry in enumerate(entries, 1):
+                    if cancel_event.current.is_set():
+                        add_status(
+                            f"✗ Cancelled by user after {_lookup_idx - 1}/{_n_lookup} entr(ies).",
+                            "warning",
+                        )
+                        return
+
                     entry["dina_samples"] = []
                     entry["attachment_uuids"] = []
                     if not dina_available:
                         continue
 
                     seen_sample_ids: set = set()
+                    _entry_ok = False
                     for f in entry["files"]:
                         try:
                             filename_no_ext = _get_objectstore_filename(f)
-                            add_status(
-                                f"  Searching object store for '{filename_no_ext}' (from {f.name})...",
-                                "info",
-                            )
                             os_resp = search_api.search_object_store_by_filename(filename_no_ext)
                             os_hits = (
                                 os_resp.get("hits", {}).get("hits", [])
@@ -539,27 +590,21 @@ def ENAWorkflowGUI():
                             )
                             if not os_hits:
                                 add_status(
-                                    f"    ✗ No object-store records found for '{filename_no_ext}'",
+                                    f"  ✗ [{entry['stem']}] No object-store record for '{filename_no_ext}'",
                                     "warning",
                                 )
                                 continue
 
                             records = [h.get("_source", {}).get("data", {}) for h in os_hits]
-                            add_status(
-                                f"    ✓ Found {len(records)} object-store record(s) matching stem",
-                                "success",
-                            )
-
                             attachment_uuid = records[0].get("id")
                             if not attachment_uuid:
-                                add_status(f"    ✗ No attachment UUID in metadata for '{filename_no_ext}'", "warning")
+                                add_status(
+                                    f"  ✗ [{entry['stem']}] No attachment UUID for '{filename_no_ext}'",
+                                    "warning",
+                                )
                                 continue
                             entry["attachment_uuids"].append(attachment_uuid)
-                            add_status(
-                                f"    ✓ Found attachment {attachment_uuid[:8]}... ({len(records)} record(s))", "success"
-                            )
 
-                            add_status(f"  Searching for material samples linked to attachment...", "info")
                             search_resp = search_api.search_material_samples_by_attachment(
                                 attachment_uuid
                             )
@@ -568,48 +613,56 @@ def ENAWorkflowGUI():
                                 if search_resp
                                 else []
                             )
-
                             if not hits:
-                                total = search_resp.get("hits", {}).get("total", {})
-                                total_value = total.get("value", 0) if isinstance(total, dict) else total
-                                add_status(f"    ✗ No material samples found for attachment (total={total_value})", "warning")
-                            else:
-                                add_status(f"    ✓ Found {len(hits)} material sample hit(s)", "success")
-
-                            for hit in hits:
-                                src = hit.get("_source", {})
-                                data_field = src.get("data", {})
-                                sample_docs = (
-                                    data_field
-                                    if isinstance(data_field, list)
-                                    else [data_field]
+                                add_status(
+                                    f"  ✗ [{entry['stem']}] No material samples for attachment {attachment_uuid[:8]}...",
+                                    "warning",
                                 )
-                                for sample_doc in sample_docs:
-                                    sid = sample_doc.get("id")
-                                    if sid and sid not in seen_sample_ids:
-                                        seen_sample_ids.add(sid)
-                                        entry["dina_samples"].append(sample_doc)
+                            else:
+                                for hit in hits:
+                                    src = hit.get("_source", {})
+                                    data_field = src.get("data", {})
+                                    sample_docs = (
+                                        data_field
+                                        if isinstance(data_field, list)
+                                        else [data_field]
+                                    )
+                                    for sample_doc in sample_docs:
+                                        sid = sample_doc.get("id")
+                                        if sid and sid not in seen_sample_ids:
+                                            seen_sample_ids.add(sid)
+                                            entry["dina_samples"].append(sample_doc)
+                                _entry_ok = True
 
                         except Exception as lookup_err:
-                            add_status(f"  ✗ Lookup error for {f.name}: {lookup_err}", "warning")
+                            add_status(
+                                f"  ✗ [{entry['stem']}] Lookup error for {f.name}: {lookup_err}",
+                                "warning",
+                            )
+                            _lookup_errors += 1
+
+                        if _entry_ok:
+                            break  # sample found from first file — skip remaining files
 
                     if entry["dina_samples"]:
-                        names = [
-                            s.get("attributes", {}).get(
-                                "materialSampleName", s.get("id", "?")
-                            )
-                            for s in entry["dina_samples"]
-                        ]
-                        add_status(
-                            f"  {entry['stem']}: {len(entry['dina_samples'])} DINA sample(s) → "
-                            + ", ".join(names),
-                            "success",
-                        )
+                        _lookup_ok += 1
                     else:
+                        _lookup_none += 1
+
+                    if _lookup_idx % _LOOKUP_LOG_INTERVAL == 0 or _lookup_idx == _n_lookup:
                         add_status(
-                            f"  {entry['stem']}: no DINA samples found — will be excluded from submission",
-                            "warning",
+                            f"  Lookup progress: {_lookup_idx}/{_n_lookup} "
+                            f"({_lookup_ok} matched, {_lookup_none} unmatched"
+                            + (f", {_lookup_errors} errors" if _lookup_errors else "")
+                            + ")",
+                            "info",
                         )
+
+                add_status(
+                    f"DINA lookup complete — {_lookup_ok} matched, {_lookup_none} unmatched"
+                    + (f", {_lookup_errors} errors" if _lookup_errors else ""),
+                    "info" if _lookup_none == 0 else "warning",
+                )
 
                 # Drop entries with no DINA samples
                 entries_before = len(entries)
@@ -646,310 +699,455 @@ def ENAWorkflowGUI():
     # ══════════════════════════════════════════════════════════════════════════
 
     def submit_to_ena() -> None:
+        if is_processing.value:
+            return
         is_processing.value = True
         status_messages.value = []
         entries = [dict(e) for e in sequence_entries.value]
 
-        try:
-            workflow = ENASubmissionWorkflow(
-                username=_webin_username(),
-                password=_webin_password(),
-                test=_use_test_server(),
-            )
-            timestamp = str(int(time.time()))
+        def _run():
+            import requests as _requests
 
-            # ── [1/4] Study ───────────────────────────────────────────────────
-            if study_mode.value == "existing":
-                project_accession.value = existing_study_accession.value
-                add_status(
-                    f"[1/4] Using existing study: {project_accession.value}", "info"
+            def _submit_with_retry(fn, *args, retries: int = 3, delay: float = 5.0, label: str = "", **kwargs):
+                """Call fn(*args, **kwargs) up to `retries` times on ConnectionError."""
+                for attempt in range(1, retries + 1):
+                    try:
+                        return fn(*args, **kwargs)
+                    except _requests.exceptions.ConnectionError as exc:
+                        if attempt == retries:
+                            raise
+                        add_status(
+                            f"  ⚠ Connection reset{' (' + label + ')' if label else ''} "
+                            f"— retry {attempt}/{retries - 1} in {delay:.0f}s…",
+                            "warning",
+                        )
+                        time.sleep(delay)
+
+            try:
+                workflow = ENASubmissionWorkflow(
+                    username=_webin_username(),
+                    password=_webin_password(),
+                    test=_use_test_server(),
                 )
-            else:
-                add_status("[1/4] Submitting minimal study...", "info")
-                ena_project = Project(
-                    alias=f"study_{timestamp}",
-                    title=f"Sequencing study ({timestamp})",
-                    description=(
-                        f"Sequencing study created from {len(entries)} sequence entr(ies)"
-                    ),
-                )
-                receipt = workflow.submit_project_xml(
-                    ena_project, action="ADD", hold_until_date=hold_date.value
-                )
-                project_receipt.value = receipt
-                if receipt.success:
-                    project_accession.value = receipt.get_accession(
-                        "PROJECT"
-                    ) or receipt.get_accession("STUDY")
-                    add_status(f"✓ Study submitted: {project_accession.value}", "success")
-                    for warn in receipt.get_warnings():
-                        add_status(f"  Study warning: {warn}", "warning")
+                timestamp = str(int(time.time()))
+                _hold_date = hold_date.value
+
+                # ── [1/4] Study ───────────────────────────────────────────────────
+                if study_mode.value == "existing":
+                    project_accession.value = existing_study_accession.value
+                    add_status(
+                        f"[1/4] Using existing study: {project_accession.value}", "info"
+                    )
                 else:
-                    for err in receipt.get_errors():
-                        add_status(f"Study error: {err}", "error")
-                    raise Exception("Study submission failed")
-
-            # ── Pre-flight: FTP presence check across ALL entries ─────────────
-            add_status("\n─── FTP pre-flight check ───", "info")
-            all_present = True
-            for entry in entries:
-                on_ftp_list = entry.get("on_ftp", [])
-                # Treat entries with no FTP data as unconfirmed
-                if not on_ftp_list:
-                    add_status(
-                        f"  ✗ {entry['stem']}: FTP status unknown (re-run scan to verify)",
-                        "error",
+                    add_status("[1/4] Submitting study...", "info")
+                    _name = new_study_name.value.strip()
+                    _alias = _name.replace(" ", "_") + f"_{timestamp}"
+                    _title = new_study_title.value.strip() or _name
+                    _description = new_study_description.value.strip() or f"Sequencing study created from {len(entries)} sequence entr(ies)"
+                    ena_project = Project(
+                        alias=_alias,
+                        name=_name,
+                        title=_title,
+                        description=_description,
                     )
-                    all_present = False
-                    continue
-                for f, on_ftp in zip(entry["files"], on_ftp_list):
-                    status_icon = "✓" if on_ftp else "✗"
-                    status_level = "success" if on_ftp else "error"
-                    add_status(
-                        f"  {status_icon} {entry['stem']} / {f.name}",
-                        status_level,
+                    receipt = _submit_with_retry(
+                        workflow.submit_project_xml,
+                        ena_project, action="ADD", hold_until_date=_hold_date,
+                        label="study",
                     )
-                    if not on_ftp:
-                        all_present = False
+                    project_receipt.value = receipt
+                    if receipt.success:
+                        project_accession.value = receipt.get_accession(
+                            "PROJECT"
+                        ) or receipt.get_accession("STUDY")
+                        add_status(f"✓ Study submitted: {project_accession.value}", "success")
+                        for warn in receipt.get_warnings():
+                            add_status(f"  Study warning: {warn}", "warning")
+                    else:
+                        for err in receipt.get_errors():
+                            add_status(f"Study error: {err}", "error")
+                        raise Exception("Study submission failed")
 
-            if not all_present:
-                add_status(
-                    "\n✗ One or more sequence files are missing from the FTP server. "
-                    "Please upload all files before submitting. Submission aborted.",
-                    "error",
-                )
-                return
+                # ── [2-4] Per entry: Samples → Experiment → Run ───────────────────
+                # ── Imports loaded once, outside the loop ─────────────────────────
+                from dinapy.apis.collectionapi.ena_helpers import prepare_sample_for_ena_mapping
+                from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
+                import dinapy.ena.mappers.dina_to_ena.mappers_dto as _mappers_mod
+                importlib.reload(_mappers_mod)
+                from dinapy.ena.mappers.dina_to_ena.mappers_dto import material_sample_to_ena
+                ms_api = MaterialSampleAPI()
 
-            add_status("✓ All files confirmed on FTP — proceeding with submission.\n", "success")
+                # ── Cache reactive values (avoid repeated lock reads in hot loop) ──
+                _library_layout = library_layout_val.value
+                _nominal_length = nominal_length.value
+                _nominal_sdev = nominal_sdev.value
+                _library_strategy = library_strategy.value
+                _library_source = library_source.value
+                _library_selection = library_selection.value
+                _desc_text = design_description.value or f"{library_strategy.value} sequencing"
+                _instrument_model = instrument_model.value
+                _project_acc = project_accession.value
 
-            # ── [2-4] Per entry: Samples → Experiment → Run ───────────────────
-            total = len(entries)
-            for idx, entry in enumerate(entries, 1):
-                stem = entry["stem"]
-                add_status(f"\n─── Entry {idx}/{total}: {stem} ───", "info")
-
-                # ── [2] Samples ───────────────────────────────────────────────
-                sample_accessions: List[str] = []
-                dina_samples = entry.get("dina_samples", [])
-
-                if dina_samples:
-                    add_status(
-                        f"[2/4] Mapping {len(dina_samples)} DINA sample(s) for {stem}...",
-                        "info",
-                    )
-                    from dinapy.apis.collectionapi.ena_helpers import (
-                        prepare_sample_for_ena_mapping,
-                    )
-                    from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
-                    from dinapy.ena.mappers.dina_to_ena import mappers_dto as _mappers_mod
-
-                    importlib.reload(_mappers_mod)
-                    from dinapy.ena.mappers.dina_to_ena.mappers_dto import (
-                        material_sample_to_ena,
-                    )
-
-                    ms_api = MaterialSampleAPI()
-
-                    ena_samples: List[Sample] = []
-                    for dina_s in dina_samples:
-                        sample_id = dina_s.get("id", "?")
+                # ── Parallel pre-fetch of all DINA sample records ─────────────────
+                _all_sample_ids = {
+                    dina_s.get("id")
+                    for entry in entries
+                    for dina_s in entry.get("dina_samples", [])
+                    if dina_s.get("id")
+                }
+                _dina_fetch_cache: dict = {}
+                if _all_sample_ids:
+                    def _fetch_one_sample(sid: str):
                         try:
-                            add_status(
-                                f"  Fetching full DINA record for sample {sample_id[:8]}...",
-                                "info",
-                            )
-                            full_resp = ms_api.get_req_dina(
-                                f"{ms_api.base_url}/{sample_id}",
+                            r = ms_api.get_req_dina(
+                                f"{ms_api.base_url}/{sid}",
                                 {"include": "collectingEvent,organism"},
                             )
-                            full_json = full_resp.json() if hasattr(full_resp, "json") else full_resp
-                            full_sample_data = full_json.get("data")
-                            full_included = full_json.get("included", [])
+                            j = r.json() if hasattr(r, "json") else r
+                            return sid, j.get("data"), j.get("included", []), None
+                        except Exception as _err:
+                            return sid, None, None, _err
 
-                            if not full_sample_data:
-                                raise ValueError(
-                                    f"DINA API returned no data for sample id={sample_id}"
-                                )
-                            ms_dto, ce_dto, org_data = prepare_sample_for_ena_mapping(
-                                full_sample_data, full_included
-                            )
-                            ena_s = material_sample_to_ena(
-                                material_sample=ms_dto,
-                                collecting_event=ce_dto,
-                                organism_data=org_data,
-                                email="your.email@example.com",
-                                include_unmapped=True,
-                            )
-                            ena_s.alias = f"{ena_s.alias}_{timestamp}"
-                            ena_samples.append(ena_s)
-                        except Exception as map_err:
-                            add_status(
-                                f"  Mapping error for DINA sample {sample_id[:8]}: {map_err} — skipping entry",
-                                "error",
-                            )
-                            raise Exception(
-                                f"Could not map DINA sample {sample_id[:8]} for {stem}: {map_err}"
-                            )
-                else:
                     add_status(
-                        f"[2/4] Skipping {stem} — no DINA samples found.",
-                        "warning",
+                        f"Pre-fetching {len(_all_sample_ids)} DINA sample record(s) in parallel...",
+                        "info",
                     )
-                    continue
+                    _n_fetched = 0
+                    _n_fetch_errors = 0
+                    with ThreadPoolExecutor(max_workers=8) as _pool:
+                        _futures = {
+                            _pool.submit(_fetch_one_sample, sid): sid
+                            for sid in _all_sample_ids
+                        }
+                        for fut in as_completed(_futures):
+                            sid, data, included, err = fut.result()
+                            _n_fetched += 1
+                            if data is not None:
+                                _dina_fetch_cache[sid] = (data, included)
+                            else:
+                                _n_fetch_errors += 1
+                                add_status(
+                                    f"  Pre-fetch failed for sample {sid[:8]}: {err}", "error"
+                                )
+                            if _n_fetched % 100 == 0 or _n_fetched == len(_all_sample_ids):
+                                add_status(
+                                    f"  Pre-fetching: {_n_fetched}/{len(_all_sample_ids)}"
+                                    + (f" ({_n_fetch_errors} errors)" if _n_fetch_errors else ""),
+                                    "info",
+                                )
+                    add_status(
+                        f"✓ Pre-fetch complete — {len(_dina_fetch_cache)}/{len(_all_sample_ids)} cached"
+                        + (f", {_n_fetch_errors} failed" if _n_fetch_errors else ""),
+                        "success" if not _n_fetch_errors else "warning",
+                    )
 
-                if len(ena_samples) == 1:
-                    receipt = workflow.submit_sample_xml(
-                        ena_samples[0],
-                        action="ADD",
-                        hold_until_date=hold_date.value,
-                    )
-                    if receipt.success:
-                        acc = receipt.get_accession("SAMPLE")
-                        sample_accessions.append(acc)
-                        add_status(f"✓ Sample submitted: {acc}", "success")
+                def _valid_sample_acc(acc: str | None) -> str | None:
+                    """Return acc only if it is a real sample accession (ERS/SAMEA), not an ERA wrapper."""
+                    return acc if acc and not acc.startswith("ERA") else None
+
+                _SUBMIT_LOG_INTERVAL = 100
+                total = len(entries)
+                _ok_samples = 0
+                _ok_experiments = 0
+                _ok_runs = 0
+                _skipped = 0
+                _already_complete = 0
+                add_status(f"Submitting {total} entr(ies)...", "info")
+                for idx, entry in enumerate(entries, 1):
+                    stem = entry["stem"]
+                    if idx == 1 or idx % _SUBMIT_LOG_INTERVAL == 0 or idx == total:
+                        add_status(f"  Progress: {idx}/{total} entries processed...", "info")
+
+                    # ── Skip entries that were fully submitted in a prior run ──
+                    if entry.get("ena_run_accession"):
+                        _already_complete += 1
+                        continue
+
+                    # ── [2] Samples ───────────────────────────────────────────
+                    # Each entry in sample_refs is (accession_or_None, alias).
+                    # When ENA "already exists" returns an ERA submission accession
+                    # instead of a real ERS/SAMEA accession, we store None and fall
+                    # back to refname (the stable DINA UUID alias) in the design.
+                    sample_refs: List[tuple] = []  # list of (accession|None, alias)
+                    dina_samples = entry.get("dina_samples", [])
+
+                    if dina_samples:
+                        ena_samples: List[Sample] = []
+                        for dina_s in dina_samples:
+                            sample_id = dina_s.get("id", "?")
+                            try:
+                                cached = _dina_fetch_cache.get(sample_id)
+                                if not cached:
+                                    raise ValueError(
+                                        f"DINA API returned no data for sample id={sample_id}"
+                                    )
+                                full_sample_data, full_included = cached
+                                ms_dto, ce_dto, org_data = prepare_sample_for_ena_mapping(
+                                    full_sample_data, full_included
+                                )
+                                ena_s = material_sample_to_ena(
+                                    material_sample=ms_dto,
+                                    collecting_event=ce_dto,
+                                    organism_data=org_data,
+                                    email="your.email@example.com",
+                                    include_unmapped=True,
+                                )
+                                # Keep the DINA UUID as the alias — stable across re-runs,
+                                # so ENA can detect already-registered samples by alias.
+                                ena_samples.append(ena_s)
+                            except Exception as map_err:
+                                add_status(
+                                    f"  Mapping error for DINA sample {sample_id[:8]}: {map_err} — skipping entry",
+                                    "error",
+                                )
+                                raise Exception(
+                                    f"Could not map DINA sample {sample_id[:8]} for {stem}: {map_err}"
+                                )
                     else:
-                        for err in receipt.get_errors():
-                            add_status(f"Sample error: {err}", "error")
-                        raise Exception(f"Sample submission failed for {stem}")
-                else:
-                    receipt = workflow.submit_samples_xml(
-                        ena_samples,
-                        action="ADD",
-                        hold_until_date=hold_date.value,
+                        _skipped += 1
+                        continue
+
+                    if len(ena_samples) == 1:
+                        receipt = _submit_with_retry(
+                            workflow.submit_sample_xml,
+                            ena_samples[0],
+                            action="ADD",
+                            hold_until_date=_hold_date,
+                            label=f"sample {stem}",
+                        )
+                        if receipt.success:
+                            acc = receipt.get_accession("SAMPLE")
+                            sample_refs.append((_valid_sample_acc(acc), ena_samples[0].alias))
+                            _ok_samples += 1
+                        else:
+                            errs = receipt.get_errors()
+                            # ENA "already exists" error returns the ERA submission accession,
+                            # not the real ERS/SAMEA accession — use alias (refname) instead.
+                            if any("already exists" in e for e in errs):
+                                sample_refs.append((None, ena_samples[0].alias))
+                                entry["ena_samples_linked"] = True
+                                _ok_samples += 1
+                            else:
+                                for err in errs:
+                                    add_status(f"Sample error ({stem}): {err}", "error")
+                                raise Exception(f"Sample submission failed for {stem}")
+                    else:
+                        receipt = _submit_with_retry(
+                            workflow.submit_samples_xml,
+                            ena_samples,
+                            action="ADD",
+                            hold_until_date=_hold_date,
+                            label=f"sample set {stem}",
+                        )
+                        if receipt.success:
+                            # Match returned accessions to aliases by alias field
+                            alias_to_acc = {
+                                obj.alias: obj.accession
+                                for obj in receipt.objects
+                                if obj.accession and obj.alias
+                            }
+                            for ena_s in ena_samples:
+                                raw_acc = alias_to_acc.get(ena_s.alias)
+                                sample_refs.append((_valid_sample_acc(raw_acc), ena_s.alias))
+                            _ok_samples += len(ena_samples)
+                        else:
+                            errs = receipt.get_errors()
+                            if any("already exists" in e for e in errs):
+                                # All samples already registered — use aliases as refnames
+                                for ena_s in ena_samples:
+                                    sample_refs.append((None, ena_s.alias))
+                                entry["ena_samples_linked"] = True
+                                _ok_samples += len(ena_samples)
+                            else:
+                                for err in errs:
+                                    add_status(f"Sample set error ({stem}): {err}", "error")
+                                raise Exception(f"Sample set submission failed for {stem}")
+
+                    entry["ena_sample_accessions"] = [
+                        acc for acc, _ in sample_refs if acc
+                    ] or [alias for _, alias in sample_refs]
+
+                    # ── [3] Experiment ─────────────────────────────────────────
+                    exp_alias = f"exp_{stem}"
+
+                    lib_layout = LibraryLayout(
+                        layout_type=_library_layout,
+                        nominal_length=_nominal_length if _library_layout == "PAIRED" else None,
+                        nominal_sdev=_nominal_sdev if _library_layout == "PAIRED" else None,
                     )
-                    if receipt.success:
-                        for obj in receipt.objects:
-                            if obj.accession:
-                                sample_accessions.append(obj.accession)
-                        add_status(
-                            f"✓ {len(sample_accessions)} samples submitted as SAMPLE_SET",
-                            "success",
+                    lib_desc = LibraryDescriptor(
+                        library_strategy=_library_strategy,
+                        library_source=_library_source,
+                        library_selection=_library_selection,
+                        library_layout=lib_layout,
+                    )
+
+                    if len(sample_refs) > 1:
+                        design = Design(
+                            design_description=_desc_text,
+                            sample_pool=[
+                                PoolMember(
+                                    accession=acc if acc else None,
+                                    refname=alias if not acc else None,
+                                    member_name=f"member_{i + 1}",
+                                )
+                                for i, (acc, alias) in enumerate(sample_refs)
+                            ],
+                            library_descriptor=lib_desc,
                         )
                     else:
-                        for err in receipt.get_errors():
-                            add_status(f"Sample set error: {err}", "error")
-                        raise Exception(f"Sample set submission failed for {stem}")
+                        acc, alias = sample_refs[0]
+                        design = Design(
+                            design_description=_desc_text,
+                            sample_descriptor=(
+                                ObjectRef(accession=acc)
+                                if acc
+                                else ObjectRef(refname=alias)
+                            ),
+                            library_descriptor=lib_desc,
+                        )
 
-                entry["ena_sample_accessions"] = sample_accessions
+                    ena_experiment = Experiment(
+                        alias=exp_alias,
+                        title=f"Sequencing experiment for {stem}",
+                        study_ref=ObjectRef(accession=_project_acc),
+                        design=design,
+                        platform=Platform(instrument_model=_instrument_model),
+                    )
+                    receipt = _submit_with_retry(
+                        workflow.submit_experiment,
+                        ena_experiment, action="ADD",
+                        label=f"experiment {stem}",
+                    )
+                    if receipt.success:
+                        exp_acc = receipt.get_accession("EXPERIMENT")
+                        entry["ena_experiment_alias"] = exp_alias
+                        entry["ena_experiment_accession"] = exp_acc
+                        _ok_experiments += 1
+                    else:
+                        errs = receipt.get_errors()
+                        # ENA "already exists" error for experiments reports the
+                        # submission (ERA...) accession, not the experiment (ERX...)
+                        # accession.  Detect the already-exists condition and fall
+                        # back to alias-based resolution in the run step instead.
+                        _already_exists = any("already exists" in e for e in errs)
+                        if _already_exists:
+                            entry["ena_experiment_alias"] = exp_alias
+                            entry["ena_experiment_accession"] = None  # use refname below
+                            _ok_experiments += 1
+                        else:
+                            for err in errs:
+                                add_status(f"Experiment error ({stem}): {err}", "error")
+                            raise Exception(f"Experiment submission failed for {stem}")
 
-                # ── [3] Experiment ─────────────────────────────────────────────
-                add_status(f"[3/4] Validating + submitting experiment for {stem}...", "info")
-                exp_alias = f"exp_{stem}_{timestamp}"
-
-                lib_layout = LibraryLayout(
-                    layout_type=library_layout_val.value,
-                    nominal_length=(
-                        nominal_length.value
-                        if library_layout_val.value == "PAIRED"
-                        else None
-                    ),
-                    nominal_sdev=(
-                        nominal_sdev.value
-                        if library_layout_val.value == "PAIRED"
-                        else None
-                    ),
-                )
-                lib_desc = LibraryDescriptor(
-                    library_strategy=library_strategy.value,
-                    library_source=library_source.value,
-                    library_selection=library_selection.value,
-                    library_layout=lib_layout,
-                )
-                desc_text = (
-                    design_description.value
-                    or f"{library_strategy.value} sequencing"
-                )
-
-                if len(sample_accessions) > 1:
-                    design = Design(
-                        design_description=desc_text,
-                        sample_pool=[
-                            PoolMember(
-                                accession=acc,
-                                member_name=f"member_{i + 1}",
+                    # ── [4] Run ────────────────────────────────────────────────
+                    run_alias = f"run_{stem}"
+                    run_files = [
+                        ENAFile(
+                            filename=f.name,
+                            filetype="fastq",
+                            checksum_method="MD5",
+                            checksum=md5,
+                        )
+                        for f, md5 in zip(entry["files"], entry["md5s"])
+                    ]
+                    # Prefer accession (ERX...) when available; fall back to stable alias
+                    # when the experiment already existed and ENA only returned an ERA
+                    # (submission-level) accession rather than the ERX accession.
+                    _exp_acc = entry.get("ena_experiment_accession")
+                    _exp_ref = (
+                        ObjectRef(accession=_exp_acc)
+                        if _exp_acc and not _exp_acc.startswith("ERA")
+                        else ObjectRef(refname=entry["ena_experiment_alias"])
+                    )
+                    ena_run = Run(
+                        alias=run_alias,
+                        title=f"Run for {stem}",
+                        experiment_ref=_exp_ref,
+                        data_blocks=[DataBlock(files=run_files)],
+                    )
+                    receipt = _submit_with_retry(
+                        workflow.submit_run,
+                        ena_run, action="ADD",
+                        label=f"run {stem}",
+                    )
+                    if receipt.success:
+                        run_acc = receipt.get_accession("RUN")
+                        entry["ena_run_alias"] = run_alias
+                        entry["ena_run_accession"] = run_acc
+                        _ok_runs += 1
+                        # Checkpoint: flush accessions periodically so progress isn't lost on failure
+                        if idx % _SUBMIT_LOG_INTERVAL == 0:
+                            sequence_entries.value = list(entries)
+                    else:
+                        errs = receipt.get_errors()
+                        # Pattern 1: ENA reports the existing run accession directly
+                        #   e.g. "The run files have been submitted in ERR1234567"
+                        _existing_run = next(
+                            (m.group(1) for e in errs
+                             for m in [re.search(r'submitted in (ERR[0-9]+)', e)] if m),
+                            None,
+                        )
+                        # Pattern 2: ENA reports the submission wrapper accession (ERA)
+                        #   e.g. "already exists in the submission account with accession: "ERA36099119""
+                        # ERA is the submission-level accession, not the ERR — we can't
+                        # recover the actual run accession from this, so we store the alias
+                        # only and mark the entry as already registered.
+                        _already_registered = not _existing_run and any(
+                            "already exists in the submission account" in e for e in errs
+                        )
+                        if _existing_run:
+                            entry["ena_run_alias"] = run_alias
+                            entry["ena_run_accession"] = _existing_run
+                            _ok_runs += 1
+                            if idx % _SUBMIT_LOG_INTERVAL == 0:
+                                sequence_entries.value = list(entries)
+                        elif _already_registered:
+                            entry["ena_run_alias"] = run_alias
+                            # ERR not recoverable from ERA — leave accession blank so the
+                            # results page shows it as "already registered, ERR unknown"
+                            entry.setdefault("ena_run_accession", None)
+                            _ok_runs += 1
+                            add_status(
+                                f"  Run for {stem} already registered in ENA (ERR accession not returned)",
+                                "info",
                             )
-                            for i, acc in enumerate(sample_accessions)
-                        ],
-                        library_descriptor=lib_desc,
-                    )
-                else:
-                    design = Design(
-                        design_description=desc_text,
-                        sample_descriptor=ObjectRef(accession=sample_accessions[0]),
-                        library_descriptor=lib_desc,
-                    )
+                        else:
+                            for err in errs:
+                                add_status(f"Run error ({stem}): {err}", "error")
+                            add_status(
+                                f"Run submission failed for {stem} — experiment and samples are registered",
+                                "warning",
+                            )
 
-                ena_experiment = Experiment(
-                    alias=exp_alias,
-                    title=f"Sequencing experiment for {stem}",
-                    study_ref=ObjectRef(accession=project_accession.value),
-                    design=design,
-                    platform=Platform(instrument_model=instrument_model.value),
+                sequence_entries.value = entries
+                skip_str = f", {_skipped} skipped (no DINA samples)" if _skipped else ""
+                complete_str = f", {_already_complete} already complete (skipped)" if _already_complete else ""
+                add_status(
+                    f"✓ Submission complete — {_ok_runs} runs, {_ok_experiments} experiments, "
+                    f"{_ok_samples} samples submitted{skip_str}{complete_str}",
+                    "success",
                 )
-                receipt = workflow.submit_experiment(ena_experiment, action="ADD", validate_first=True)
-                if receipt.success:
-                    exp_acc = receipt.get_accession("EXPERIMENT")
-                    entry["ena_experiment_alias"] = exp_alias
-                    entry["ena_experiment_accession"] = exp_acc
-                    add_status(f"✓ Experiment submitted: {exp_acc}", "success")
-                else:
-                    for err in receipt.get_errors():
-                        add_status(f"Experiment error: {err}", "error")
-                    raise Exception(f"Experiment submission failed for {stem}")
+                current_step.value = 6
 
-                # ── [4] Run ────────────────────────────────────────────────────
-                add_status(f"[4/4] Validating + submitting run for {stem}...", "info")
-                run_alias = f"run_{stem}_{timestamp}"
-                run_files = [
-                    ENAFile(
-                        filename=f.name,
-                        filetype="fastq",
-                        checksum_method="MD5",
-                        checksum=md5,
-                    )
-                    for f, md5 in zip(entry["files"], entry["md5s"])
-                ]
-                ena_run = Run(
-                    alias=run_alias,
-                    title=f"Run for {stem}",
-                    experiment_ref=ObjectRef(refname=exp_alias),
-                    data_blocks=[DataBlock(files=run_files)],
-                )
-                receipt = workflow.submit_run(ena_run, action="ADD", validate_first=True)
-                if receipt.success:
-                    run_acc = receipt.get_accession("RUN")
-                    entry["ena_run_alias"] = run_alias
-                    entry["ena_run_accession"] = run_acc
-                    add_status(f"✓ Run submitted: {run_acc}", "success")
-                else:
-                    for err in receipt.get_errors():
-                        add_status(f"Run error: {err}", "error")
-                    add_status(
-                        "Run submission failed — experiment and samples are registered",
-                        "warning",
-                    )
+            except Exception as e:
+                add_status(f"Fatal submission error: {e}", "error")
+                for line in traceback.format_exc().split("\n")[-6:-1]:
+                    if line.strip():
+                        add_status(f"  {line}", "error")
+            finally:
+                is_processing.value = False
 
-            sequence_entries.value = entries
-            add_status(
-                f"\n✓ Submission workflow complete for {total} entr(ies)", "success"
-            )
-            current_step.value = 6
-
-        except Exception as e:
-            add_status(f"Fatal submission error: {e}", "error")
-            for line in traceback.format_exc().split("\n")[-6:-1]:
-                if line.strip():
-                    add_status(f"  {line}", "error")
-        finally:
-            is_processing.value = False
+        threading.Thread(target=_run, daemon=True).start()
 
 
-    
     # ══════════════════════════════════════════════════════════════════════════
     # Main layout
     # ══════════════════════════════════════════════════════════════════════════
-
-    with solara.Card(title="ENA Submission Workflow", elevation=2):
+    # min-height keeps the cell output a consistent size between steps so the
+    # notebook doesn't jump/scroll when the GUI re-renders.
+    with solara.Card(title="ENA Submission Workflow", elevation=2,
+                     style="min-height: 900px;"):
         solara.Markdown(f"### Step {current_step.value} of 6")
         solara.ProgressLinear(value=(current_step.value / 6) * 100)
 
@@ -995,7 +1193,26 @@ def ENAWorkflowGUI():
                         continuous_update=False,
                     )
                 else:
-                    solara.Info("A minimal study will be created automatically at submission time.")
+                    solara.InputText(
+                        label="Study Name (required)",
+                        value=new_study_name,
+                        continuous_update=False,
+                    )
+                    solara.InputText(
+                        label="Study Title",
+                        value=new_study_title,
+                        continuous_update=False,
+                    )
+                    solara.InputText(
+                        label="Study Description",
+                        value=new_study_description,
+                        continuous_update=False,
+                    )
+                    if new_study_name.value:
+                        _preview_alias = new_study_name.value.strip().replace(" ", "_") + "_<timestamp>"
+                        solara.Info(f"Alias will be: `{_preview_alias}`")
+                    else:
+                        solara.Warning("A study name is required to proceed.")
 
             with solara.Card("Defaults"):
                 solara.InputText(
@@ -1006,7 +1223,8 @@ def ENAWorkflowGUI():
 
             with solara.Row():
                 can_advance = bool(_webin_username()) and bool(_webin_password()) and (
-                    study_mode.value == "new" or bool(existing_study_accession.value)
+                    (study_mode.value == "new" and bool(new_study_name.value))
+                    or (study_mode.value == "existing" and bool(existing_study_accession.value))
                 )
                 solara.Button(
                     "Next: Sequence Files →",
@@ -1115,16 +1333,80 @@ def ENAWorkflowGUI():
 
             if has_scan_results and not is_processing.value:
                 # ── Selection UI (phase 1 done, awaiting user choice) ─────────
+                _all_entries = ftp_scanned_entries.value
+                _n_total = len(_all_entries)
+                _n_ftp_ok = sum(1 for e in _all_entries if all(e.get("on_ftp", [False])))
+                _n_ftp_missing = _n_total - _n_ftp_ok
+                _n_selected = len(selected_stems.value)
+
                 solara.Markdown(
-                    "FTP check complete. Select which entries to process "
-                    "(MD5 computation + DINA lookup + submit)."
+                    f"FTP check complete — **{_n_total}** entr(ies) found: "
+                    f"✓ {_n_ftp_ok} on FTP, ⚠ {_n_ftp_missing} missing. "
+                    f"**{_n_selected} selected.** "
+                    f"Select entries to process (MD5 + DINA lookup)."
                 )
-                with solara.Card("Sequence Entries — select entries to proceed"):
+
+                _PAGE_SIZE = 100
+
+                # ── Apply search filter ───────────────────────────────────────
+                _search_q = step3_search.value.strip().lower()
+                _filt = step3_filter.value
+                _visible = [
+                    e for e in _all_entries
+                    if (_filt == "all"
+                        or (_filt == "ftp_ok" and all(e.get("on_ftp", [False])))
+                        or (_filt == "ftp_missing" and not all(e.get("on_ftp", [False]))))
+                    and (_search_q == "" or _search_q in e["stem"].lower())
+                ]
+                _n_visible = len(_visible)
+                _n_pages = max(1, (_n_visible + _PAGE_SIZE - 1) // _PAGE_SIZE)
+                _page = min(step3_page.value, _n_pages - 1)
+                _page_entries = _visible[_page * _PAGE_SIZE: (_page + 1) * _PAGE_SIZE]
+
+                with solara.Card("Sequence Entries"):
+                    # ── Toolbar row ───────────────────────────────────────────
                     with solara.Row():
                         solara.Button("Select All", on_click=_select_all_entries)
                         solara.Button("Clear All", on_click=_clear_all_entries)
+                        def _select_page():
+                            cur = set(selected_stems.value)
+                            cur.update(e["stem"] for e in _page_entries)
+                            selected_stems.value = list(cur)
+                        def _deselect_page():
+                            page_stems = {e["stem"] for e in _page_entries}
+                            selected_stems.value = [s for s in selected_stems.value if s not in page_stems]
+                        solara.Button("Select Page", on_click=_select_page)
+                        solara.Button("Deselect Page", on_click=_deselect_page)
+
+                    # ── Filter + search row ───────────────────────────────────
+                    with solara.Row():
+                        solara.InputText(
+                            label="Search stem",
+                            value=step3_search,
+                            continuous_update=True,
+                            style="max-width:280px;",
+                            on_value=lambda _: setattr(step3_page, "value", 0),
+                        )
+                        for _label, _key in [("All", "all"), ("FTP ✓", "ftp_ok"), ("FTP ⚠", "ftp_missing")]:
+                            _is_active = step3_filter.value == _key
+                            def _set_filt(k=_key):
+                                step3_filter.value = k
+                                step3_page.value = 0
+                            solara.Button(
+                                _label,
+                                on_click=_set_filt,
+                                color="primary" if _is_active else "default",
+                                style="min-width:80px;",
+                            )
+
                     solara.HTML(tag="hr")
-                    for entry in ftp_scanned_entries.value:
+
+                    # ── Entry rows for current page only ──────────────────────
+                    solara.Markdown(
+                        f"Showing **{len(_page_entries)}** of **{_n_visible}** "
+                        f"(page {_page + 1} / {_n_pages})"
+                    )
+                    for entry in _page_entries:
                         _stem = entry["stem"]
                         ftp_ok = all(entry.get("on_ftp", [False]))
                         ftp_icon = "✓" if ftp_ok else "⚠"
@@ -1140,20 +1422,45 @@ def ENAWorkflowGUI():
                                 f"**{_stem}** — {file_names} &nbsp;&nbsp; FTP: {ftp_icon}"
                             )
 
+                    # ── Pagination controls ───────────────────────────────────
+                    if _n_pages > 1:
+                        solara.HTML(tag="hr")
+                        with solara.Row():
+                            solara.Button(
+                                "◀ Prev",
+                                on_click=lambda: setattr(step3_page, "value", max(0, _page - 1)),
+                                disabled=_page == 0,
+                            )
+                            solara.Markdown(f"Page **{_page + 1}** / {_n_pages}")
+                            solara.Button(
+                                "Next ▶",
+                                on_click=lambda: setattr(step3_page, "value", min(_n_pages - 1, _page + 1)),
+                                disabled=_page >= _n_pages - 1,
+                            )
+
                 if status_messages.value:
                     with solara.Card("Scan Log"):
                         render_status_log()
 
-                n_selected = len(selected_stems.value)
                 with solara.Row():
                     solara.Button("← Back", on_click=lambda: setattr(current_step, "value", 2))
-                    solara.Button("Re-scan", on_click=scan_and_check_ftp)
                     solara.Button(
-                        f"Proceed with {n_selected} Selected →",
+                        "Re-scan",
+                        on_click=scan_and_check_ftp,
+                        disabled=is_processing.value,
+                    )
+                    solara.Button(
+                        f"Proceed with {_n_selected} Selected →",
                         on_click=run_md5_and_lookup,
                         color="primary",
-                        disabled=n_selected == 0,
+                        disabled=_n_selected == 0 or is_processing.value,
                     )
+                    if is_processing.value:
+                        solara.Button(
+                            "Cancel",
+                            on_click=lambda: cancel_event.current.set(),
+                            color="error",
+                        )
 
             else:
                 # ── Initial state or phase 1/2 in progress ────────────────────
@@ -1205,35 +1512,55 @@ def ENAWorkflowGUI():
                 study_label = (
                     f"Existing study: **{existing_study_accession.value}**"
                     if study_mode.value == "existing"
-                    else "A new minimal study will be created"
+                    else (
+                        f"New study: **{new_study_name.value}**"
+                        + (f" — title: *{new_study_title.value}*" if new_study_title.value else "")
+                    )
                 )
                 solara.Info(f"Study: {study_label}")
                 solara.Info(f"Hold date: {hold_date.value}")
 
-                with solara.Card("Sequence Entries"):
-                    for i, entry in enumerate(entries, 1):
-                        files_str = ", ".join(f.name for f in entry["files"])
-                        ftp_str = (
-                            "✓ on FTP"
-                            if all(entry.get("on_ftp", []))
-                            else "⚠ not confirmed"
-                        )
-                        dina_n = len(entry.get("dina_samples", []))
-                        if dina_n > 1:
-                            sample_plan = (
-                                f"{dina_n} DINA samples → submitted as SAMPLE_SET, "
-                                "referenced via POOL in experiment"
-                            )
-                        elif dina_n == 1:
-                            sample_plan = "1 DINA sample → mapped ENA sample"
-                        else:
-                            sample_plan = "⚠ No DINA samples — entry will be skipped"
-                        solara.Markdown(
-                            f"**{i}. {entry['stem']}**  \n"
-                            f"Files: {files_str}  \n"
-                            f"FTP: {ftp_str}  \n"
-                            f"Samples: {sample_plan}"
-                        )
+                # ── Summary card ──────────────────────────────────────────────
+                _n_entries = len(entries)
+                _n_single = sum(1 for e in entries if len(e.get("dina_samples", [])) == 1)
+                _n_pool   = sum(1 for e in entries if len(e.get("dina_samples", [])) > 1)
+                _n_no_dina = sum(1 for e in entries if not e.get("dina_samples"))
+                _total_samples = sum(len(e.get("dina_samples", [])) for e in entries)
+                _n_ftp_missing = sum(
+                    1 for e in entries if not all(e.get("on_ftp", [False]))
+                )
+
+                with solara.Card("Submission Summary"):
+                    solara.Markdown(
+                        f"| | |\n"
+                        f"|---|---|\n"
+                        f"| Sequence entries | **{_n_entries}** |\n"
+                        f"| DINA samples mapped | **{_total_samples}** |\n"
+                        f"| Single-sample entries | **{_n_single}** |\n"
+                        f"| Multi-sample (POOL) entries | **{_n_pool}** |\n"
+                        + (f"| ⚠ Entries with FTP issues | **{_n_ftp_missing}** |\n" if _n_ftp_missing else "")
+                        + (f"| ⚠ Entries with no DINA samples | **{_n_no_dina}** |\n" if _n_no_dina else "")
+                    )
+
+                # ── Collapsible per-entry detail ─────────────────────────────
+                _issues = [
+                    e for e in entries
+                    if not e.get("dina_samples") or not all(e.get("on_ftp", [False]))
+                ]
+                if _issues:
+                    with solara.Details(summary=f"⚠ {len(_issues)} entr(ies) with issues"):
+                        with solara.Card():
+                            for entry in _issues:
+                                ftp_ok = all(entry.get("on_ftp", [False]))
+                                dina_n = len(entry.get("dina_samples", []))
+                                flags = []
+                                if not ftp_ok:
+                                    flags.append("files not on FTP")
+                                if dina_n == 0:
+                                    flags.append("no DINA samples")
+                                solara.Markdown(
+                                    f"- **{entry['stem']}** — {', '.join(flags)}"
+                                )
 
             if scan_log_messages.value:
                 with solara.Details(summary="Step 3 Scan / Lookup Log"):
@@ -1320,19 +1647,121 @@ def ENAWorkflowGUI():
 
             entries = sequence_entries.value
             if entries:
-                with solara.Card("Per-Entry Accessions"):
-                    for entry in entries:
-                        solara.Markdown(f"**{entry['stem']}**")
-                        for acc in entry.get("ena_sample_accessions", []):
-                            solara.Success(f"  Sample: {acc}")
-                        if entry.get("ena_experiment_accession"):
-                            solara.Success(
-                                f"  Experiment: {entry['ena_experiment_accession']}"
+                _submitted = [
+                    e for e in entries if e.get("ena_experiment_accession")
+                ]
+                # Pre-existing: run already in ENA but experiment not tracked
+                # (all three objects were already registered in a prior session)
+                _pre_existing = [
+                    e for e in entries
+                    if e.get("ena_run_accession") and not e.get("ena_experiment_accession")
+                ]
+                _failed = [
+                    e for e in entries
+                    if not e.get("ena_experiment_accession") and not e.get("ena_run_accession")
+                ]
+                _total_samples = sum(
+                    len(e.get("ena_sample_accessions", [])) for e in _submitted
+                )
+                _linked_samples = sum(
+                    1 for e in _submitted if e.get("ena_samples_linked")
+                )
+
+                with solara.Card("Results Summary"):
+                    solara.Markdown(
+                        f"| | |\n"
+                        f"|---|---|\n"
+                        f"| Entries submitted | **{len(_submitted)}** / {len(entries)} |\n"
+                        f"| ENA samples submitted | **{_total_samples}** |\n"
+                        + (f"| Samples linked (already in ENA) | **{_linked_samples}** |\n" if _linked_samples else "")
+                        + f"| Study accession | **{project_accession.value or 'N/A'}** |\n"
+                        + (f"| Already in ENA (skipped) | **{len(_pre_existing)}** |\n" if _pre_existing else "")
+                        + (f"| ⚠ Entries not submitted | **{len(_failed)}** |\n" if _failed else "")
+                    )
+
+                # ── CSV generation + download ─────────────────────────────────
+                def _make_csv() -> bytes:
+                    buf = io.StringIO()
+                    writer = csv.writer(buf)
+                    writer.writerow([
+                        "stem",
+                        "dina_sample_uuids",
+                        "project_accession",
+                        "ena_sample_accessions",
+                        "ena_experiment_accession",
+                        "ena_run_accession",
+                    ])
+                    for e in entries:
+                        dina_ids = "|".join(
+                            s.get("id", "") for s in e.get("dina_samples", [])
+                        )
+                        writer.writerow([
+                            e["stem"],
+                            dina_ids,
+                            project_accession.value or "",
+                            "|".join(e.get("ena_sample_accessions", [])),
+                            e.get("ena_experiment_accession") or "",
+                            e.get("ena_run_accession") or "",
+                        ])
+                    return buf.getvalue().encode("utf-8")
+
+                solara.FileDownload(
+                    _make_csv,
+                    filename="ena_accessions.csv",
+                    label="⬇ Download accessions CSV",
+                )
+
+                if _pre_existing:
+                    with solara.Details(summary=f"ℹ {len(_pre_existing)} entr(ies) already in ENA"):
+                        with solara.Card():
+                            solara.Markdown(
+                                "These entries were already fully registered in ENA "
+                                "(run already existed). Nothing new was submitted."
                             )
-                        if entry.get("ena_run_accession"):
-                            solara.Success(f"  Run: {entry['ena_run_accession']}")
-                        elif entry.get("ena_experiment_accession"):
-                            solara.Warning("  Run: not submitted")
+                            for e in _pre_existing:
+                                solara.Markdown(f"- **{e['stem']}** — Run: `{e['ena_run_accession']}`")
+
+                if _failed:
+                    with solara.Details(summary=f"⚠ {len(_failed)} entr(ies) not submitted"):
+                        with solara.Card():
+                            for e in _failed:
+                                solara.Markdown(f"- **{e['stem']}**")
+
+                def _is_dina_uuid(s: str) -> bool:
+                    """True when s looks like a DINA UUID (fallback alias, not a real ENA accession)."""
+                    return bool(re.match(
+                        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+                        s, re.IGNORECASE,
+                    ))
+
+                with solara.Details(summary=f"All {len(entries)} accessions (click to expand)"):
+                    with solara.Card():
+                        for entry in entries:
+                            run_acc = entry.get("ena_run_accession")
+                            exp_acc = entry.get("ena_experiment_accession")
+                            if run_acc and not exp_acc:
+                                # Pre-existing — no new objects registered this session
+                                solara.Markdown(
+                                    f"**{entry['stem']}** *(already in ENA)* &nbsp; "
+                                    f"Run: `{run_acc}`"
+                                )
+                            else:
+                                raw_accs = entry.get("ena_sample_accessions", [])
+                                real_accs = [a for a in raw_accs if not _is_dina_uuid(a)]
+                                if real_accs:
+                                    samples_str = ", ".join(real_accs)
+                                elif entry.get("ena_samples_linked"):
+                                    samples_str = "*linked (existing)*"
+                                else:
+                                    samples_str = "—"
+                                exp_str = exp_acc or "—"
+                                run_str = run_acc or "—"
+                                solara.Markdown(
+                                    f"**{entry['stem']}**  "
+                                    f"Sample(s): `{samples_str}` &nbsp; "
+                                    f"Exp: `{exp_str}` &nbsp; "
+                                    f"Run: `{run_str}`"
+                                )
 
             if status_messages.value:
                 with solara.Card("Submission Log"):
@@ -1369,17 +1798,14 @@ def StudyActionPanel():
         >>> StudyActionPanel()
     """
 
-    import os as _os
-
-    # ── Credential helpers ────────────────────────────────────────────────
     def _webin_username() -> str:
-        return _os.environ.get("WEBIN_USERNAME", "")
+        return os.environ.get("WEBIN_USERNAME", "")
 
     def _webin_password() -> str:
-        return _os.environ.get("WEBIN_PASSWORD", "")
+        return os.environ.get("WEBIN_PASSWORD", "")
 
     def _env_test_server() -> bool:
-        return _os.environ.get("WEBIN_TEST", "true").lower() not in (
+        return os.environ.get("WEBIN_TEST", "true").lower() not in (
             "false", "0", "no", "off"
         )
 
@@ -1400,11 +1826,6 @@ def StudyActionPanel():
     }
 
     # ── Helpers ───────────────────────────────────────────────────────────
-    def _msg_color(msg_type: str) -> str:
-        return {"info": "blue", "success": "green", "warning": "orange", "error": "red"}.get(
-            msg_type, "grey"
-        )
-
     def add_status(message: str, msg_type: str = "info") -> None:
         ts = time.strftime("%H:%M:%S")
         status_messages.value = status_messages.value + [(ts, msg_type, message)]
@@ -1592,8 +2013,6 @@ def StudyActionPanel():
 
         # Receipt details
         if result_receipt.value:
-            from dinapy.ena.receipt import format_receipt_summary
-
             receipt = result_receipt.value
             with solara.Card("Receipt"):
                 if receipt.success:
@@ -1628,20 +2047,17 @@ def FTPUploadPanel():
         >>> FTPUploadPanel()
     """
 
-    import os as _os
-    import threading
-
     from dinapy.ena.upload import ReadUploader
 
     # ── Credential helpers ────────────────────────────────────────────────
     def _webin_username() -> str:
-        return _os.environ.get("WEBIN_USERNAME", "")
+        return os.environ.get("WEBIN_USERNAME", "")
 
     def _webin_password() -> str:
-        return _os.environ.get("WEBIN_PASSWORD", "")
+        return os.environ.get("WEBIN_PASSWORD", "")
 
     def _use_test_server() -> bool:
-        return _os.environ.get("WEBIN_TEST", "true").lower() not in ("false", "0", "no", "off")
+        return os.environ.get("WEBIN_TEST", "true").lower() not in ("false", "0", "no", "off")
 
     def _ftp_host() -> str:
         return "webin2.ebi.ac.uk" if _use_test_server() else "webin.ebi.ac.uk"
@@ -1657,12 +2073,6 @@ def FTPUploadPanel():
 
     # threading.Event is not JSON-serialisable, so store it in a ref (not reactive)
     cancel_event = solara.use_ref(threading.Event())
-
-    # ── Helpers ───────────────────────────────────────────────────────────
-    def _msg_color(msg_type: str) -> str:
-        return {"info": "blue", "success": "green", "warning": "orange", "error": "red"}.get(
-            msg_type, "grey"
-        )
 
     def add_status(message: str, msg_type: str = "info") -> None:
         ts = time.strftime("%H:%M:%S")
@@ -1966,4 +2376,3 @@ def FTPUploadPanel():
         if status_messages.value:
             with solara.Card("Log"):
                 render_status_log()
-
