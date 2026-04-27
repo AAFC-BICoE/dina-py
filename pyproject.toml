@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
+requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,8 +8,7 @@ version = "0.2.0"
 description = "DINA Web Services - Python library for interacting with the DINA web services"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.8"
-license = { file = "LICENSE" }
-license-files = ["LICENSE"]
+license = "MIT"
 authors = [{ name = "AAFC-BICoE" }]
 keywords = ["DINA", "API", "AAFC", "BICoE", "JSON:API"]
 classifiers = [
