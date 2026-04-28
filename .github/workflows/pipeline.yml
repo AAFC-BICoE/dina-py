@@ -1,12 +1,6 @@
 name: dina-py CI/CD
 
-on:
-  push:
-    branches: [ master ]
-    tags:
-      - 'v*.*.*'  # Triggers the CD part when you push a version tag
-  pull_request:
-    branches: [ master ]
+on: [push]
 
 jobs:
   build:
@@ -35,10 +29,9 @@ jobs:
   # --- Only runs on tags merged to master ---
   publish:
     name: Publish to PyPI
-    needs: build # Only run if build pass
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    environment: tobeupdated
     permissions:
       id-token: write
       contents: read
