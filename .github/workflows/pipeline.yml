@@ -26,13 +26,12 @@ jobs:
         run: |
           pytest tests/ -v
 
-  # --- Test  for merges on a branch - Will change to main once confirmed---
   publish:
-    name: Publish to TestPyPI
+    name: Publish to PyPI
     needs: build
     if: |
       github.event_name == 'push' &&
-      (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/Support-38221-PyPi_packaging')
+      (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -54,8 +53,5 @@ jobs:
       - name: Build package
         run: python -m build
         
-      - name: Publish to TestPyPI
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          # This line redirects the upload from the real PyPI to TestPyPI
-          repository-url: https://test.pypi.org/legacy/
