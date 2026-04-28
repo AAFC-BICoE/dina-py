@@ -4,19 +4,8 @@ import os
 import sys
 from dinapy.apis.dina_export_api.dina_export_api import DinaExportAPI
 from dinapy.apis.objectstoreapi.objectstore_api import ObjectStoreAPI
-from dinapy.apis.collectionapi.formtemplateapi import FormTemplateAPI
-from dinapy.apis.collectionapi.splitconfigurationapi import SplitConfigurationAPI
+from dinapy.resources import FormTemplate, SplitConfiguration
 from pathlib import Path
-from dinapy.entities.FormTemplate import (
-    FormTemplateAttributesDTOBuilder,
-    FormTemplateDTOBuilder,
-)
-from dinapy.entities.SplitConfiguration import (
-    SplitConfigurationAttributesDTOBuilder,
-    SplitConfigurationDTOBuilder,
-)
-from dinapy.schemas.splitconfigurationschema import SplitConfigurationSchema
-from dinapy.schemas.formtemplateschema import FormTemplateSchema
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -32,8 +21,6 @@ class DinaApiClient:
 
     def __init__(self, base_url: str = None) -> None:
         self.objectstore_module_api = ObjectStoreAPI(base_url)
-        self.form_template_api = FormTemplateAPI(base_url)
-        self.split_configuration_api = SplitConfigurationAPI(base_url)
         self.dina_export_api = DinaExportAPI(base_url)
 
 
@@ -82,10 +69,11 @@ def upload_file(
     args: argparse.Namespace, dina_api_client: DinaApiClient, path: Path, group
 ):
     response_json: dict = dina_api_client.objectstore_module_api.upload(group, path.as_posix())
+    data = response_json.get('data', {})
     log_response: dict = {
-        "originalFilename": response_json.get("originalFilename"),
-        "uuid": response_json.get("uuid"),
-        "warnings": response_json.get("meta").get("warnings"),
+        "originalFilename": data.get("attributes", {}).get("originalFilename"),
+        "uuid": data.get("id"),
+        "warnings": data.get("meta", {}).get("warnings"),
     }
     print(log_response)
 
@@ -93,72 +81,22 @@ def upload_file(
         print(response_json)
 
 
-def create_split_configuration(dina_api_client: DinaApiClient, path: Path):
+def create_split_configuration(path: Path):
     split_configuration_config_path = path.as_posix()
-    with open(
-        split_configuration_config_path, "r", encoding="utf-8"
-    ) as split_configuration_config_file:
-        split_configuration_config = yaml.safe_load(split_configuration_config_file)
-        split_configuration_attributes = split_configuration_config["attributes"]
-        split_configuration_attributes_dto = (
-            SplitConfigurationAttributesDTOBuilder()
-            .set_strategy(split_configuration_attributes["strategy"])
-            .set_conditionalOnMaterialSampleTypes(
-                split_configuration_attributes["conditionalOnMaterialSampleTypes"]
-            )
-            .set_characterType(split_configuration_attributes["characterType"])
-            .set_group(split_configuration_attributes["group"])
-            .set_separator(split_configuration_attributes["separator"])
-            .set_name(split_configuration_attributes["name"])
-            .set_materialSampleTypeCreatedBySplit(
-                split_configuration_attributes["materialSampleTypeCreatedBySplit"]
-            )
-            .build()
-        )
-        split_configuration_dto = (
-            SplitConfigurationDTOBuilder()
-            .set_attributes(split_configuration_attributes_dto)
-            .build()
-        )
-
-        schema = SplitConfigurationSchema()
-
-        serialized_split_configuration = schema.dump(split_configuration_dto)
-        response = dina_api_client.split_configuration_api.create_entity(
-            serialized_split_configuration
-        )
-        print(response.json())
+    with open(split_configuration_config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    sc = SplitConfiguration(**config["attributes"])
+    sc.save()
+    print(sc._data.model_dump())
 
 
-def create_form_template(dina_api_client: DinaApiClient, path: Path):
+def create_form_template(path: Path):
     form_template_config_path = path.as_posix()
-    with open(
-        form_template_config_path, "r", encoding="utf-8"
-    ) as form_template_config_file:
-        form_template_config = yaml.safe_load(form_template_config_file)
-        form_template_attributes = form_template_config["attributes"]
-        form_template_attributes_dto = (
-            FormTemplateAttributesDTOBuilder()
-            .set_components(form_template_attributes["components"])
-            .set_viewConfiguration(form_template_attributes["viewConfiguration"])
-            .set_restrictToCreatedBy(form_template_attributes["restrictToCreatedBy"])
-            .set_group(form_template_attributes["group"])
-            .set_name(form_template_attributes["name"])
-            .build()
-        )
-        form_template_dto = (
-            FormTemplateDTOBuilder()
-            .set_attributes(form_template_attributes_dto)
-            .build()
-        )
-
-        schema = FormTemplateSchema()
-
-        serialized_form_template = schema.dump(form_template_dto)
-        response = dina_api_client.form_template_api.create_entity(
-            serialized_form_template
-        )
-        print(response.json())
+    with open(form_template_config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    ft = FormTemplate(**config["attributes"])
+    ft.save()
+    print(ft._data.model_dump())
 
 
 def main():
@@ -178,16 +116,16 @@ def main():
         # .rglob recognizes file patterns
         pathlist = Path(args.upload_dir).rglob("*.*")
         for path in pathlist:
-            upload_file(args, dina_api_client, path)
+            upload_file(args, dina_api_client, path, group)
     elif args.create_metadatas:
         pathlist = Path(args.create_metadatas).rglob("*.*")
         dina_api_client.objectstore_module_api.create_metadatas(pathlist, dina_api_config, group)
     elif args.create_form_template:
         path = Path(args.create_form_template)
-        create_form_template(dina_api_client, path)
+        create_form_template(path)
     elif args.create_split_configuration:
         path = Path(args.create_split_configuration)
-        create_split_configuration(dina_api_client, path)
+        create_split_configuration(path)
     else:
         raise Exception("Incorrect arguments.")
 

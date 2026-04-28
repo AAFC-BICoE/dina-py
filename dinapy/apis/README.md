@@ -4,7 +4,7 @@
 
 ## Current Features
 
-* JSON-API serializer and deserializer with Marshmallow JSON-API (present in schemas folder)
+* JSON-API serializer and deserializer with Pydantic models (present in schemas folder)
 * GET request for all apis (PersonAPI, CollectingEventAPI, MaterialSampleAPI) - Includes get by param
 * POST and DELETE request for collection-module apis (CollectingEventAPI, MaterialSampleAPI) 
 * DELETE request for collection-module apis (CollectingEventAPI, MaterialSampleAPI) 
@@ -31,11 +31,13 @@
 
 * PATCH entity by id
 
-	material_sample_attributes = MaterialSampleAttributesDTOBuilder().group("aafc").createdBy("dina-admin").build()
-	material_sample = MaterialSampleDTOBuilder().id(id).attributes(material_sample_attributes).build()
-	serialized_material_sample = material_sample_schema.dump(material_sample)
+	from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument, MaterialSampleData, MaterialSampleAttributes
+	from dinapy.schemas.pydantic_base import JsonApiData
 
-	response = dina_material_sample_api.update_entity(id,serialized_material_sample)
+	data = JsonApiData(id=id, type="material-sample", attributes=MaterialSampleAttributes(group="aafc", createdBy="dina-admin"))
+	serialized_material_sample = MaterialSampleDocument(data=data).serialize()
+
+	response = dina_material_sample_api.update_entity(id, serialized_material_sample)
 
 ## Todo
 
@@ -45,6 +47,6 @@
 * Add support for other Dina entities.
 
 ## Tests
-* Unit tests implemented for PersonSchema, MaterialSampleSchema, CollectingEventSchema
+* Unit tests implemented for person, material sample, and collecting event pydantic models
 * API tests are currently done manually with a running local instance of DINA and still have to be converted to unittests
 

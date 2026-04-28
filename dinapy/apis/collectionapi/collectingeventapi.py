@@ -1,7 +1,6 @@
 """Class that extracts common functionality for collecting event entity"""
 
 from .collectionapi import CollectionModuleApi
-from dinapy.schemas.collectingeventschema import CollectingEventSchema
 import logging
 
 class CollectingEventAPI(CollectionModuleApi):
@@ -9,6 +8,26 @@ class CollectingEventAPI(CollectionModuleApi):
 	def __init__(self, base_url: str = None) -> None:
 		super().__init__( base_url)
 		self.base_url += "collecting-event"
+
+	def get_entities(self, include_params=None, filter_params=None):
+		"""Retrieves entities
+
+		Args:
+			include_params (string, optional): comma-separated list of relationship endpoints to include in the response
+			filter_params (dict, optional): dictionary of filters to apply to the request of format filter_tupe
+
+		Returns:
+			json response: 'result' from the json response OR nothing if no entities were found
+		"""
+		new_request_url = self.base_url
+		params = {}
+		if include_params:
+			params["include"] = include_params
+		for key, value in (filter_params or {}).items():
+			params[key] = value
+
+		jsn_resp = self.get_req_dina(new_request_url, params=params)
+		return jsn_resp if jsn_resp else ''
 
 	def bulk_update(self, json_data: dict):
 		"""Updates collecting-event records providing a bulk payload using a PATCH request.

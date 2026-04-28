@@ -13,7 +13,7 @@ sys.path.insert(0, project_root)
 # Import DINA utilities and schema definitions
 
 from dinapy.utils import prepare_bulk_payload
-from dinapy.schemas.personschema import PersonSchema
+from dinapy.schemas.person_pydantic import PersonDocument
 
 # Sample valid person data for testing
 
@@ -103,22 +103,20 @@ class TestBulkUpdate(unittest.TestCase):
 
         # Initialize the schema for deserialization
 
-        person_schema = PersonSchema()
-
         # Deserialize the test data into Person objects
 
-        person1 = person_schema.load(VALID_PERSON_DATA_ONE)
-        person2 = person_schema.load(VALID_PERSON_DATA_TWO)
+        person1 = PersonDocument.deserialize(VALID_PERSON_DATA_ONE).data
+        person2 = PersonDocument.deserialize(VALID_PERSON_DATA_TWO).data
 
         # Verify that deserialization worked correctly
 
         self.assertEqual(person1.id, "39e2e74c-e3ae-4d80-959b-dcb4ec35897b")
-        self.assertEqual(person1.attributes['familyNames'], "Person One")
+        self.assertEqual(person1.attributes.familyNames, "Person One")
 
         # Modify the 'familyNames' attribute for both persons
 
-        person1.attributes['familyNames'] = "prazeres"
-        person2.attributes['familyNames'] = "prazeres"
+        person1.attributes.familyNames = "prazeres"
+        person2.attributes.familyNames = "prazeres"
         
         # Prepare the bulk update payload with only the modified field
 

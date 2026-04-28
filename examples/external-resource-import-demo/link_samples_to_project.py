@@ -1,7 +1,6 @@
 from dinapy.apis.collectionapi.materialsampleapi import MaterialSampleAPI
-from dinapy.entities.MaterialSample import MaterialSampleDTOBuilder
-from dinapy.schemas.materialsampleschema import MaterialSampleSchema
-from dinapy.entities.Relationships import RelationshipDTO
+from dinapy.schemas.material_sample_pydantic import MaterialSampleDocument, MaterialSampleData, MaterialSampleAttributes
+from dinapy.schemas.pydantic_base import RelationshipData, RelationshipLinkage
 
 import traceback
 import os
@@ -17,24 +16,19 @@ def main():
     # Change as needed
     project_uuid = "01939841-002e-7597-86f2-368144d714b9"
 
-    # Build relationship to Project
-    link_to_project = (
-        RelationshipDTO.Builder()
-            .add_relationship(
-                "projects",     # Makes a projects relationship
-                "project",      # The type of object to be attached
-                project_uuid    # Project UUID
-            )
-        .build()
-    )
-
-    # Build Material Sample JSON Data
+    # Build Material Sample JSON Data with relationship to Project
     material_sample_api = MaterialSampleAPI()
-    material_sample_schema = MaterialSampleSchema()
-    material_sample = MaterialSampleDTOBuilder(
-        ).relationships(link_to_project).build()
-    # JSON data to be passed
-    serialized_material_sample = material_sample_schema.dump(material_sample)
+    serialized_material_sample = MaterialSampleDocument(
+        data=MaterialSampleData(
+            type="material-sample",
+            attributes=MaterialSampleAttributes(),
+            relationships={
+                "projects": RelationshipData(
+                    data=[RelationshipLinkage(type="project", id=project_uuid)]
+                )
+            }
+        )
+    ).serialize()
 
     # File that stores Material Sample UUIDs
     file = "examples/external-resource-import-demo/material_sample_uuids.txt"

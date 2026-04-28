@@ -1,9 +1,8 @@
-# dinapy/ena/mappers/dina_to_ena/mappers_dto.py
 """
-Mappers for converting DINA entity DTOs to ENA XML models.
+Mappers for converting DINA Pydantic data objects to ENA XML models.
 
-These mappers work with DINA DTO objects that have been deserialized from JSON API 
-responses using the schemas in dinapy.schemas.
+These mappers work with DINA Pydantic data objects (JsonApiData subclasses) deserialized
+from JSON API responses using the schemas in dinapy.schemas.
 
 DINA → ENA Entity Mapping Overview:
 ===================================
@@ -46,14 +45,14 @@ doesn't have explicit ENA equivalents.
 
 Example usage:
     ```python
-    from dinapy.schemas.project_schema import ProjectSchema
+    from dinapy.schemas.project_pydantic import ProjectDocument
     from dinapy.ena.mappers.dina_to_ena.mappers_dto import project_to_ena
     
     # Deserialize DINA API response
-    project_dto = ProjectSchema().load(api_response)
+    project_data = ProjectDocument.deserialize(api_response).data
     
     # Convert to ENA model
-    ena_project = project_to_ena(project_dto, description_override="Study description")
+    ena_project = project_to_ena(project_data, description_override="Study description")
     
     # Submit using ENASubmissionWorkflow
     from dinapy.ena.submission import ENASubmissionWorkflow
@@ -64,12 +63,12 @@ Example usage:
 from __future__ import annotations
 from typing import Optional, List
 
-# Import DINA entity DTOs
-from dinapy.entities.Project import ProjectDTO
-from dinapy.entities.MaterialSample import MaterialSampleDTO
-from dinapy.entities.CollectingEvent import CollectingEventDTO
-from dinapy.entities.MolecularAnalysisRun import MolecularAnalysisRunDTO
-from dinapy.entities.Metadata import MetadataDTO
+# Import DINA Pydantic data types (JsonApiData subclasses) for type hints
+from dinapy.schemas.project_pydantic import ProjectData
+from dinapy.schemas.material_sample_pydantic import MaterialSampleData
+from dinapy.schemas.collecting_event_pydantic import CollectingEventData
+from dinapy.schemas.molecular_analysis_run_pydantic import MolecularAnalysisRunData
+from dinapy.schemas.metadata_pydantic import MetadataData
 
 # Import ENA models
 from dinapy.ena.models import (
@@ -322,11 +321,11 @@ def resolve_country_from_coordinates(
 
 
 def extract_scientific_name_from_material_sample(
-    material_sample: MaterialSampleDTO,
+    material_sample: MaterialSampleData,
     organism_data: Optional[dict] = None
 ) -> Optional[str]:
     """
-    Extract scientific name from MaterialSample DTO.
+    Extract scientific name from MaterialSample data.
     
     Looks in multiple places (in priority order):
     1. Direct attributes: effectiveScientificName, targetOrganismPrimaryScientificName
@@ -335,7 +334,7 @@ def extract_scientific_name_from_material_sample(
     4. extensionValues
     
     Args:
-        material_sample: MaterialSampleDTO
+        material_sample: MaterialSampleData
         organism_data: Optional dict with organism information from DINA organism relationship.
                        Can be in two formats:
                        1. From included array: {"id": "...", "type": "organism", "attributes": {...}}
@@ -449,7 +448,7 @@ def extract_unmapped_attributes(
     exclude_keys: set,
 ) -> List[Attribute]:
     """
-    Extract unmapped attributes from a DINA DTO attributes object as generic ENA Attribute objects.
+    Extract unmapped attributes from a DINA attributes object as generic ENA Attribute objects.
     
     Always extracts:
         - managedAttributes (prefixed with 'managed_')
@@ -457,7 +456,7 @@ def extract_unmapped_attributes(
         - extensionValues (flattened with dot notation, prefixed with 'ext_')
     
     Args:
-        attributes_obj: The attributes object from a DINA DTO (e.g., material_sample.attributes)
+        attributes_obj: The attributes object from a DINA data object (e.g., material_sample.attributes)
         exclude_keys: Set of attribute keys that were already explicitly mapped
     
     Returns:
@@ -532,12 +531,12 @@ def extract_unmapped_attributes(
 # =============================================================================
 
 def project_to_ena(
-    project: ProjectDTO,
+    project: ProjectData,
     description_override: Optional[str] = None,
     include_unmapped: bool = True
 ) -> Project:
     """
-    Map DINA Project DTO to ENA Project.
+    Map DINA Project data to ENA Project.
     
     Mapping:
         - Project.alias <- project.id
@@ -546,7 +545,7 @@ def project_to_ena(
         - Unmapped attributes <- generic Attribute objects (if include_unmapped=True)
     
     Args:
-        project: DINA ProjectDTO (deserialized from JSON API)
+        project: DINA ProjectData
         description_override: Optional description override (e.g., from dropdown on export)
         include_unmapped: If True, include unmapped DINA attributes as generic ENA attributes
     
@@ -587,8 +586,8 @@ def project_to_ena(
 
 
 def material_sample_to_ena(
-    material_sample: MaterialSampleDTO,
-    collecting_event: Optional[CollectingEventDTO] = None,
+    material_sample: MaterialSampleData,
+    collecting_event: Optional[CollectingEventData] = None,
     taxon_id: Optional[int] = None,
     checklist: Optional[str] = None,
     geographic_location: Optional[str] = None,
@@ -598,7 +597,7 @@ def material_sample_to_ena(
     include_unmapped: bool = True
 ) -> Sample:
     """
-    Map DINA MaterialSample DTO to ENA Sample.
+    Map DINA MaterialSample data to ENA Sample.
     
     Mapping:
         - Sample.alias <- material_sample.id
@@ -609,8 +608,8 @@ def material_sample_to_ena(
         - Unmapped attributes <- generic Attribute objects (if include_unmapped=True)
     
     Args:
-        material_sample: DINA MaterialSampleDTO
-        collecting_event: Optional related CollectingEventDTO
+        material_sample: DINA MaterialSampleData
+        collecting_event: Optional related CollectingEventData
         taxon_id: NCBI taxon ID (if not provided, will attempt to auto-resolve)
         checklist: Optional ENA checklist identifier (e.g., "ERC000011")
         geographic_location: Optional geographic location override
@@ -779,7 +778,7 @@ def material_sample_to_ena(
 
 
 def molecular_analysis_run_to_ena(
-    molecular_run: MolecularAnalysisRunDTO,
+    molecular_run: MolecularAnalysisRunData,
     study_accession: str,
     sample_accession: str,
     library_strategy: str,
@@ -793,7 +792,7 @@ def molecular_analysis_run_to_ena(
     include_unmapped: bool = True
 ) -> Experiment:
     """
-    Map DINA MolecularAnalysisRun DTO to ENA Experiment.
+    Map DINA MolecularAnalysisRun data to ENA Experiment.
     
     IMPORTANT: Library and platform parameters CANNOT be directly mapped from DINA and must
     be provided by the user. These represent sequencing methodology choices that are not
@@ -809,7 +808,7 @@ def molecular_analysis_run_to_ena(
         - Unmapped attributes <- generic Attribute objects (if include_unmapped=True)
     
     Args:
-        molecular_run: DINA MolecularAnalysisRunDTO (provides alias, title, description)
+        molecular_run: DINA MolecularAnalysisRunData (provides alias, title, description)
         study_accession: ENA study accession - USER MUST PROVIDE (e.g., "PRJEB12345")
         sample_accession: ENA sample accession - USER MUST PROVIDE (e.g., "ERS123456")
         library_strategy: USER MUST PROVIDE - e.g., "WGS", "RNA-Seq", "AMPLICON", "METAGENOMIC"
@@ -833,7 +832,7 @@ def molecular_analysis_run_to_ena(
         
         # User must provide sequencing parameters that aren't in DINA
         experiment = molecular_analysis_run_to_ena(
-            molecular_run=molecular_run_dto,
+            molecular_run=molecular_analysis_run_data,
             study_accession=project_accession,
             sample_accession=sample_accession,
             library_strategy="AMPLICON",        # User config
@@ -889,7 +888,7 @@ def molecular_analysis_run_to_ena(
 
 
 def metadata_to_ena_run(
-    metadata: MetadataDTO,
+    metadata: MetadataData,
     experiment_accession: str,
     filetype: Optional[str] = None,
     checksum: Optional[str] = None,
@@ -897,7 +896,7 @@ def metadata_to_ena_run(
     include_unmapped: bool = True
 ) -> Run:
     """
-    Map DINA Metadata DTO (object store) to ENA Run.
+    Map DINA Metadata data (object store) to ENA Run.
     
     Mapping:
         - Run.alias <- metadata.id
@@ -909,7 +908,7 @@ def metadata_to_ena_run(
         - Unmapped attributes <- generic Attribute objects (if include_unmapped=True)
     
     Args:
-        metadata: DINA MetadataDTO (object store metadata)
+        metadata: DINA MetadataData (object store)
         experiment_accession: ENA experiment accession (e.g., "ERX123456")
         filetype: Optional filetype override (e.g., "fastq", "bam")
         checksum: Optional checksum override
@@ -986,8 +985,8 @@ def metadata_to_ena_run(
 # =============================================================================
 
 def batch_material_samples_to_ena(
-    material_samples: List[MaterialSampleDTO],
-    collecting_events: Optional[dict[str, CollectingEventDTO]] = None,
+    material_samples: List[MaterialSampleData],
+    collecting_events: Optional[dict[str, CollectingEventData]] = None,
     taxon_ids: Optional[dict[str, int]] = None,
     organism_data: Optional[dict[str, dict]] = None,
     checklist: Optional[str] = None,
@@ -995,11 +994,11 @@ def batch_material_samples_to_ena(
     auto_resolve_taxa: bool = True
 ) -> List[Sample]:
     """
-    Batch map DINA MaterialSample DTOs to ENA Samples.
+    Batch map DINA MaterialSample data objects to ENA Samples.
     
     Args:
-        material_samples: List of DINA MaterialSampleDTOs
-        collecting_events: Dict mapping material sample IDs to CollectingEventDTOs
+        material_samples: List of DINA MaterialSampleData objects
+        collecting_events: Dict mapping material sample IDs to CollectingEventData objects
         taxon_ids: Dict mapping material sample IDs to NCBI taxon IDs (pre-resolved)
         organism_data: Dict mapping material sample IDs to organism data from DINA
         checklist: Optional ENA checklist identifier
@@ -1012,8 +1011,8 @@ def batch_material_samples_to_ena(
     Example:
         ```python
         samples = batch_material_samples_to_ena(
-            material_samples=sample_dtos,
-            collecting_events={ms.id: ce for ms, ce in zip(sample_dtos, ce_dtos)},
+            material_samples=material_sample_data_list,
+            collecting_events={ms.id: ce for ms, ce in zip(material_sample_data_list, ce_data_list)},
             email="your.email@institution.edu",
             auto_resolve_taxa=True
         )
@@ -1049,15 +1048,15 @@ def batch_material_samples_to_ena(
 
 
 def batch_molecular_runs_to_ena(
-    molecular_runs: List[MolecularAnalysisRunDTO],
+    molecular_runs: List[MolecularAnalysisRunData],
     study_accession: str,
     experiment_configs: dict[str, dict]
 ) -> List[Experiment]:
     """
-    Batch map DINA MolecularAnalysisRun DTOs to ENA Experiments.
+    Batch map DINA MolecularAnalysisRun data objects to ENA Experiments.
     
     Args:
-        molecular_runs: List of DINA MolecularAnalysisRunDTOs
+        molecular_runs: List of DINA MolecularAnalysisRunData objects
         study_accession: ENA study accession
         experiment_configs: Dict mapping run IDs to config dicts with keys:
             - sample_accession: ENA sample accession
@@ -1101,15 +1100,15 @@ def batch_molecular_runs_to_ena(
 
 
 def batch_metadata_to_ena_runs(
-    metadata_objects: List[MetadataDTO],
+    metadata_objects: List[MetadataData],
     experiment_accessions: dict[str, str],
     run_configs: Optional[dict[str, dict]] = None
 ) -> List[Run]:
     """
-    Batch map DINA Metadata DTOs to ENA Runs.
+    Batch map DINA Metadata data objects to ENA Runs.
     
     Args:
-        metadata_objects: List of DINA MetadataDTOs
+        metadata_objects: List of DINA MetadataData objects
         experiment_accessions: Dict mapping metadata IDs to ENA experiment accessions
         run_configs: Optional dict mapping metadata IDs to config dicts with keys:
             - filetype: e.g., "fastq"
