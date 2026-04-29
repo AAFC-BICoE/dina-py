@@ -100,12 +100,11 @@ def prepare_sample_for_ena_mapping(
         >>>     ms_dto, ce_dto, org_data = prepare_sample_for_ena_mapping(sample, included)
         >>>     ena_sample = material_sample_to_ena(ms_dto, ce_dto, organism_data=org_data)
     """
-    from dinapy.schemas.materialsampleschema import MaterialSampleSchema
-    from dinapy.schemas.collectingeventschema import CollectingEventSchema
+    from dinapy.schemas.material_sample_pydantic import MaterialSampleData
+    from dinapy.schemas.collecting_event_pydantic import CollectingEventData
     
     # Deserialize material sample
-    material_sample_schema = MaterialSampleSchema()
-    material_sample_dto = material_sample_schema.load({'data': sample_data})
+    material_sample_dto = MaterialSampleData.model_validate(sample_data)
     
     # Find and deserialize collecting event
     collecting_event_dto = None
@@ -116,8 +115,7 @@ def prepare_sample_for_ena_mapping(
         ce_data = find_included_by_relationship(included_data, ce_relationship)
         if ce_data:
             try:
-                ce_schema = CollectingEventSchema()
-                collecting_event_dto = ce_schema.load({'data': ce_data})
+                collecting_event_dto = CollectingEventData.model_validate(ce_data)
             except Exception as e:
                 print(f"Warning: Could not deserialize collecting event: {e}")
     
