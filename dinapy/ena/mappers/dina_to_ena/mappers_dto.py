@@ -293,7 +293,8 @@ def resolve_country_from_coordinates(
             'addressdetails': 1
         }
         headers = {
-            'User-Agent': 'DINA-ENA-Mapper/1.0'  # Required by Nominatim usage policy
+            'User-Agent': 'DINA-ENA-Mapper/1.0',  # Required by Nominatim usage policy
+            'Accept-Language': 'en',
         }
         
         response = requests.get(url, params=params, headers=headers, timeout=10)
