@@ -73,6 +73,10 @@ from dinapy.ena.models import (
 )
 from dinapy.ena.receipt import format_receipt_summary
 from dinapy.ena.submission import ENASubmissionWorkflow
+from dinapy.ena.mappers.xml_builder.sample import (
+    build_sample_xml_from_model,
+    build_samples_xml_from_models,
+)
 from dinapy.ena.upload import ReadUploader
 
 
@@ -930,6 +934,17 @@ def ENAWorkflowGUI():
                             else:
                                 for err in errs:
                                     add_status(f"Sample error ({stem}): {err}", "error")
+                                try:
+                                    _xml = build_sample_xml_from_model(ena_samples[0])
+                                    add_status("── Sample XML sent to ENA ──", "warning")
+                                    for _line in _xml.splitlines():
+                                        add_status(_line, "warning")
+                                except Exception:
+                                    pass
+                                if receipt.raw_text:
+                                    add_status("── ENA response ──", "warning")
+                                    for _line in receipt.raw_text.splitlines():
+                                        add_status(_line, "warning")
                                 raise Exception(f"Sample submission failed for {stem}")
                     else:
                         receipt = _submit_with_retry(
@@ -961,6 +976,17 @@ def ENAWorkflowGUI():
                             else:
                                 for err in errs:
                                     add_status(f"Sample set error ({stem}): {err}", "error")
+                                try:
+                                    _xml = build_samples_xml_from_models(ena_samples)
+                                    add_status("── Sample set XML sent to ENA ──", "warning")
+                                    for _line in _xml.splitlines():
+                                        add_status(_line, "warning")
+                                except Exception:
+                                    pass
+                                if receipt.raw_text:
+                                    add_status("── ENA response ──", "warning")
+                                    for _line in receipt.raw_text.splitlines():
+                                        add_status(_line, "warning")
                                 raise Exception(f"Sample set submission failed for {stem}")
 
                     entry["ena_sample_accessions"] = [
