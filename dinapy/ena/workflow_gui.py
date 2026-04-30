@@ -2209,16 +2209,42 @@ def FTPUploadPanel():
         def _run():
             try:
                 _, local_files, rdir, host, uploader = _check_config()
-                known_presence = presence.value or {}
-                to_upload = [f for f in local_files if not known_presence.get(f.name, False)]
+
+                # Always do a fresh presence check before uploading so we never
+                # re-upload files that are already on the FTP server.
+                add_status(
+                    f"Checking {len(local_files)} local file(s) against FTP before uploading...",
+                    "info",
+                )
+                fresh_presence = uploader.check_files_on_ftp(
+                    file_paths=local_files,
+                    host=host,
+                    username=_webin_username(),
+                    password=_webin_password(),
+                    remote_dir=rdir,
+                    use_tls=True,
+                )
+                presence.value = fresh_presence  # keep the panel state in sync
+
+                if cancel_event.current.is_set():
+                    add_status("✗ Cancelled by user.", "warning")
+                    return
+
+                to_upload = [f for f in local_files if not fresh_presence.get(f.name, False)]
 
                 if not to_upload:
                     add_status(
-                        "All files are already on FTP — nothing to upload. "
-                        "Run Check File Presence first if unsure.",
-                        "info",
+                        "✓ All files are already on FTP — nothing to upload.",
+                        "success",
                     )
                     return
+
+                already_present = len(local_files) - len(to_upload)
+                if already_present:
+                    add_status(
+                        f"  {already_present} file(s) already on FTP — skipping.",
+                        "info",
+                    )
 
                 add_status(f"Uploading {len(to_upload)} file(s) to {host}...", "info")
                 all_ok = True
