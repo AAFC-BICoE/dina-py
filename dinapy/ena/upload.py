@@ -16,6 +16,7 @@ import hashlib
 import ftplib
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Dict
 
@@ -46,7 +47,7 @@ class ReadUploader:
     @staticmethod
     def compute_md5(
         path: Path,
-        chunk_size: int = 4 * 1024 * 1024,
+        chunk_size: int = 16 * 1024 * 1024,
         cancel_event=None,
         progress_callback=None,
     ) -> str:
@@ -54,67 +55,77 @@ class ReadUploader:
 
         Args:
             path: Path to the file.
-            chunk_size: Read chunk size in bytes.
+            chunk_size: Read chunk size in bytes (default 16 MB).
             cancel_event: Optional ``threading.Event``. When set, raises
                 ``InterruptedError`` so the caller can handle cancellation.
             progress_callback: Optional callable ``(bytes_done: int, total_bytes: int)``
                 invoked after every chunk so callers can report progress.
         """
-        h = hashlib.md5()
+        h = hashlib.md5(usedforsecurity=False)
         file_size = path.stat().st_size
         bytes_done = 0
 
-        with path.open("rb") as fh:
-            if HAS_TQDM and file_size > 10 * 1024 * 1024:  # Show progress for files > 10MB
-                with tqdm(
-                    total=file_size,
-                    unit='B',
-                    unit_scale=True,
-                    unit_divisor=1024,
-                    desc=f"Computing MD5 for {path.name}"
-                ) as pbar:
-                    for chunk in iter(lambda: fh.read(chunk_size), b""):
-                        if cancel_event is not None and cancel_event.is_set():
-                            raise InterruptedError("MD5 computation cancelled")
-                        h.update(chunk)
-                        bytes_done += len(chunk)
-                        pbar.update(len(chunk))
-                        if progress_callback is not None:
-                            progress_callback(bytes_done, file_size)
-            else:
+        pbar = (
+            tqdm(
+                total=file_size,
+                unit='B',
+                unit_scale=True,
+                unit_divisor=1024,
+                desc=f"MD5 {path.name}",
+            )
+            if HAS_TQDM and file_size > 10 * 1024 * 1024
+            else None
+        )
+        try:
+            with path.open("rb") as fh:
                 for chunk in iter(lambda: fh.read(chunk_size), b""):
                     if cancel_event is not None and cancel_event.is_set():
                         raise InterruptedError("MD5 computation cancelled")
                     h.update(chunk)
                     bytes_done += len(chunk)
+                    if pbar is not None:
+                        pbar.update(len(chunk))
                     if progress_callback is not None:
                         progress_callback(bytes_done, file_size)
+        finally:
+            if pbar is not None:
+                pbar.close()
 
         return h.hexdigest()
 
     @staticmethod
-    def build_manifest(file_paths: Iterable[Path]) -> List[dict]:
+    def build_manifest(file_paths: Iterable[Path], max_workers: int = 4) -> List[dict]:
         """
         Build a manifest list with filename, size and md5 for each path.
 
-        Returns a list of dicts:
+        MD5s are computed in parallel (``max_workers`` threads) which gives a
+        meaningful speedup on network storage (e.g. GPFS) where concurrent
+        reads saturate available bandwidth better than sequential reads.
+
+        Returns a list of dicts (in original order):
             [{'filename': 'f1.fastq.gz', 'size': 12345, 'md5': '...'}, ...]
         """
-        manifest: List[dict] = []
-        for p in file_paths:
-            p = Path(p)
+        paths = [Path(p) for p in file_paths]
+        for p in paths:
             if not p.exists():
                 raise FileNotFoundError(f"File not found: {p}")
-            
+
+        def _process(p: Path) -> dict:
             logger.info(f"Processing {p.name}...")
-            manifest.append(
-                {
-                    "filename": p.name,
-                    "size": p.stat().st_size,
-                    "md5": ReadUploader.compute_md5(p)
-                }
-            )
-        return manifest
+            return {
+                "filename": p.name,
+                "size": p.stat().st_size,
+                "md5": ReadUploader.compute_md5(p),
+            }
+
+        # Submit all files; collect results preserving original order.
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_process, p): i for i, p in enumerate(paths)}
+            results: List[dict] = [None] * len(paths)  # type: ignore[list-item]
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+
+        return results
 
     @staticmethod
     def write_manifest_file(manifest: List[dict], out_path: Path) -> None:
