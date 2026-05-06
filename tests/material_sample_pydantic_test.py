@@ -133,6 +133,26 @@ class MaterialSamplePydanticTest(unittest.TestCase):
         self.assertNotIn("collection", rels)
         self.assertNotIn("projects", rels)
 
+    def test_round_trip_null_vs_explicit_null(self):
+        """Null attribute values from the API must not leak into a PATCH payload.
+        Mutating a field to None after deserialization must appear as null so
+        the server clears the field.
+        """
+        doc = MaterialSampleDocument.deserialize(VALID_MATERIAL_SAMPLE_RESPONSE)
+        payload = doc.serialize()
+        attrs = payload["data"]["attributes"]
+
+        # These were null in the API response → stripped → must not appear
+        self.assertNotIn("dwcCatalogNumber", attrs)
+        self.assertNotIn("materialSampleName", attrs)
+        self.assertNotIn("materialSampleType", attrs)
+
+        # User explicitly clears a field → must appear as null in PATCH
+        doc.data.attributes.materialSampleName = None
+        attrs2 = doc.serialize()["data"]["attributes"]
+        self.assertIn("materialSampleName", attrs2)
+        self.assertIsNone(attrs2["materialSampleName"])
+
 
 if __name__ == "__main__":
     unittest.main()

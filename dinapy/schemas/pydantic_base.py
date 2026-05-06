@@ -46,26 +46,41 @@ class JsonApiDocument(BaseModel, Generic[AttributesT]):
     @classmethod
     def deserialize(cls, response: dict) -> "JsonApiDocument[AttributesT]":
         """Deserialize a raw API response dict.
-        Relationships with no data (links-only) are dropped at parse time.
+
+        - Null attribute values are stripped before model construction so they
+          are never counted as "set" in model_fields_set.  This prevents an
+          accidental round-trip from NULLing fields in a PATCH request.
+        - Relationships with no data (links-only) are dropped for the same
+          reason — they carry no actionable data for a client library.
+
+        To intentionally clear a field on PATCH, pass the field as an explicit
+        keyword argument (e.g. ``usageType=None``) when constructing the
+        attributes model directly — that marks it as set in model_fields_set
+        and serialize() will include it as null.
         """
-        # Strip links-only relationships before validation so they never appear
-        # in the model — they carry no actionable data for a client library.
         raw = dict(response)
-        if "data" in raw and "relationships" in (raw.get("data") or {}):
+        if "data" in raw:
             raw["data"] = dict(raw["data"])
-            raw["data"]["relationships"] = {
-                k: v for k, v in raw["data"]["relationships"].items()
-                if v.get("data") is not None
-            } or None
+            # Strip null attribute values so they are never in model_fields_set.
+            if isinstance(raw["data"].get("attributes"), dict):
+                raw["data"]["attributes"] = {
+                    k: v for k, v in raw["data"]["attributes"].items()
+                    if v is not None
+                }
+            # Strip links-only relationships.
+            if isinstance(raw["data"].get("relationships"), dict):
+                raw["data"]["relationships"] = {
+                    k: v for k, v in raw["data"]["relationships"].items()
+                    if v.get("data") is not None
+                } or None
         return cls.model_validate(raw)
 
     def serialize(self) -> dict:
         """
         Serialize to a JSON API request payload.
-        Uses exclude_unset=True so only explicitly set attributes are included —
-        replacing the 'undefined' + SkipUndefinedField mechanism entirely.
+        Uses exclude_unset=True so only explicitly set attributes are included
         """
-        data = self.data.model_dump(exclude_unset=True, exclude_none=True, mode="json")
+        data = self.data.model_dump(exclude_unset=True, mode="json")
         # Always include type
         data["type"] = self.data.type
         # Strip relationships with no data (links-only from GET response) and
