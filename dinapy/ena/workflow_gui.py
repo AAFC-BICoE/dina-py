@@ -791,6 +791,7 @@ def ENAWorkflowGUI():
                 _desc_text = design_description.value or f"{library_strategy.value} sequencing"
                 _instrument_model = instrument_model.value
                 _project_acc = project_accession.value
+                _default_taxon_id = default_taxon_id.value
 
                 # ── Parallel pre-fetch of all DINA sample records ─────────────────
                 _all_sample_ids = {
@@ -895,6 +896,7 @@ def ENAWorkflowGUI():
                                     organism_data=org_data,
                                     email="your.email@example.com",
                                     include_unmapped=True,
+                                    taxon_id=_default_taxon_id if _default_taxon_id else None,
                                 )
                                 # Keep the DINA UUID as the alias — stable across re-runs,
                                 # so ENA can detect already-registered samples by alias.
@@ -1245,6 +1247,10 @@ def ENAWorkflowGUI():
                     label="Hold Until Date (YYYY-MM-DD)",
                     value=hold_date,
                     continuous_update=False,
+                )
+                solara.InputInt(
+                    label="Default Taxon ID (e.g. 256318 = metagenome, 1284369 = environmental sample)",
+                    value=default_taxon_id,
                 )
 
             with solara.Row():
