@@ -17,7 +17,7 @@ from dinapy.ena.receipt import parse_receipt_xml, format_receipt_summary, ENARec
 # ---- Defaults ----
 # Use test=True for the nightly-reset dev environment (wwwdev), production otherwise.
 # Base URL points at Webin v2; some classic programmatic XML submissions use the drop-box "submit" endpoint.
-WEBIN_V2_BASE_PROD = "https://  "
+WEBIN_V2_BASE_PROD = "https://www.ebi.ac.uk/ena/submit/webin-v2"
 WEBIN_V2_BASE_TEST = "https://wwwdev.ebi.ac.uk/ena/submit/webin-v2"
 DROPBOX_SUBMIT_PROD = "https://www.ebi.ac.uk/ena/submit/drop-box/submit/"
 DROPBOX_SUBMIT_TEST = "https://wwwdev.ebi.ac.uk/ena/submit/drop-box/submit/"
