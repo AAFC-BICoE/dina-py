@@ -15,9 +15,12 @@ from __future__ import annotations
 import hashlib
 import ftplib
 import logging
+import shutil
+import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Iterable, List, Optional, Dict
+from typing import Callable, Iterable, List, Optional, Dict
 
 try:
     from tqdm import tqdm
@@ -44,52 +47,109 @@ class ReadUploader:
     # Utilities
     # -----------------------
     @staticmethod
-    def compute_md5(path: Path, chunk_size: int = 8192) -> str:
-        """Return MD5 hex digest for `path` with optional progress bar."""
-        h = hashlib.md5()
+    def compute_md5(
+        path: Path,
+        chunk_size: int = 16 * 1024 * 1024,
+        cancel_event=None,
+        progress_callback=None,
+        use_srun: bool = False,
+    ) -> str:
+        """Return MD5 hex digest for `path`.
+
+        Delegates to the system ``md5sum`` binary when available — this is a
+        C process that avoids Python loop overhead and the GIL entirely, and
+        is typically 2–4× faster than the pure-Python fallback for large files.
+
+        On HPC systems with login-node I/O limits, set ``use_srun=True`` to
+        run ``md5sum`` on a compute node via SLURM ``srun`` instead.
+
+        Args:
+            path:              Path to the file.
+            chunk_size:        Read chunk size in bytes (used by Python fallback only).
+            cancel_event:      Optional ``threading.Event`` for cancellation (Python fallback only).
+            progress_callback: Optional ``(bytes_done, total_bytes)`` callback (Python fallback only).
+            use_srun:          Wrap ``md5sum`` with ``srun --ntasks=1`` to run on a compute node.
+        """
+        path = Path(path)
+
+        # --- Fast path: native md5sum binary --------------------------------
+        md5sum_bin = shutil.which("md5sum")
+        if md5sum_bin:
+            cmd = (["srun", "--ntasks=1", md5sum_bin, str(path)]
+                   if use_srun else [md5sum_bin, str(path)])
+            try:
+                out = subprocess.check_output(cmd, text=True)
+                # md5sum output: "<hash>  <filename>"
+                return out.split()[0]
+            except subprocess.CalledProcessError as e:
+                logger.warning("md5sum failed (%s), falling back to Python hashlib", e)
+
+        # --- Fallback: Python hashlib ---------------------------------------
+        h = hashlib.md5(usedforsecurity=False)
         file_size = path.stat().st_size
-        
-        with path.open("rb") as fh:
-            if HAS_TQDM and file_size > 10 * 1024 * 1024:  # Show progress for files > 10MB
-                with tqdm(
-                    total=file_size,
-                    unit='B',
-                    unit_scale=True,
-                    unit_divisor=1024,
-                    desc=f"Computing MD5 for {path.name}"
-                ) as pbar:
-                    for chunk in iter(lambda: fh.read(chunk_size), b""):
-                        h.update(chunk)
-                        pbar.update(len(chunk))
-            else:
+        bytes_done = 0
+
+        pbar = (
+            tqdm(
+                total=file_size,
+                unit='B',
+                unit_scale=True,
+                unit_divisor=1024,
+                desc=f"MD5 {path.name}",
+            )
+            if HAS_TQDM and file_size > 10 * 1024 * 1024
+            else None
+        )
+        try:
+            with path.open("rb") as fh:
                 for chunk in iter(lambda: fh.read(chunk_size), b""):
+                    if cancel_event is not None and cancel_event.is_set():
+                        raise InterruptedError("MD5 computation cancelled")
                     h.update(chunk)
-        
+                    bytes_done += len(chunk)
+                    if pbar is not None:
+                        pbar.update(len(chunk))
+                    if progress_callback is not None:
+                        progress_callback(bytes_done, file_size)
+        finally:
+            if pbar is not None:
+                pbar.close()
+
         return h.hexdigest()
 
     @staticmethod
-    def build_manifest(file_paths: Iterable[Path]) -> List[dict]:
+    def build_manifest(file_paths: Iterable[Path], max_workers: int = 4) -> List[dict]:
         """
         Build a manifest list with filename, size and md5 for each path.
 
-        Returns a list of dicts:
+        MD5s are computed in parallel (``max_workers`` threads) which gives a
+        meaningful speedup on network storage (e.g. GPFS) where concurrent
+        reads saturate available bandwidth better than sequential reads.
+
+        Returns a list of dicts (in original order):
             [{'filename': 'f1.fastq.gz', 'size': 12345, 'md5': '...'}, ...]
         """
-        manifest: List[dict] = []
-        for p in file_paths:
-            p = Path(p)
+        paths = [Path(p) for p in file_paths]
+        for p in paths:
             if not p.exists():
                 raise FileNotFoundError(f"File not found: {p}")
-            
+
+        def _process(p: Path) -> dict:
             logger.info(f"Processing {p.name}...")
-            manifest.append(
-                {
-                    "filename": p.name,
-                    "size": p.stat().st_size,
-                    "md5": ReadUploader.compute_md5(p)
-                }
-            )
-        return manifest
+            return {
+                "filename": p.name,
+                "size": p.stat().st_size,
+                "md5": ReadUploader.compute_md5(p),
+            }
+
+        # Submit all files; collect results preserving original order.
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_process, p): i for i, p in enumerate(paths)}
+            results: List[dict] = [None] * len(paths)  # type: ignore[list-item]
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+
+        return results
 
     @staticmethod
     def write_manifest_file(manifest: List[dict], out_path: Path) -> None:
@@ -123,6 +183,7 @@ class ReadUploader:
         resume: bool = True,
         verify: bool = True,
         max_retries: int = 3,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> Dict[str, str]:
         """
         Upload local files to an FTP server with progress bars and resume support.
@@ -167,6 +228,7 @@ class ReadUploader:
                         timeout=timeout,
                         resume=resume,
                         verify=verify,
+                        progress_callback=progress_callback,
                     )
                     
                     if success:
@@ -201,17 +263,60 @@ class ReadUploader:
         timeout: int,
         resume: bool,
         verify: bool,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> bool:
         """Upload a single file via FTP with progress bar and resume support."""
-        ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
         file_size = file_path.stat().st_size
         remote_filename = file_path.name
 
         logger.debug("Connecting to FTP host %s (tls=%s)", host, use_tls)
         
-        with ftp_class(host, timeout=timeout) as ftp:
+        # Try TLS connection, fall back to plain FTP if server doesn't support it
+        try:
+            ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
+            ftp = ftp_class(host, timeout=timeout)
+        except Exception as e:
+            if use_tls:
+                logger.warning(f"FTP TLS failed ({e}), retrying without TLS")
+                return self._upload_single_file_ftp(
+                    file_path=file_path,
+                    host=host,
+                    username=username,
+                    password=password,
+                    remote_dir=remote_dir,
+                    use_tls=False,  # Retry without TLS
+                    passive=passive,
+                    timeout=timeout,
+                    resume=resume,
+                    verify=verify,
+                    progress_callback=progress_callback,
+                )
+            else:
+                raise
+        
+        try:
             ftp.login(username, password)
-            
+        except Exception as e:
+            ftp.close()
+            if use_tls:
+                logger.warning(f"FTP TLS login failed ({e}), retrying without TLS")
+                return self._upload_single_file_ftp(
+                    file_path=file_path,
+                    host=host,
+                    username=username,
+                    password=password,
+                    remote_dir=remote_dir,
+                    use_tls=False,  # Retry without TLS
+                    passive=passive,
+                    timeout=timeout,
+                    resume=resume,
+                    verify=verify,
+                    progress_callback=progress_callback,
+                )
+            else:
+                raise
+        
+        with ftp:
             if use_tls:
                 try:
                     ftp.prot_p()
@@ -243,31 +348,38 @@ class ReadUploader:
             with file_path.open('rb') as f:
                 if start_pos > 0:
                     f.seek(start_pos)
-                
-                if HAS_TQDM:
-                    with tqdm(
+
+                bytes_sent = start_pos
+                cmd = f'APPE {remote_filename}' if start_pos > 0 else f'STOR {remote_filename}'
+
+                pbar = (
+                    tqdm(
                         total=file_size,
                         initial=start_pos,
                         unit='B',
                         unit_scale=True,
                         unit_divisor=1024,
-                        desc=f"Uploading {remote_filename}"
-                    ) as pbar:
-                        def callback(data):
-                            pbar.update(len(data))
-                        
-                        cmd = f'STOR {remote_filename}'
-                        if start_pos > 0:
-                            cmd = f'APPE {remote_filename}'  # Append mode for resume
-                        
-                        ftp.storbinary(cmd, f, blocksize=self.chunk_size, callback=callback)
-                else:
-                    # No progress bar
-                    cmd = f'STOR {remote_filename}'
-                    if start_pos > 0:
-                        cmd = f'APPE {remote_filename}'
-                    
-                    ftp.storbinary(cmd, f, blocksize=self.chunk_size)
+                        desc=f"Uploading {remote_filename}",
+                    )
+                    if HAS_TQDM
+                    else None
+                )
+
+                def _chunk_cb(data):
+                    nonlocal bytes_sent
+                    bytes_sent += len(data)
+                    if pbar is not None:
+                        pbar.update(len(data))
+                    if progress_callback is not None:
+                        progress_callback(remote_filename, bytes_sent, file_size)
+
+                try:
+                    ftp.storbinary(cmd, f, blocksize=self.chunk_size, callback=_chunk_cb)
+                finally:
+                    if pbar is not None:
+                        pbar.close()
+
+                if pbar is None:
                     logger.info(f"Uploaded {remote_filename}")
 
             # Verify upload - try multiple methods
@@ -439,3 +551,132 @@ class ReadUploader:
             "results": results,
             "manifest_file": manifest_file_path
         }
+
+    # -----------------------
+    # FTP remote-file listing
+    # -----------------------
+    def list_remote_files(
+        self,
+        host: str,
+        username: str,
+        password: str,
+        remote_dir: Optional[str] = None,
+        use_tls: bool = True,
+        passive: bool = True,
+        timeout: int = 30,
+    ) -> Dict[str, int]:
+        """List files present on the FTP server and return their sizes.
+
+        Useful for verifying that sequence files have already been uploaded
+        before attempting a Run submission.
+
+        Args:
+            host:       FTP server hostname (e.g. ``"webin2.ebi.ac.uk"``).
+            username:   Webin username.
+            password:   Webin password.
+            remote_dir: Optional remote directory to ``cwd`` into before listing.
+            use_tls:    Use FTPS (recommended for ENA Webin).
+            passive:    Use passive mode.
+            timeout:    Connection timeout in seconds.
+
+        Returns:
+            ``{filename: size_in_bytes}`` dict for every file visible in the
+            remote directory.  Directories are excluded.  Returns an empty dict
+            if the connection fails or the directory is empty.
+        """
+        ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
+        result: Dict[str, int] = {}
+
+        def _do_list(ftp_conn) -> Dict[str, int]:
+            """Run the MLSD→NLST listing on an already-logged-in connection."""
+            listing: Dict[str, int] = {}
+            try:
+                for name, facts in ftp_conn.mlsd():
+                    if facts.get("type", "file") == "file":
+                        listing[name] = int(facts.get("size", 0))
+                logger.debug("Listed %d remote files via MLSD", len(listing))
+            except Exception:
+                logger.debug("MLSD not supported, falling back to NLST")
+                try:
+                    for name in ftp_conn.nlst():
+                        listing[name] = 0
+                except Exception as exc:
+                    logger.warning("NLST failed: %s", exc)
+            return listing
+
+        try:
+            with ftp_class(host, timeout=timeout) as ftp:
+                ftp.login(username, password)
+
+                if use_tls:
+                    # Request encrypted data channel; ignore if not supported.
+                    try:
+                        ftp.prot_p()
+                    except Exception:
+                        logger.debug("PROT P not supported, trying PROT C")
+                        try:
+                            ftp.prot_c()
+                        except Exception:
+                            logger.debug("PROT C also not supported, proceeding")
+
+                ftp.set_pasv(passive)
+
+                if remote_dir:
+                    try:
+                        ftp.cwd(remote_dir)
+                    except ftplib.error_perm as exc:
+                        logger.warning("Could not cwd to %s: %s", remote_dir, exc)
+                        return {}
+
+                result = _do_list(ftp)
+
+        except Exception as exc:
+            if use_tls:
+                # TLS not supported by server (e.g. AUTH TLS → 504 on test servers);
+                # retry transparently with plain FTP.
+                logger.warning("FTP TLS failed (%s), retrying without TLS", exc)
+                try:
+                    with ftplib.FTP(host, timeout=timeout) as ftp:
+                        ftp.login(username, password)
+                        ftp.set_pasv(passive)
+                        if remote_dir:
+                            try:
+                                ftp.cwd(remote_dir)
+                            except ftplib.error_perm as exc2:
+                                logger.warning("Could not cwd to %s: %s", remote_dir, exc2)
+                                return {}
+                        result = _do_list(ftp)
+                except Exception as exc2:
+                    logger.error("FTP listing failed (plain fallback): %s", exc2)
+            else:
+                logger.error("FTP listing failed: %s", exc)
+
+        except Exception as exc:
+            logger.error("FTP listing failed: %s", exc)
+
+        return result
+
+    def check_files_on_ftp(
+        self,
+        file_paths: Iterable[Path],
+        host: str,
+        username: str,
+        password: str,
+        remote_dir: Optional[str] = None,
+        use_tls: bool = True,
+    ) -> Dict[str, bool]:
+        """Check which local files are already present on the FTP server.
+
+        Args:
+            file_paths: Local :class:`~pathlib.Path` objects to check.
+            host:       FTP server hostname.
+            username:   Webin username.
+            password:   Webin password.
+            remote_dir: Optional remote directory to check within.
+            use_tls:    Use FTPS.
+
+        Returns:
+            ``{filename: True/False}`` — ``True`` when the file exists on the server.
+        """
+        remote = self.list_remote_files(host, username, password, remote_dir, use_tls)
+        return {Path(p).name: Path(p).name in remote for p in file_paths}

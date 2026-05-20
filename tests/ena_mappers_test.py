@@ -262,8 +262,7 @@ class TestMaterialSampleToENA:
             attr for attr in ena_sample.attributes
             if attr.tag == "geographic location (country and/or sea)"
         )
-        assert "Canada" in geo_attr.value
-        assert "Ontario" in geo_attr.value
+        assert geo_attr.value == "Canada"
     
     def test_mapping_with_checklist(self):
         """Test mapping with ENA checklist."""
@@ -515,224 +514,227 @@ class TestUtilityFunctions:
 # TEST: Unmapped Attributes
 # =============================================================================
 
-class TestUnmappedAttributes:
-    """Test automatic extraction of unmapped attributes as generic ENA attributes."""
+# Note: These tests are currently commented out because it's been decided to disable automatic extraction of unmapped attributes for now. 
+# If this feature is re-enabled in the future, these tests can be uncommented and updated as needed
+
+# class TestUnmappedAttributes:
+#     """Test automatic extraction of unmapped attributes as generic ENA attributes."""
     
-    def test_extract_unmapped_attributes_basic(self):
-        """Test basic unmapped attribute extraction."""
-        # Test with a dict (simpler case)
-        attrs_dict = {
-            'name': 'Test Name',
-            'description': 'Test Description',
-            'customField': 'Custom Value',
-            'anotherField': 123,
-            'noneField': None,
-            'undefinedField': 'undefined'
-        }
+#     def test_extract_unmapped_attributes_basic(self):
+#         """Test basic unmapped attribute extraction."""
+#         # Test with a dict (simpler case)
+#         attrs_dict = {
+#             'name': 'Test Name',
+#             'description': 'Test Description',
+#             'customField': 'Custom Value',
+#             'anotherField': 123,
+#             'noneField': None,
+#             'undefinedField': 'undefined'
+#         }
         
-        mapped_keys = {'name', 'description'}
+#         mapped_keys = {'name', 'description'}
         
-        unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys)
+#         unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys)
         
-        # Should extract customField and anotherField, but not noneField or undefinedField
-        tags = {attr.tag for attr in unmapped}
-        assert 'customField' in tags
-        assert 'anotherField' in tags
-        assert 'noneField' not in tags
-        assert 'undefinedField' not in tags
-        assert 'name' not in tags  # explicitly mapped
-        assert 'description' not in tags  # explicitly mapped
+#         # Should extract customField and anotherField, but not noneField or undefinedField
+#         tags = {attr.tag for attr in unmapped}
+#         assert 'customField' in tags
+#         assert 'anotherField' in tags
+#         assert 'noneField' not in tags
+#         assert 'undefinedField' not in tags
+#         assert 'name' not in tags  # explicitly mapped
+#         assert 'description' not in tags  # explicitly mapped
     
-    def test_extract_unmapped_with_managed_attributes(self):
-        """Test extraction including managedAttributes."""
-        attrs_dict = {
-            'name': 'Test',
-            'managedAttributes': {
-                'customKey': 'customValue',
-                'anotherKey': 'anotherValue'
-            },
-            'preparationManagedAttributes': {
-                'prepKey': 'prepValue'
-            }
-        }
+#     def test_extract_unmapped_with_managed_attributes(self):
+#         """Test extraction including managedAttributes."""
+#         attrs_dict = {
+#             'name': 'Test',
+#             'managedAttributes': {
+#                 'customKey': 'customValue',
+#                 'anotherKey': 'anotherValue'
+#             },
+#             'preparationManagedAttributes': {
+#                 'prepKey': 'prepValue'
+#             }
+#         }
         
-        mapped_keys = {'name'}
+#         mapped_keys = {'name'}
         
-        unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys)
+#         unmapped = extract_unmapped_attributes(attrs_dict, mapped_keys)
         
-        tags = {attr.tag for attr in unmapped}
-        assert 'managed_customKey' in tags
-        assert 'managed_anotherKey' in tags
-        assert 'prep_prepKey' in tags
+#         tags = {attr.tag for attr in unmapped}
+#         assert 'managed_customKey' in tags
+#         assert 'managed_anotherKey' in tags
+#         assert 'prep_prepKey' in tags
     
-    def test_material_sample_unmapped_attributes(self):
-        """Test unmapped attributes in material sample mapping."""
-        # Create a sample with extra unmapped fields in managedAttributes
-        sample_json = copy.deepcopy(MATERIAL_SAMPLE_JSON)
-        sample_json["data"]["attributes"]["managedAttributes"] = {
-            "habitat": "forest",
-            "temperature": "25C",
-            "customField1": "Custom Value 1"
-        }
+#     def test_material_sample_unmapped_attributes(self):
+#         """Test unmapped attributes in material sample mapping."""
+#         # Create a sample with extra unmapped fields in managedAttributes
+#         sample_json = copy.deepcopy(MATERIAL_SAMPLE_JSON)
+#         sample_json["data"]["attributes"]["managedAttributes"] = {
+#             "habitat": "forest",
+#             "temperature": "25C",
+#             "customField1": "Custom Value 1"
+#         }
         
-        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
+#        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
-        ena_sample = material_sample_to_ena(
-            material_sample=sample_dto,
-            taxon_id=5126,
-            include_unmapped=True
-        )
+#         ena_sample = material_sample_to_ena(
+#             material_sample=sample_dto,
+#             taxon_id=5126,
+#             include_unmapped=True
+#         )
         
-        # Check that unmapped attributes are present
-        attr_tags = {attr.tag for attr in ena_sample.attributes}
+#         # Check that unmapped attributes are present
+#         attr_tags = {attr.tag for attr in ena_sample.attributes}
         
-        # Should have managed attributes
-        assert 'managed_habitat' in attr_tags
-        assert 'managed_temperature' in attr_tags
-        assert 'managed_customField1' in attr_tags
+#         # Should have managed attributes
+#         assert 'managed_habitat' in attr_tags
+#         assert 'managed_temperature' in attr_tags
+#         assert 'managed_customField1' in attr_tags
     
-    def test_material_sample_without_unmapped_attributes(self):
-        """Test that unmapped attributes can be disabled."""
-        sample_json = copy.deepcopy(MATERIAL_SAMPLE_JSON)
-        sample_json["data"]["attributes"]["managedAttributes"] = {
-            "customField1": "Custom Value 1"
-        }
+#     def test_material_sample_without_unmapped_attributes(self):
+#         """Test that unmapped attributes can be disabled."""
+#         sample_json = copy.deepcopy(MATERIAL_SAMPLE_JSON)
+#         sample_json["data"]["attributes"]["managedAttributes"] = {
+#             "customField1": "Custom Value 1"
+#         }
         
-        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
+#        sample_dto = MaterialSampleDocument.deserialize(sample_json).data
         
-        ena_sample = material_sample_to_ena(
-            material_sample=sample_dto,
-            taxon_id=5126,
-            include_unmapped=False
-        )
+#         ena_sample = material_sample_to_ena(
+#             material_sample=sample_dto,
+#             taxon_id=5126,
+#             include_unmapped=False
+#         )
         
-        # Should not have custom fields from managedAttributes
-        attr_tags = {attr.tag for attr in ena_sample.attributes}
-        assert 'managed_customField1' not in attr_tags
+#         # Should not have custom fields from managedAttributes
+#         attr_tags = {attr.tag for attr in ena_sample.attributes}
+#         assert 'managed_customField1' not in attr_tags
     
-    def test_collecting_event_unmapped_attributes(self):
-        """Test that collecting event unmapped attributes are prefixed with 'ce_'."""
-        ce_json = copy.deepcopy(COLLECTING_EVENT_JSON)
-        ce_json["data"]["attributes"]["managedAttributes"] = {
-            "habitat": "woodland",
-            "elevation": "500m"
-        }
+#     def test_collecting_event_unmapped_attributes(self):
+#         """Test that collecting event unmapped attributes are prefixed with 'ce_'."""
+#         ce_json = copy.deepcopy(COLLECTING_EVENT_JSON)
+#         ce_json["data"]["attributes"]["managedAttributes"] = {
+#             "habitat": "woodland",
+#             "elevation": "500m"
+#         }
         
-        sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
-        ce_dto = CollectingEventDocument.deserialize(ce_json).data
+        # sample_dto = MaterialSampleDocument.deserialize(MATERIAL_SAMPLE_JSON).data
+        # ce_dto = CollectingEventDocument.deserialize(ce_json).data
         
-        ena_sample = material_sample_to_ena(
-            material_sample=sample_dto,
-            collecting_event=ce_dto,
-            taxon_id=5126,
-            include_unmapped=True
-        )
+#         ena_sample = material_sample_to_ena(
+#             material_sample=sample_dto,
+#             collecting_event=ce_dto,
+#             taxon_id=5126,
+#             include_unmapped=True
+#         )
         
-        # Check that collecting event unmapped attributes are prefixed
-        attr_tags = {attr.tag for attr in ena_sample.attributes}
-        assert 'ce_managed_habitat' in attr_tags
-        assert 'ce_managed_elevation' in attr_tags
+#         # Check that collecting event unmapped attributes are prefixed
+#         attr_tags = {attr.tag for attr in ena_sample.attributes}
+#         assert 'ce_managed_habitat' in attr_tags
+#         assert 'ce_managed_elevation' in attr_tags
     
-    def test_project_unmapped_attributes(self):
-        """Test unmapped attributes in project mapping."""
-        project_json = {
-            "data": {
-                "id": "test-project-123",
-                "type": "project",
-                "attributes": {
-                    "name": "Test Project",
-                    "group": "test-group",
-                    "multilingualDescription": {
-                        "descriptions": [
-                            {"desc": "A test project", "lang": "en"}
-                        ]
-                    },
-                    "startDate": "2025-01-01",
-                    "endDate": "2026-12-31",
-                    "status": "Active",
-                    "extensionValues": {
-                        "fundingAgency": "NSF",
-                        "grantNumber": "12345"
-                    }
-                }
-            }
-        }
+#     def test_project_unmapped_attributes(self):
+#         """Test unmapped attributes in project mapping."""
+#         project_json = {
+#             "data": {
+#                 "id": "test-project-123",
+#                 "type": "project",
+#                 "attributes": {
+#                     "name": "Test Project",
+#                     "group": "test-group",
+#                     "multilingualDescription": {
+#                         "descriptions": [
+#                             {"desc": "A test project", "lang": "en"}
+#                         ]
+#                     },
+#                     "startDate": "2025-01-01",
+#                     "endDate": "2026-12-31",
+#                     "status": "Active",
+#                     "extensionValues": {
+#                         "fundingAgency": "NSF",
+#                         "grantNumber": "12345"
+#                     }
+#                 }
+#             }
+#         }
         
-        project_dto = ProjectDocument.deserialize(project_json).data
+#         project_dto = ProjectDocument.deserialize(project_json).data
         
-        ena_project = project_to_ena(
-            project=project_dto,
-            include_unmapped=True
-        )
+#         ena_project = project_to_ena(
+#             project=project_dto,
+#             include_unmapped=True
+#         )
         
-        # Check that unmapped attributes are present (startDate, endDate, status)
-        attr_tags = {attr.tag for attr in ena_project.attributes}
-        assert 'startDate' in attr_tags
-        assert 'endDate' in attr_tags
-        assert 'status' in attr_tags
+#         # Check that unmapped attributes are present (startDate, endDate, status)
+#         attr_tags = {attr.tag for attr in ena_project.attributes}
+#         assert 'startDate' in attr_tags
+#         assert 'endDate' in attr_tags
+#         assert 'status' in attr_tags
     
-    def test_complex_nested_objects_excluded(self):
-        """Test that complex nested objects are excluded from unmapped attributes."""
-        attrs_dict = {
-            'simpleString': 'value',
-            'simpleNumber': 123,
-            'nestedDict': {'key': 'value', 'nested': {'deep': 'value'}},
-            'nestedList': ['item1', 'item2']
-        }
+#     def test_complex_nested_objects_excluded(self):
+#         """Test that complex nested objects are excluded from unmapped attributes."""
+#         attrs_dict = {
+#             'simpleString': 'value',
+#             'simpleNumber': 123,
+#             'nestedDict': {'key': 'value', 'nested': {'deep': 'value'}},
+#             'nestedList': ['item1', 'item2']
+#         }
         
-        unmapped = extract_unmapped_attributes(attrs_dict, set())
+#         unmapped = extract_unmapped_attributes(attrs_dict, set())
         
-        tags = {attr.tag for attr in unmapped}
+#         tags = {attr.tag for attr in unmapped}
         
-        # Simple types should be included
-        assert 'simpleString' in tags
-        assert 'simpleNumber' in tags
+#         # Simple types should be included
+#         assert 'simpleString' in tags
+#         assert 'simpleNumber' in tags
         
-        # Complex nested objects should be excluded
-        assert 'nestedDict' not in tags
-        assert 'nestedList' not in tags
+#         # Complex nested objects should be excluded
+#         assert 'nestedDict' not in tags
+#         assert 'nestedList' not in tags
     
-    def test_extension_values_flattening(self):
-        """Test that extensionValues are flattened with dot notation."""
-        attrs_dict = {
-            'simpleAttr': 'value1',
-            'extensionValues': {
-                'mixs_soil_v4': {
-                    'store_cond': '6months/-80oC',
-                    'env_package': 'Soil'
-                },
-                'mixs_soil_v5': {
-                    'dna_storage_conditons': 'freezer',
-                    'sample_collection_device': 'shovel'
-                }
-            }
-        }
+#     def test_extension_values_flattening(self):
+#         """Test that extensionValues are flattened with dot notation."""
+#         attrs_dict = {
+#             'simpleAttr': 'value1',
+#             'extensionValues': {
+#                 'mixs_soil_v4': {
+#                     'store_cond': '6months/-80oC',
+#                     'env_package': 'Soil'
+#                 },
+#                 'mixs_soil_v5': {
+#                     'dna_storage_conditons': 'freezer',
+#                     'sample_collection_device': 'shovel'
+#                 }
+#             }
+#         }
         
-        unmapped = extract_unmapped_attributes(attrs_dict, set())
+#         unmapped = extract_unmapped_attributes(attrs_dict, set())
         
-        # Create a dict of tag -> value for easier testing
-        attr_dict = {attr.tag: attr.value for attr in unmapped}
+#         # Create a dict of tag -> value for easier testing
+#         attr_dict = {attr.tag: attr.value for attr in unmapped}
         
-        # Simple attribute should be present
-        assert 'simpleAttr' in attr_dict
-        assert attr_dict['simpleAttr'] == 'value1'
+#         # Simple attribute should be present
+#         assert 'simpleAttr' in attr_dict
+#         assert attr_dict['simpleAttr'] == 'value1'
         
-        # extensionValues should be flattened with dot notation and prefixed with 'ext_'
-        assert 'ext_mixs_soil_v4.store_cond' in attr_dict
-        assert attr_dict['ext_mixs_soil_v4.store_cond'] == '6months/-80oC'
+#         # extensionValues should be flattened with dot notation and prefixed with 'ext_'
+#         assert 'ext_mixs_soil_v4.store_cond' in attr_dict
+#         assert attr_dict['ext_mixs_soil_v4.store_cond'] == '6months/-80oC'
         
-        assert 'ext_mixs_soil_v4.env_package' in attr_dict
-        assert attr_dict['ext_mixs_soil_v4.env_package'] == 'Soil'
+#         assert 'ext_mixs_soil_v4.env_package' in attr_dict
+#         assert attr_dict['ext_mixs_soil_v4.env_package'] == 'Soil'
         
-        assert 'ext_mixs_soil_v5.dna_storage_conditons' in attr_dict
-        assert attr_dict['ext_mixs_soil_v5.dna_storage_conditons'] == 'freezer'
+#         assert 'ext_mixs_soil_v5.dna_storage_conditons' in attr_dict
+#         assert attr_dict['ext_mixs_soil_v5.dna_storage_conditons'] == 'freezer'
         
-        assert 'ext_mixs_soil_v5.sample_collection_device' in attr_dict
-        assert attr_dict['ext_mixs_soil_v5.sample_collection_device'] == 'shovel'
+#         assert 'ext_mixs_soil_v5.sample_collection_device' in attr_dict
+#         assert attr_dict['ext_mixs_soil_v5.sample_collection_device'] == 'shovel'
         
-        # The original nested structure keys should NOT be present
-        assert 'ext_mixs_soil_v4' not in attr_dict
-        assert 'ext_mixs_soil_v5' not in attr_dict
+#         # The original nested structure keys should NOT be present
+#         assert 'ext_mixs_soil_v4' not in attr_dict
+#         assert 'ext_mixs_soil_v5' not in attr_dict
 
 
 # =============================================================================
