@@ -73,16 +73,28 @@ class ManagedAttributePydanticTest(unittest.TestCase):
         self.assertNotIn("acceptedValues", payload["data"]["attributes"])
         self.assertNotIn("relationships", payload["data"])
 
-    def test_none_unit_excluded_from_request(self):
-        """Explicitly set unit=None should not appear because exclude_none=True."""
-        doc = ManagedAttributeDocument(
-            data=ManagedAttributeData(
-                type="managed-attribute",
-                attributes=ManagedAttributeAttributes(group="aafc", unit=None),
-            )
-        )
-        payload = doc.serialize()
-        self.assertNotIn("unit", payload["data"]["attributes"])
+    def test_none_mutation_survives_for_patch(self):
+        """Mutating a field to None after deserialization must appear in the
+        PATCH payload so the server can clear the field.  Unset optional fields
+        must remain absent.
+        """
+        response = {
+            "data": {
+                "id": "01900001-0000-0000-0000-000000000001",
+                "type": "managed-attribute",
+                "attributes": {"group": "aafc", "unit": "kg"},
+            }
+        }
+        doc = ManagedAttributeDocument.deserialize(response)
+
+        # Unset optional field (acceptedValues was never in the response) → absent
+        self.assertNotIn("acceptedValues", doc.serialize()["data"]["attributes"])
+
+        # User clears unit → must appear as null in PATCH payload
+        doc.data.attributes.unit = None
+        attrs = doc.serialize()["data"]["attributes"]
+        self.assertIn("unit", attrs)
+        self.assertIsNone(attrs["unit"])
 
 
 if __name__ == "__main__":

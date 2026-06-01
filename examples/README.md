@@ -10,7 +10,9 @@ This README provides instructions for running the example scripts located in the
 ```
 examples/
 ├── collection/
+    ├── association.py
     ├── bulk-edit-collecting-event.py
+    ├── bulk-edit-material-sample.py
     ├── managed_attributes_api_test.py
     └── retrieve_delete_organism_api_test.py
 ├── data-export/
@@ -54,24 +56,97 @@ os.environ["keycloak_password"] = "your_password"
 
 ### 2. Dependencies
 
-Ensure the following Python packages are installed:
+Make sure the `dinapy` package and its dependencies are installed:
 
 ```bash
-pip install marshmallow
+pip install -e .
 ```
 
-Also make sure the `dinapy` package and its modules are available in your Python path.
+All serialization uses **Pydantic v2** — there is no marshmallow dependency.
+
+---
+
+## � Pydantic Round-Trip Pattern
+
+All scripts that interact with the API follow the same serialization pattern powered by Pydantic v2.
+
+### Creating a new record (POST)
+
+Only set the fields you want. The server will default anything you leave out to `null` — do not pass `None` in the constructor for fields you don't care about.
+
+```python
+from dinapy.schemas.association_pydantic import AssociationDocument, AssociationData, AssociationAttributes
+from dinapy.schemas.pydantic_base import RelationshipData, RelationshipLinkage
+
+doc = AssociationDocument(
+    data=AssociationData(
+        type="association",
+        attributes=AssociationAttributes(
+            associationType="has_host",
+            remarks="collected together",
+        ),
+        relationships={
+            "sample": RelationshipData(data=RelationshipLinkage(type="material-sample", id="<uuid>")),
+            "associatedSample": RelationshipData(data=RelationshipLinkage(type="material-sample", id="<uuid>")),
+        },
+    )
+)
+api.create_entity(doc.serialize())
+```
+
+See [`collection/association.py`](collection/association.py) for a full create + list + fetch example.
+
+### Updating a record (PATCH)
+
+Deserialize the API response, mutate only the fields you want to change, then serialize back. Fields that came in as `null` from the API are stripped at deserialize time and will not appear in the payload unless you explicitly assign them.
+
+```python
+from dinapy.schemas.collecting_event_pydantic import CollectingEventDocument
+
+response = collecting_event_api.get_entity(uuid)
+doc = CollectingEventDocument.deserialize(response.json())
+
+# Change one field — only this field ends up in the PATCH payload
+doc.data.attributes.dwcVerbatimElevation = "0.15"
+collecting_event_api.update_entity(uuid, doc.serialize())
+
+# To intentionally clear a field on the server, assign None after deserializing
+doc.data.attributes.verbatimLatitude = None
+collecting_event_api.update_entity(uuid, doc.serialize())  # sends {"verbatimLatitude": null}
+```
+
+See [`collection/bulk-edit-collecting-event.py`](collection/bulk-edit-collecting-event.py) and [`collection/bulk-edit-material-sample.py`](collection/bulk-edit-material-sample.py) for bulk PATCH examples.
 
 ---
 
 ## 📜 Script Descriptions
 
+### `association.py`
+
+Demonstrates the full lifecycle of an Association record using Pydantic:
+
+- Lists all associations.
+- Filters associations by sample UUID.
+- Fetches and deserializes a single association.
+- Creates a new association with `sample` and `associatedSample` relationships.
+
+---
+
 ### `bulk-edit-collecting-event.py`
 
 - Retrieves collecting event records filtered by group `"aafc"`.
-- Deserializes the first 10 records.
-- Updates the `dwcVerbatimElevation` field to `"0.15"`.
-- Prepares and sends a bulk update payload.
+- Deserializes each record with `CollectingEventDocument.deserialize()`.
+- Mutates `dwcVerbatimElevation` on the deserialized object (only that field appears in the PATCH payload).
+- Sends a bulk update via `bulk_update()`.
+
+---
+
+### `bulk-edit-material-sample.py`
+
+- Retrieves material sample records filtered by group `"aafc"`.
+- Deserializes each record with `MaterialSampleDocument.deserialize()`.
+- Mutates `preparationRemarks` on the deserialized object.
+- Sends a bulk update via `bulk_update()`.
 
 ---
 
