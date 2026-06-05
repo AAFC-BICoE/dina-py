@@ -3,7 +3,7 @@ requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dinapy"
+name = "dina-py"
 version = "0.2.0"
 description = "DINA Web Services - Python library for interacting with the DINA web services"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -32,7 +32,7 @@ dependencies = [
   "pydantic-core>=2.20",
   "python-dotenv>=1.0.0",
   "requests>=2.28.0",
-  "python-keycloak>=4.0.0",
+  "python-keycloak>=7.1.1",
   "pyyaml>=6.0",
   "certifi>=2023.7.22",
   "wrapt>=1.14.1",
