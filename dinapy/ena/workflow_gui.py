@@ -138,6 +138,10 @@ def ENAWorkflowGUI():
         return os.environ.get("WEBIN_PASSWORD", "")
     def _use_test_server() -> bool:
         return os.environ.get("WEBIN_TEST", "true").lower() not in ("false", "0", "no", "off")
+    def _allow_non_matched_samples() -> bool:
+        """Whether entries without DINA samples can proceed with auto-generated minimal ENA samples."""
+        return os.environ.get("ALLOW_NON_MATCHED_SAMPLES", "").lower() in ("true", "1", "yes", "on")
+
 
     study_mode = solara.use_reactive("new")           # "new" | "existing"
     existing_study_accession = solara.use_reactive("")
@@ -668,20 +672,50 @@ def ENAWorkflowGUI():
                     "info" if _lookup_none == 0 else "warning",
                 )
 
-                # Drop entries with no DINA samples
-                entries_before = len(entries)
-                entries = [e for e in entries if e.get("dina_samples")]
-                excluded = entries_before - len(entries)
-                if excluded:
+
+                # Decide how to handle entries with no DINA samples based on
+                # the ALLOW_NON_MATCHED_SAMPLES environment variable.
+                # When enabled, entries without DINA samples proceed with
+                # minimal auto-generated ENA samples using the default taxon ID.
+                # When disabled (default), such entries are excluded.
+                _allow_non_matched = _allow_non_matched_samples()
+                _n_without_dina = sum(1 for e in entries if not e.get("dina_samples"))
+                if _allow_non_matched and _n_without_dina:
                     add_status(
-                        f"⚠ {excluded} entr(ies) excluded — no DINA samples found. "
-                        f"{len(entries)} entr(ies) will proceed.",
+                        f"⚠ {_n_without_dina} entr(ies) have no DINA sample association — "
+                        f"will create minimal ENA samples using default taxon ID "
+                        f"({default_taxon_id.value}).",
                         "warning",
                     )
-
-                if not entries:
-                    add_status("No entries have associated DINA samples — nothing to submit.", "warning")
-                    return
+                    for _e in entries:
+                        if not _e.get("dina_samples"):
+                            add_status(
+                                f"  • {_e['stem']} — no DINA sample found; "
+                                f"will auto-generate minimal ENA sample",
+                                "warning",
+                            )
+                elif _n_without_dina:
+                    # Default behaviour: drop entries with no DINA samples.
+                    add_status(
+                        f"ℹ ALLOW_NON_MATCHED_SAMPLES not set — "
+                        f"{_n_without_dina} entr(ies) with no DINA samples will be excluded.",
+                        "info",
+                    )
+                    entries_before = len(entries)
+                    entries = [e for e in entries if e.get("dina_samples")]
+                    excluded = entries_before - len(entries)
+                    if excluded:
+                        add_status(
+                            f"⚠ {excluded} entr(ies) excluded — no DINA samples found. "
+                            f"{len(entries)} entr(ies) will proceed.",
+                            "warning",
+                        )
+                    if not entries:
+                        add_status(
+                            "No entries have associated DINA samples — nothing to submit.",
+                            "warning",
+                        )
+                        return
 
                 sequence_entries.value = entries
                 add_status(f"✓ Processing complete — {len(entries)} entr(ies) ready for review", "success")
@@ -910,8 +944,37 @@ def ENAWorkflowGUI():
                                     f"Could not map DINA sample {sample_id[:8]} for {stem}: {map_err}"
                                 )
                     else:
-                        _skipped += 1
-                        continue
+                        if _allow_non_matched_samples():
+                            # No DINA sample found — create a minimal ENA sample
+                            # using the default taxon ID and the entry stem as alias.
+                            add_status(
+                                f"  ⚠ [{stem}] No DINA sample — creating minimal ENA sample "
+                                f"(taxon ID: {_default_taxon_id})",
+                                "warning",
+                            )
+                            minimal_alias = f"sample_{stem}"
+                            ena_samples = [
+                                Sample(
+                                    alias=minimal_alias,
+                                    title=f"Auto-generated sample for {stem}",
+                                    organism=Organism(taxon_id=_default_taxon_id),
+                                    description=(
+                                        f"Auto-generated ENA sample for sequence entry {stem} "
+                                        f"(no DINA material sample was found). "
+                                        f"Submitted via DINA-to-ENA workflow "
+                                        f"on {date.today().isoformat()}."
+                                    ),
+                                )
+                            ]
+                            add_status(
+                                f"  → Created minimal sample alias={minimal_alias}, "
+                                f"taxon_id={_default_taxon_id}",
+                                "info",
+                            )
+                            _no_dina_samples += 1
+                        else:
+                            _skipped += 1
+                            continue
 
                     if len(ena_samples) == 1:
                         receipt = _submit_with_retry(
@@ -1150,10 +1213,11 @@ def ENAWorkflowGUI():
 
                 sequence_entries.value = entries
                 skip_str = f", {_skipped} skipped (no DINA samples)" if _skipped else ""
+                no_dina_str = f", {_no_dina_samples} with auto-generated minimal samples" if _no_dina_samples else ""
                 complete_str = f", {_already_complete} already complete (skipped)" if _already_complete else ""
                 add_status(
                     f"✓ Submission complete — {_ok_runs} runs, {_ok_experiments} experiments, "
-                    f"{_ok_samples} samples submitted{skip_str}{complete_str}",
+                    f"{_ok_samples} samples submitted{skip_str}{no_dina_str}{complete_str}",
                     "success",
                 )
                 current_step.value = 6
@@ -1563,6 +1627,7 @@ def ENAWorkflowGUI():
                 )
 
                 with solara.Card("Submission Summary"):
+                    _allow_non_matched = _allow_non_matched_samples()
                     solara.Markdown(
                         f"| | |\n"
                         f"|---|---|\n"
@@ -1571,28 +1636,52 @@ def ENAWorkflowGUI():
                         f"| Single-sample entries | **{_n_single}** |\n"
                         f"| Multi-sample (POOL) entries | **{_n_pool}** |\n"
                         + (f"| ⚠ Entries with FTP issues | **{_n_ftp_missing}** |\n" if _n_ftp_missing else "")
-                        + (f"| ⚠ Entries with no DINA samples | **{_n_no_dina}** |\n" if _n_no_dina else "")
+                        + (
+                            f"| ℹ Entries with no DINA samples (auto-generated) | **{_n_no_dina}** |\n"
+                            if _n_no_dina and _allow_non_matched else ""
+                        )
+                        + (
+                            f"| ⚠ Entries with no DINA samples | **{_n_no_dina}** |\n"
+                            if _n_no_dina and not _allow_non_matched else ""
+                        )
                     )
 
                 # ── Collapsible per-entry detail ─────────────────────────────
-                _issues = [
+                _ftp_issues = [
                     e for e in entries
-                    if not e.get("dina_samples") or not all(e.get("on_ftp", [False]))
+                    if not all(e.get("on_ftp", [False]))
                 ]
-                if _issues:
-                    with solara.Details(summary=f"⚠ {len(_issues)} entr(ies) with issues"):
+                _allow_non_matched = _allow_non_matched_samples()
+                _no_dina_entries = [
+                    e for e in entries
+                    if not e.get("dina_samples") and all(e.get("on_ftp", [False]))
+                ]
+                if _ftp_issues:
+                    with solara.Details(summary=f"⚠ {len(_ftp_issues)} entr(ies) with FTP issues"):
                         with solara.Card():
-                            for entry in _issues:
-                                ftp_ok = all(entry.get("on_ftp", [False]))
-                                dina_n = len(entry.get("dina_samples", []))
-                                flags = []
-                                if not ftp_ok:
-                                    flags.append("files not on FTP")
-                                if dina_n == 0:
-                                    flags.append("no DINA samples")
+                            for entry in _ftp_issues:
                                 solara.Markdown(
-                                    f"- **{entry['stem']}** — {', '.join(flags)}"
+                                    f"- **{entry['stem']}** — files not confirmed on FTP"
                                 )
+                if _no_dina_entries and _allow_non_matched:
+                    with solara.Details(
+                        summary=f"ℹ {len(_no_dina_entries)} entr(ies) with no DINA sample "
+                                f"(will use auto-generated minimal sample)"
+                    ):
+                        with solara.Card():
+                            for entry in _no_dina_entries:
+                                solara.Markdown(
+                                    f"- **{entry['stem']}** — minimal ENA sample will be created"
+                                    f" using default taxon ID ({default_taxon_id.value})"
+                                )
+                elif _no_dina_entries and not _allow_non_matched:
+                    with solara.Details(summary=f"⚠ {len(_no_dina_entries)} entr(ies) excluded (no DINA samples)"):
+                        with solara.Card():
+                            for entry in _no_dina_entries:
+                                solara.Markdown(
+                                    f"- **{entry['stem']}** — no DINA sample found; excluded from submission"
+                                )
+
 
             if scan_log_messages.value:
                 with solara.Details(summary="Step 3 Scan / Lookup Log"):
