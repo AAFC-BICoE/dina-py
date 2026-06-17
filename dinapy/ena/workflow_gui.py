@@ -890,6 +890,7 @@ def ENAWorkflowGUI():
                 _ok_experiments = 0
                 _ok_runs = 0
                 _skipped = 0
+                _no_dina_samples = 0
                 _already_complete = 0
                 add_status(f"Submitting {total} entr(ies)...", "info")
                 for idx, entry in enumerate(entries, 1):
@@ -964,6 +965,16 @@ def ENAWorkflowGUI():
                                         f"Submitted via DINA-to-ENA workflow "
                                         f"on {date.today().isoformat()}."
                                     ),
+                                    attributes = [
+                                        Attribute(
+                                            tag = "collection date",
+                                            value = _hold_date if _hold_date else date.today().isoformat()
+                                        ),
+                                        Attribute(
+                                            tag = "geographic location (country and/or sea)",
+                                            value = "not provided"
+                                        )
+                                    ]
                                 )
                             ]
                             add_status(
