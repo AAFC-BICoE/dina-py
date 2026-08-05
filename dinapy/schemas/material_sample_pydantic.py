@@ -8,12 +8,14 @@ Replaces:
 from __future__ import annotations
 from datetime import datetime
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dinapy.schemas.pydantic_base import JsonApiData, JsonApiDocument
 
 
 class MaterialSampleAttributes(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     version: int | None = None
     group: str
     createdOn: datetime | None = None
@@ -59,4 +61,17 @@ MaterialSampleData = JsonApiData[MaterialSampleAttributes]
 
 
 class MaterialSampleDocument(JsonApiDocument[MaterialSampleAttributes]):
-    pass
+
+    def serialize(self) -> dict:
+        """Serialize to JSON:API payload.
+
+        Strips extra fields that are only present in ?include=... responses
+        (e.g. targetIdentifiableEntitySummary from ?include=organism).
+        """
+        result = super().serialize()
+        attrs = result["data"]["attributes"]
+        known = set(MaterialSampleAttributes.model_fields)
+        for key in list(attrs):
+            if key not in known:
+                del attrs[key]
+        return result
