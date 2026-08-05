@@ -12,27 +12,60 @@ sudo apt install python3-pip
 
 ## Current Features
 
-#### JSON-API serializer and deserializer with Marshmallow JSON-API
-- Currently supported schemas:
-    - Collecting Event
-    - Storage Unit Usage
-    - Person
-    - Material Sample
-    - Metadata
-    - Storage Unit
-    - Form Template
-    - Split Configuration
-    - Metagenomics Batch
-    - Metagenomics Batch Item
-    - Molecular Analysis Result
-    - Molecular Analysis Run
-    - Molecular Analysis Run Item
-    - Project
+#### JSON:API serialization and deserialization with Pydantic v2
+
+Each resource exposes a `Document` class (e.g. `CollectingEventDocument`) that wraps the JSON:API envelope.  The two key methods are:
+
+- **`Document.deserialize(response_dict)`** — parses an API response; `null` attribute values are stripped so they are never accidentally sent back in a PATCH request.
+- **`doc.serialize()`** — produces a request payload; only fields that were explicitly set (or mutated after deserialization) are included, using Pydantic's `model_fields_set` tracking.
+
+**Safe PATCH pattern:**
+```python
+# GET → mutate → PATCH (only changed fields are sent)
+response = api.get_entity(uuid)
+doc = CollectingEventDocument.deserialize(response.json())
+doc.data.attributes.dwcVerbatimElevation = "0.15"   # only this field goes in the payload
+api.update_entity(uuid, doc.serialize())
+
+# To intentionally clear a field on the server, assign None after deserializing
+doc.data.attributes.verbatimLatitude = None
+api.update_entity(uuid, doc.serialize())   # → {"verbatimLatitude": null}
+```
+
+**POST (create) pattern:**
+```python
+# Only set the fields you want — the server defaults the rest to null
+doc = CollectingEventDocument(
+    data=CollectingEventData(
+        type="collecting-event",
+        attributes=CollectingEventAttributes(group="aafc", createdBy="dina-admin"),
+    )
+)
+api.create_entity(doc.serialize())
+```
+
+Currently supported schemas:
+- Association
+- Collecting Event
+- Form Template
+- Managed Attribute
+- Material Sample
+- Metadata
+- Metagenomics Batch
+- Metagenomics Batch Item
+- Molecular Analysis Result
+- Molecular Analysis Run
+- Molecular Analysis Run Item
+- Person
+- Project
+- Split Configuration
+- Storage Unit Usage
 #### DINA APIs
 - Currently supported APIs:
     - Agent API
       - Person
     - Collection API
+      - Association
       - CollectingEvent
       - StorageUnit
       - StorageUnitUsage
@@ -116,23 +149,37 @@ sudo apt install python3-pip
 
 ### Installation
 
-Install the package using pip:
+#### From PyPI (recommended)
 
 ```bash
-# Basic installation
-pip install .
+# Latest stable release
+pip install dinapy
 
-# Editable/development mode (recommended for contributors)
-pip install -e .
+# Upgrade to the latest version
+pip install --upgrade dinapy
 
 # With optional dependencies for Jupyter notebooks
-pip install .[notebook]
+pip install "dinapy[notebook]"
 
 # With test dependencies
-pip install .[test]
+pip install "dinapy[test]"
 
-# Multiple optional dependencies
-pip install -e .[notebook,test]
+# Multiple optional dependency groups
+pip install "dinapy[notebook,test]"
+```
+
+#### From source (contributors / development)
+
+```bash
+# Clone the repository
+git clone https://github.com/AAFC-BICoE/dina-py.git
+cd dina-py
+
+# Editable install (changes to source are reflected immediately)
+pip install -e .
+
+# Editable install with optional dependencies
+pip install -e ".[notebook,test]"
 ```
 
 **Note:** This package uses modern Python packaging with `pyproject.toml` as the single source of truth for dependencies and metadata (PEP 517/518).

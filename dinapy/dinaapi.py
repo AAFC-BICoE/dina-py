@@ -190,16 +190,32 @@ class DinaAPI:
             client_secret_key=None,
             verify=self.configs["secure"],
         )
+        self._validate_keycloak_client_contract()
         if not DinaAPI.token:
             print(f'User: {os.environ.get("keycloak_username")}')
             self.generate_token()
 
+    def _validate_keycloak_client_contract(self):
+        """Validate expected keycloak client methods at runtime."""
+        required_methods = ("token", "userinfo")
+        missing_methods = [
+            method_name
+            for method_name in required_methods
+            if not callable(getattr(self.keycloak, method_name, None))
+        ]
+        if missing_methods:
+            raise TypeError(
+                "KeycloakOpenID client is missing required methods: "
+                + ", ".join(missing_methods)
+            )
+
     def generate_token(self):
         try:
-            DinaAPI.token = self.keycloak.token(
+            token_payload = self.keycloak.token(
                 os.environ.get("keycloak_username"),
                 os.environ.get("keycloak_password"),
             )
+            DinaAPI.token = self._validate_token_payload(token_payload)
 
             # Set the bearer token in the header.
             self.set_req_header()
@@ -207,15 +223,31 @@ class DinaAPI:
             logging.error(exc)
             raise
 
+    def _validate_token_payload(self, token_payload):
+        """Validate the keycloak token payload shape before using it."""
+        if not isinstance(token_payload, dict):
+            raise TypeError(
+                f"Expected keycloak token response to be dict, got {type(token_payload).__name__}"
+            )
+
+        access_token = token_payload.get("access_token")
+        if not isinstance(access_token, str) or not access_token.strip():
+            raise TypeError("Keycloak token payload is missing a valid 'access_token' field")
+
+        return token_payload
+
     def refresh_token(self):
         """
         Check if the token still valid or if it needs to be regenerated.
         """
         try:
+            if not DinaAPI.token:
+                self.generate_token()
+
             # Set the bearer token in the header.
             self.set_req_header()
             self.keycloak.userinfo(DinaAPI.token["access_token"])
-        except KeycloakAuthenticationError as e:
+        except (KeycloakAuthenticationError, KeyError, TypeError):
             self.generate_token()
 
     def set_req_header(self):
