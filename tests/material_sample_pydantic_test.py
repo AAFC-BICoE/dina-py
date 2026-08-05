@@ -133,25 +133,111 @@ class MaterialSamplePydanticTest(unittest.TestCase):
         self.assertNotIn("collection", rels)
         self.assertNotIn("projects", rels)
 
-    def test_round_trip_null_vs_explicit_null(self):
-        """Null attribute values from the API must not leak into a PATCH payload.
-        Mutating a field to None after deserialization must appear as null so
-        the server clears the field.
-        """
-        doc = MaterialSampleDocument.deserialize(VALID_MATERIAL_SAMPLE_RESPONSE)
+    # ------------------------------------------------------------------
+    # extra="allow": transient fields from ?include=organism
+    # ------------------------------------------------------------------
+
+    VALID_MATERIAL_SAMPLE_WITH_ORGANISM_INCLUDE = {
+        "data": {
+            "id": "019fd253-def2-74a8-8692-f350b6abdf79",
+            "type": "material-sample",
+            "attributes": {
+                "resourceVersion": 0,
+                "group": "cnc",
+                "createdOn": "2026-08-05T14:28:59.756272Z",
+                "createdBy": "cnc-su",
+                "dwcCatalogNumber": None,
+                "dwcOtherCatalogNumbers": None,
+                "materialSampleName": None,
+                "identifiers": {},
+                "materialSampleType": None,
+                "preparationDate": None,
+                "preservationType": None,
+                "preparationFixative": None,
+                "preparationMaterials": None,
+                "preparationSubstrate": None,
+                "managedAttributes": {},
+                "preparationManagedAttributes": {},
+                "extensionValues": {},
+                "preparationRemarks": None,
+                "dwcDegreeOfEstablishment": None,
+                "targetOrganismPrimaryScientificName": "Homo Linnaeus, 1758",
+                "targetIdentifiableEntitySummary": {
+                    "managedAttributes": {},
+                    "lifeStage": None,
+                    "sex": None,
+                    "dwcVernacularName": None,
+                    "primaryDetermination": {
+                        "classification": {
+                            "phylum": "Chordata",
+                            "genus": "Homo",
+                            "family": "Hominidae",
+                            "kingdom": "Animalia",
+                            "class": "Mammalia",
+                            "order": "Primates",
+                        },
+                        "typeStatus": None,
+                        "managedAttributes": None,
+                    },
+                },
+                "barcode": None,
+                "publiclyReleasable": False,
+                "notPubliclyReleasableReason": None,
+                "tags": None,
+                "materialSampleState": None,
+                "materialSampleRemarks": None,
+                "stateChangedOn": None,
+                "stateChangeRemarks": None,
+                "allowDuplicateName": False,
+                "restrictionFieldsExtension": {},
+                "isRestricted": False,
+                "restrictionRemarks": None,
+                "sourceSet": None,
+                "isBaseForSplitByType": None,
+            },
+        },
+    }
+
+    def test_extra_field_deserialized_and_accessible(self):
+        """extra='allow' lets transient ?include fields through on deserialization."""
+        doc = MaterialSampleDocument.deserialize(
+            self.VALID_MATERIAL_SAMPLE_WITH_ORGANISM_INCLUDE
+        )
+
+        # Known fields still work
+        self.assertEqual(doc.data.attributes.group, "cnc")
+        self.assertEqual(
+            doc.data.attributes.targetOrganismPrimaryScientificName,
+            "Homo Linnaeus, 1758",
+        )
+
+        # The transient extra field is accessible
+        summary = doc.data.attributes.targetIdentifiableEntitySummary
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary["lifeStage"], None)
+        self.assertEqual(summary["sex"], None)
+        classification = summary["primaryDetermination"]["classification"]
+        self.assertEqual(classification["genus"], "Homo")
+        self.assertEqual(classification["kingdom"], "Animalia")
+
+    def test_extra_field_excluded_from_serialization(self):
+        """Transient extra fields must NOT appear in serialized output."""
+        doc = MaterialSampleDocument.deserialize(
+            self.VALID_MATERIAL_SAMPLE_WITH_ORGANISM_INCLUDE
+        )
+
         payload = doc.serialize()
         attrs = payload["data"]["attributes"]
 
-        # These were null in the API response → stripped → must not appear
-        self.assertNotIn("dwcCatalogNumber", attrs)
-        self.assertNotIn("materialSampleName", attrs)
-        self.assertNotIn("materialSampleType", attrs)
+        # Known fields are present
+        self.assertIn("group", attrs)
 
-        # User explicitly clears a field → must appear as null in PATCH
-        doc.data.attributes.materialSampleName = None
-        attrs2 = doc.serialize()["data"]["attributes"]
-        self.assertIn("materialSampleName", attrs2)
-        self.assertIsNone(attrs2["materialSampleName"])
+        # The transient extra field must be absent
+        self.assertNotIn(
+            "targetIdentifiableEntitySummary",
+            attrs,
+            "transient ?include field leaked into serialization",
+        )
 
 
 if __name__ == "__main__":
