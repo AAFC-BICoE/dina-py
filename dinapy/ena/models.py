@@ -278,10 +278,34 @@ class LibraryDescriptor(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PoolMember(BaseModel):
+    """A single sample member within a multiplexed experiment pool."""
+    accession: Optional[str] = Field(None, description="ENA sample accession (e.g. SAMEA123456)")
+    refname: Optional[str] = Field(None, description="Sample alias/refname")
+    member_name: Optional[str] = Field(None, alias="memberName", description="Label for this member in the pool")
+    proportion: Optional[float] = Field(None, description="Relative proportion of this member in the pool (0-1)")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class Design(BaseModel):
-    """Experiment design."""
+    """Experiment design.
+
+    Supports two mutually exclusive sample-reference modes:
+    - ``sample_descriptor``: reference to a **single** ENA sample (``ObjectRef``).
+    - ``sample_pool``: reference to **multiple** ENA samples submitted as a
+      multiplexed pool (``List[PoolMember]``).  Rendered as a
+      ``<SAMPLE_DESCRIPTOR><POOL>…</POOL></SAMPLE_DESCRIPTOR>`` element.
+
+    Exactly one of ``sample_descriptor`` or ``sample_pool`` must be set.
+    """
     design_description: str = Field(alias="designDescription")
-    sample_descriptor: ObjectRef = Field(alias="sampleDescriptor")
+    sample_descriptor: Optional[ObjectRef] = Field(None, alias="sampleDescriptor")
+    sample_pool: Optional[List[PoolMember]] = Field(
+        None,
+        alias="samplePool",
+        description="Multiple samples for pooled/multiplexed experiments",
+    )
     library_descriptor: LibraryDescriptor = Field(alias="libraryDescriptor")
 
     model_config = ConfigDict(populate_by_name=True)

@@ -17,7 +17,7 @@ from dinapy.ena.receipt import parse_receipt_xml, format_receipt_summary, ENARec
 # ---- Defaults ----
 # Use test=True for the nightly-reset dev environment (wwwdev), production otherwise.
 # Base URL points at Webin v2; some classic programmatic XML submissions use the drop-box "submit" endpoint.
-WEBIN_V2_BASE_PROD = "https://  "
+WEBIN_V2_BASE_PROD = "https://www.ebi.ac.uk/ena/submit/webin-v2"
 WEBIN_V2_BASE_TEST = "https://wwwdev.ebi.ac.uk/ena/submit/webin-v2"
 DROPBOX_SUBMIT_PROD = "https://www.ebi.ac.uk/ena/submit/drop-box/submit/"
 DROPBOX_SUBMIT_TEST = "https://wwwdev.ebi.ac.uk/ena/submit/drop-box/submit/"
@@ -244,7 +244,7 @@ class WebinAPI:
             Submit a single Webin v2 XML document of the form:
 
             <WEBIN>
-                <SUBMISSION_SET>...</SUBMISSION_SET>
+                <SUBMISSION>...</SUBMISSION>
                 [<PROJECT_SET>...</PROJECT_SET>]
                 [<SAMPLE_SET>...</SAMPLE_SET>]
                 [<EXPERIMENT_SET>...</EXPERIMENT_SET>]
@@ -301,7 +301,9 @@ class WebinAPI:
             >>> else:
             ...     print(f"Errors: {receipt.get_errors()}")
         """
-        return parse_receipt_xml(response.text)
+        receipt = parse_receipt_xml(response.text)
+        receipt.raw_text = response.text
+        return receipt
     
     def get_receipt_summary(self, response: requests.Response) -> str:
         """

@@ -293,7 +293,8 @@ def resolve_country_from_coordinates(
             'addressdetails': 1
         }
         headers = {
-            'User-Agent': 'DINA-ENA-Mapper/1.0'  # Required by Nominatim usage policy
+            'User-Agent': 'DINA-ENA-Mapper/1.0',  # Required by Nominatim usage policy
+            'Accept-Language': 'en',
         }
         
         response = requests.get(url, params=params, headers=headers, timeout=10)
@@ -381,19 +382,21 @@ def extract_scientific_name_from_material_sample(
                 # Format without "data" wrapper (from included array)
                 organism_attrs = organism_data.get('attributes', {})
             
-            determinations = organism_attrs.get('determination', [])
-            for det in determinations:
-                # Check if this is the primary determination
-                if det.get('isPrimary'):
-                    # Try scientificName first, then verbatimScientificName
-                    sci_name = det.get('scientificName') or det.get('verbatimScientificName')
+            # Get determinations, handling None case
+            determinations = organism_attrs.get('determination') or []
+            if determinations:
+                for det in determinations:
+                    # Check if this is the primary determination
+                    if det.get('isPrimary'):
+                        # Try scientificName first, then verbatimScientificName
+                        sci_name = det.get('scientificName') or det.get('verbatimScientificName')
+                        if sci_name and sci_name != 'undefined':
+                            return sci_name
+                # If no primary, take the first one
+                if determinations:
+                    sci_name = determinations[0].get('scientificName') or determinations[0].get('verbatimScientificName')
                     if sci_name and sci_name != 'undefined':
                         return sci_name
-            # If no primary, take the first one
-            if determinations:
-                sci_name = determinations[0].get('scientificName') or determinations[0].get('verbatimScientificName')
-                if sci_name and sci_name != 'undefined':
-                    return sci_name
         except (AttributeError, KeyError):
             pass
     
@@ -501,25 +504,25 @@ def extract_unmapped_attributes(
         if is_valid_attribute_value(value):
             attributes.append(Attribute(tag=key, value=str(value)))
     
-    # Always process managedAttributes, preparationManagedAttributes, and extensionValues
-    for managed_field, prefix in [
-        ('managedAttributes', 'managed_'),
-        ('preparationManagedAttributes', 'prep_')
-    ]:
-        managed = safe_get_attr(attributes_obj, managed_field, {})
-        if isinstance(managed, dict):
-            for key, value in managed.items():
-                if key not in exclude_keys and is_valid_attribute_value(value):
-                    attributes.append(Attribute(tag=f"{prefix}{key}", value=str(value)))
-    
-    # Process extensionValues with flattening
-    extension_values = safe_get_attr(attributes_obj, 'extensionValues', {})
-    if isinstance(extension_values, dict):
-        # Flatten the nested structure
-        flattened = flatten_dict(extension_values)
-        for key, value in flattened.items():
-            if key not in exclude_keys and is_valid_attribute_value(value):
-                attributes.append(Attribute(tag=f"ext_{key}", value=str(value)))
+    # # managedAttributes and extensionValues mapping disabled for now (simple mapping mode)
+    # for managed_field, prefix in [
+    #     ('managedAttributes', 'managed_'),
+    #     ('preparationManagedAttributes', 'prep_')
+    # ]:
+    #     managed = safe_get_attr(attributes_obj, managed_field, {})
+    #     if isinstance(managed, dict):
+    #         for key, value in managed.items():
+    #             if key not in exclude_keys and is_valid_attribute_value(value):
+    #                 attributes.append(Attribute(tag=f"{prefix}{key}", value=str(value)))
+    #
+    # # Process extensionValues with flattening
+    # extension_values = safe_get_attr(attributes_obj, 'extensionValues', {})
+    # if isinstance(extension_values, dict):
+    #     # Flatten the nested structure
+    #     flattened = flatten_dict(extension_values)
+    #     for key, value in flattened.items():
+    #         if key not in exclude_keys and is_valid_attribute_value(value):
+    #             attributes.append(Attribute(tag=f"ext_{key}", value=str(value)))
     
     return attributes
 
@@ -652,10 +655,28 @@ def material_sample_to_ena(
     if collecting_event:
         ce_attrs = collecting_event.attributes
         
-        # Collection date: try endEventDateTime first, fall back to startEventDateTime
-        collection_date = safe_get_attr(ce_attrs, 'endEventDateTime') or safe_get_attr(ce_attrs, 'startEventDateTime')
+        # Collection date: try multiple date fields in order of preference
+        # Priority: endEventDateTime > startEventDateTime > dwcEventDate > verbatimEventDateTime
+        collection_date = (safe_get_attr(ce_attrs, 'endEventDateTime') or 
+                          safe_get_attr(ce_attrs, 'startEventDateTime') or
+                          safe_get_attr(ce_attrs, 'dwcEventDate') or
+                          safe_get_attr(ce_attrs, 'verbatimEventDateTime'))
+        
+        # Transform invalid date formats to ENA-acceptable values
         if collection_date and collection_date != 'undefined':
+            # Check for placeholder/invalid values
+            invalid_dates = ['--', 'N/A', 'n/a', 'NA', 'unknown', 'Unknown', '']
+            if str(collection_date).strip() in invalid_dates:
+                collection_date = 'not available'
+                print(f"INFO: Transformed placeholder date to 'not available' for sample {alias}")
             attributes.append(Attribute(tag="collection date", value=str(collection_date)))
+        else:
+            # Collection date is MANDATORY for ENA - use 'not available' as fallback
+            collection_date = 'not available'
+            attributes.append(Attribute(tag="collection date", value=collection_date))
+            print(f"WARNING: No collection date found for sample {alias}. Using 'not available'.")
+            print(f"  Checked fields: endEventDateTime, startEventDateTime, dwcEventDate, verbatimEventDateTime")
+            print(f"  Please ensure your collecting event has valid date fields populated in DINA.")
         
         # Geographic location: try dwcCountry, fall back to reverse geocoding from coordinates
         if not geographic_location:
@@ -663,7 +684,8 @@ def material_sample_to_ena(
             state = safe_get_attr(ce_attrs, 'dwcStateProvince')
             
             if country:
-                geographic_location = country if not state else f"{country}: {state}"
+                # ENA only accepts country names from their controlled vocabulary (no state/province)
+                geographic_location = country
             else:
                 # Try to derive country from coordinates using reverse geocoding
                 lat = safe_get_attr(ce_attrs, 'dwcVerbatimLatitude')
@@ -677,7 +699,15 @@ def material_sample_to_ena(
                         primary = next((g for g in geo_refs if g.get('isPrimary')), geo_refs[0])
                         lat = primary.get('dwcDecimalLatitude')
                         lon = primary.get('dwcDecimalLongitude')
-                
+
+                # Also try dwcVerbatimCoordinates (format: "lat, lon")
+                if not lat or not lon:
+                    verbatim_coords = safe_get_attr(ce_attrs, 'dwcVerbatimCoordinates')
+                    if verbatim_coords:
+                        parts = str(verbatim_coords).split(',')
+                        if len(parts) == 2:
+                            lat, lon = parts[0].strip(), parts[1].strip()
+
                 if lat and lon:
                     try:
                         lat_float = float(lat)
@@ -689,10 +719,20 @@ def material_sample_to_ena(
                         
                         country = resolve_country_from_coordinates(lat_float, lon_float, cache=geo_cache)
                         if country:
-                            geographic_location = country if not state else f"{country}: {state}"
+                            # ENA only accepts country names from their controlled vocabulary (no state/province)
+                            geographic_location = country
                     except (ValueError, TypeError):
                         pass
                 
+                # Try to extract country from dwcVerbatimLocality (e.g., "Garnish River, Canada")
+                if not geographic_location:
+                    verbatim_locality = safe_get_attr(ce_attrs, 'dwcVerbatimLocality')
+                    if verbatim_locality:
+                        # Take the last comma-separated segment as the country
+                        locality_parts = [p.strip() for p in str(verbatim_locality).split(',') if p.strip()]
+                        if locality_parts:
+                            geographic_location = locality_parts[-1]
+
                 # Fall back to "not provided" if still no location
                 if not geographic_location:
                     geographic_location = "not provided"
@@ -700,6 +740,13 @@ def material_sample_to_ena(
     # Ensure geographic location is always present (MANDATORY for ENA)
     if geographic_location:
         attributes.append(Attribute(tag="geographic location (country and/or sea)", value=geographic_location))
+    
+    # Warn if no collecting event (both date and location will be missing)
+    if not collecting_event:
+        print(f"WARNING: No collecting event found for sample {alias}.")
+        print(f"  ENA requires: (1) collection date AND (2) geographic location")
+        print(f"  This submission will be REJECTED by ENA.")
+        print(f"  Please link a collecting event to this material sample in DINA.")
     
     # Additional material sample attributes
     if prep_date := safe_get_attr(attrs, 'preparationDate'):
@@ -716,7 +763,8 @@ def material_sample_to_ena(
         # Add unmapped collecting event attributes with prefix
         if collecting_event:
             ce_mapped = {'endEventDateTime', 'startEventDateTime', 'dwcCountry', 'dwcStateProvince',
-                        'dwcVerbatimLatitude', 'dwcVerbatimLongitude', 'geoReferenceAssertions'}
+                        'dwcVerbatimLatitude', 'dwcVerbatimLongitude', 'geoReferenceAssertions',
+                        'dwcVerbatimCoordinates', 'dwcVerbatimLocality'}
             ce_unmapped = extract_unmapped_attributes(collecting_event.attributes, ce_mapped)
             for attr in ce_unmapped:
                 attr.tag = f"ce_{attr.tag}"
@@ -725,7 +773,7 @@ def material_sample_to_ena(
     return Sample(
         alias=alias,
         title=title,
-        organism=Organism(taxonId=taxon_id),
+        organism=Organism(taxon_id=taxon_id),
         attributes=attributes
     )
 
